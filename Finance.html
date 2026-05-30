@@ -203,11 +203,11 @@ body {
 .sr-info-text { font-size: 12px; color: var(--text2); margin-top: 2px; }
 .section-title {
   font-size: 11px; font-weight: 700; letter-spacing: 0.16em;
-  text-transform: uppercase; color: var(--text3);
+  text-transform: uppercase; color: var(--text2);
   margin-bottom: 14px; margin-top: 32px;
   display: flex; align-items: center; gap: 10px;
 }
-.section-title::before { content: ''; width: 18px; height: 1px; background: var(--text3); }
+.section-title::before { content: ''; width: 18px; height: 1px; background: var(--text2); }
 .section-title .st-extra { margin-left: auto; font-size: 11px; color: var(--text3); letter-spacing: 0.04em; text-transform: none; font-weight: 400; }
 .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
 .sum-card {
@@ -919,6 +919,34 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   .fab, .header-tools, .quick-add, .templates, .toolbar, .row-btn, .goal-actions, .btn-add-goal { display: none !important; }
   .hero, .sum-card, .chart-card, .goal-card, .table-wrap { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; }
 }
+
+/* ── Page nav tabs ── */
+.page-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 24px;
+  margin-top: 0;
+}
+.page-tab {
+  flex: 1;
+  padding: 16px 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: var(--text3);
+  font-family: 'Sarabun', sans-serif;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  text-align: center;
+  white-space: nowrap;
+  transition: all 0.15s;
+  letter-spacing: 0.01em;
+}
+.page-tab:hover { color: var(--text2); background: var(--bg2); }
+.page-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+.page-section { }
 </style>
 </head>
 <body>
@@ -985,6 +1013,16 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
   </div>
 
+  <!-- ── Page Tab Nav ── -->
+  <div class="page-tabs" id="mainPageTabs">
+    <button class="page-tab active" data-page="overview" onclick="setPageTab('overview')">📊 ภาพรวม</button>
+    <button class="page-tab" data-page="loans" onclick="setPageTab('loans')">💳 สินเชื่อ / หนี้</button>
+    <button class="page-tab" data-page="analysis" onclick="setPageTab('analysis')">📈 วิเคราะห์</button>
+    <button class="page-tab" data-page="goals" onclick="setPageTab('goals')">🎯 เป้าหมาย</button>
+  </div>
+
+  <!-- ══ OVERVIEW ══ -->
+  <div class="page-section active" id="page-overview-top">
   <div class="hero">
     <div class="hero-content">
       <div class="hero-left">
@@ -1053,16 +1091,18 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       </button>
     </div>
 
-    <!-- Single payment-source button → popup -->
-    <div style="position:relative;z-index:1;margin-top:12px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-        <span style="font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;font-weight:600">จ่ายผ่าน</span>
-        <button class="shortcut-action" onclick="openSourceManager()" style="font-size:10px;padding:3px 8px">⚙ จัดการแหล่งเงิน</button>
+    <!-- Default source setting row (above shortcut tools) -->
+    <div style="position:relative;z-index:1;margin-bottom:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--bg2);border-radius:var(--rs);padding:8px 12px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0">
+          <span style="font-size:11px;color:var(--text2);font-weight:600;white-space:nowrap">ค่าเริ่มต้นจ่ายผ่าน:</span>
+          <button class="qa-source-btn" id="qaSourceBtn" onclick="openSourcePicker('qa')" style="flex:1;padding:6px 10px;border-radius:8px;height:auto">
+            <span class="qsb-left"><span class="qsb-icon" id="qaSourceIcon">💵</span><span id="qaSourceName" style="font-size:13px">เงินสด</span></span>
+            <span class="qsb-chev" style="font-size:10px">▼</span>
+          </button>
+        </div>
+        <button class="shortcut-action" onclick="openSourceManager()" style="font-size:10px;padding:4px 10px;flex-shrink:0">⚙ จัดการ</button>
       </div>
-      <button class="qa-source-btn" id="qaSourceBtn" onclick="openSourcePicker('qa')">
-        <span class="qsb-left"><span class="qsb-icon" id="qaSourceIcon">💵</span><span id="qaSourceName">เงินสด</span></span>
-        <span class="qsb-chev">▼ เปลี่ยน</span>
-      </button>
     </div>
   </div>
 
@@ -1105,123 +1145,140 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   <div id="alertBox" class="alert" style="display:none;margin-top:12px"></div>
   <div id="borrowedAlert" class="alert" style="display:none;margin-top:8px;background:linear-gradient(135deg,var(--amber-bg),var(--red-bg));border-color:var(--amber-br);color:var(--amber)"></div>
 
-  <!-- 💳 Loan Manager -->
-  <div class="section-title" style="margin-top:32px">
-    สินเชื่อ / หนี้ทั้งหมด
-    <span class="st-extra" id="loanTotalBadge"></span>
-  </div>
+  </div><!-- /page-overview-top -->
 
-  <div class="loans-total-bar" id="loanTotalBar">
-    <div class="ltb-item"><div class="ltb-label">หนี้รวมทั้งหมด</div><div class="ltb-val debt mono" id="ltbTotal">฿0</div></div>
-    <div class="ltb-item"><div class="ltb-label">ผ่อนไปแล้ว</div><div class="ltb-val paid mono" id="ltbPaid">฿0</div></div>
-    <div class="ltb-item"><div class="ltb-label">งวดรวม/เดือน</div><div class="ltb-val months mono" id="ltbMonthly">฿0</div></div>
-    <div class="ltb-item"><div class="ltb-label">วงเงินว่างรวม</div><div class="ltb-val paid mono" id="ltbAvailable">฿0</div></div>
-  </div>
+  <div class="page-section active" id="page-overview">
 
-  <!-- Loan tabs -->
-  <div class="subtabs" id="loanTabs">
-    <button class="subtab active" data-loantab="all" onclick="setLoanFilter('all')">ทั้งหมด</button>
-    <button class="subtab" data-loantab="active" onclick="setLoanFilter('active')">กำลังผ่อน</button>
-    <button class="subtab" data-loantab="done" onclick="setLoanFilter('done')">หมดแล้ว</button>
-    <button class="subtab" data-loantab="credit" onclick="setLoanFilter('credit')">มีวงเงิน</button>
-  </div>
-
-  <div class="loans-grid" id="loansGrid"></div>
-  <div id="loansEmpty" class="empty" style="display:none">ไม่มีรายการในแท็บนี้</div>
-  <div style="margin-top:10px">
-    <button class="btn-add-loan" onclick="openLoanModal()">+ เพิ่มสินเชื่อ / บันทึกหนี้</button>
-  </div>
-
-  <!-- 🎯 Debt Freedom Path -->
-  <div class="section-title">เส้นทางสู่อิสรภาพทางการเงิน</div>
-  <div class="freedom-card" id="freedomCard">
-    <div class="freedom-head">
-      <div class="freedom-icon">🎯</div>
-      <div style="flex:1">
-        <div class="freedom-title" id="freedomTitle">เริ่มจากการบันทึก</div>
-        <div class="freedom-sub" id="freedomSub">บันทึกหนี้และรายจ่ายให้ครบ เพื่อดูเส้นทางสู่การปลดหนี้</div>
+    <!-- Fixed vs Variable split -->
+    <div class="section-title" style="margin-top:4px">รายจ่ายประจำ vs เพิ่มเติม</div>
+    <div class="split-row">
+      <div class="split-card fixed">
+        <div class="split-icon">🔁</div>
+        <div class="split-label">รายจ่ายประจำ</div>
+        <div class="split-amount mono" id="splitFixed">฿0</div>
+        <div class="split-bar"><div class="split-bar-fill" id="splitFixedBar" style="width:0%"></div></div>
+        <div class="split-sub" id="splitFixedSub">ค่าผ่อน, ค่าเช่า, ค่าเน็ต</div>
+      </div>
+      <div class="split-card variable">
+        <div class="split-icon">⚡</div>
+        <div class="split-label">รายจ่ายเพิ่มเติมประจำเดือน</div>
+        <div class="split-amount mono" id="splitVariable">฿0</div>
+        <div class="split-bar"><div class="split-bar-fill" id="splitVariableBar" style="width:0%"></div></div>
+        <div class="split-sub" id="splitVariableSub">อาหาร, ของกินเล่น, เดินทาง</div>
       </div>
     </div>
-    <div class="freedom-stats" id="freedomStats" style="display:none">
-      <div class="freedom-stat"><div class="freedom-stat-label">หนี้คงเหลือ (เดือนนี้)</div><div class="freedom-stat-num mono" id="fsDebt">฿0</div></div>
-      <div class="freedom-stat"><div class="freedom-stat-label">เงินเหลือใช้คืนหนี้</div><div class="freedom-stat-num mono" id="fsAvailable">฿0</div></div>
-      <div class="freedom-stat"><div class="freedom-stat-label">คาดว่าหลุดหนี้ใน</div><div class="freedom-stat-num mono" id="fsMonths">—</div></div>
+
+    <!-- Source breakdown -->
+    <div class="section-title">ใช้เงินจากแหล่งไหน <span class="st-extra" id="sourceSummaryHint"></span></div>
+    <div class="source-summary" id="sourceSummary"></div>
+
+    <!-- Insights -->
+    <div class="section-title">ข้อสังเกตอัจฉริยะ</div>
+    <div class="insights" id="insightsBox"></div>
+
+  </div><!-- /page-overview -->
+
+  <!-- ══ LOANS PAGE ══ -->
+  <div class="page-section" id="page-loans">
+
+    <div class="section-title" style="margin-top:4px">
+      สินเชื่อ / หนี้ทั้งหมด
+      <span class="st-extra" id="loanTotalBadge"></span>
     </div>
-    <div class="freedom-bar-wrap" id="freedomBarWrap" style="display:none">
-      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px">
-        <span>รายจ่ายประจำ + หนี้</span>
-        <span id="fsRatio">— %</span>
+
+    <div class="loans-total-bar" id="loanTotalBar">
+      <div class="ltb-item"><div class="ltb-label">หนี้รวมทั้งหมด</div><div class="ltb-val debt mono" id="ltbTotal">฿0</div></div>
+      <div class="ltb-item"><div class="ltb-label">ผ่อนไปแล้ว</div><div class="ltb-val paid mono" id="ltbPaid">฿0</div></div>
+      <div class="ltb-item"><div class="ltb-label">งวดรวม/เดือน</div><div class="ltb-val months mono" id="ltbMonthly">฿0</div></div>
+      <div class="ltb-item"><div class="ltb-label">วงเงินว่างรวม</div><div class="ltb-val paid mono" id="ltbAvailable">฿0</div></div>
+    </div>
+
+    <div class="subtabs" id="loanTabs">
+      <button class="subtab active" data-loantab="all" onclick="setLoanFilter('all')">ทั้งหมด</button>
+      <button class="subtab" data-loantab="active" onclick="setLoanFilter('active')">กำลังผ่อน</button>
+      <button class="subtab" data-loantab="done" onclick="setLoanFilter('done')">หมดแล้ว</button>
+      <button class="subtab" data-loantab="credit" onclick="setLoanFilter('credit')">มีวงเงิน</button>
+    </div>
+
+    <div class="loans-grid" id="loansGrid"></div>
+    <div id="loansEmpty" class="empty" style="display:none">ไม่มีรายการในแท็บนี้</div>
+    <div style="margin-top:10px">
+      <button class="btn-add-loan" onclick="openLoanModal()">+ เพิ่มสินเชื่อ / บันทึกหนี้</button>
+    </div>
+
+    <!-- 🎯 Debt Freedom Path -->
+    <div class="section-title">เส้นทางสู่อิสรภาพทางการเงิน</div>
+    <div class="freedom-card" id="freedomCard">
+      <div class="freedom-head">
+        <div class="freedom-icon">🎯</div>
+        <div style="flex:1">
+          <div class="freedom-title" id="freedomTitle">เริ่มจากการบันทึก</div>
+          <div class="freedom-sub" id="freedomSub">บันทึกหนี้และรายจ่ายให้ครบ เพื่อดูเส้นทางสู่การปลดหนี้</div>
+        </div>
       </div>
-      <div class="freedom-bar"><div class="freedom-bar-fill" id="freedomBarFill" style="width:0%"></div></div>
-      <div class="freedom-hint" id="freedomHint"></div>
-    </div>
-  </div>
-
-  <!-- Fixed vs Variable split -->
-  <div class="section-title">รายจ่ายประจำ vs เพิ่มเติม</div>
-  <div class="split-row">
-    <div class="split-card fixed">
-      <div class="split-icon">🔁</div>
-      <div class="split-label">รายจ่ายประจำ</div>
-      <div class="split-amount mono" id="splitFixed">฿0</div>
-      <div class="split-bar"><div class="split-bar-fill" id="splitFixedBar" style="width:0%"></div></div>
-      <div class="split-sub" id="splitFixedSub">ค่าผ่อน, ค่าเช่า, ค่าเน็ต</div>
-    </div>
-    <div class="split-card variable">
-      <div class="split-icon">⚡</div>
-      <div class="split-label">รายจ่ายเพิ่มเติมประจำเดือน</div>
-      <div class="split-amount mono" id="splitVariable">฿0</div>
-      <div class="split-bar"><div class="split-bar-fill" id="splitVariableBar" style="width:0%"></div></div>
-      <div class="split-sub" id="splitVariableSub">อาหาร, ของกินเล่น, เดินทาง</div>
-    </div>
-  </div>
-
-  <!-- Source breakdown -->
-  <div class="section-title">ใช้เงินจากแหล่งไหน <span class="st-extra" id="sourceSummaryHint"></span></div>
-  <div class="source-summary" id="sourceSummary"></div>
-
-  <!-- Insights -->
-  <div class="section-title">ข้อสังเกตอัจฉริยะ</div>
-  <div class="insights" id="insightsBox"></div>
-
-  <!-- Charts with tabs -->
-  <div class="section-title" style="margin-top:32px">วิเคราะห์การเงิน</div>
-  <div class="subtabs" id="analysisTabs">
-    <button class="subtab active" data-anatab="trend" onclick="setAnalysisView('trend')">แนวโน้ม 6 เดือน</button>
-    <button class="subtab" data-anatab="cat" onclick="setAnalysisView('cat')">รายจ่ายตามหมวด</button>
-  </div>
-  <div class="charts-grid">
-    <div class="chart-card" id="chartTrend">
-      <div class="chart-head"><div><div class="chart-title">รายรับ vs รายจ่าย</div><div class="chart-sub">6 เดือนล่าสุด</div></div></div>
-      <div class="bars" id="barsBox"></div>
-      <div class="bar-legend">
-        <span><span class="bar-legend-dot" style="background:var(--accent)"></span>รายรับ</span>
-        <span><span class="bar-legend-dot" style="background:var(--red);opacity:0.85"></span>รายจ่าย</span>
+      <div class="freedom-stats" id="freedomStats" style="display:none">
+        <div class="freedom-stat"><div class="freedom-stat-label">หนี้คงเหลือ (เดือนนี้)</div><div class="freedom-stat-num mono" id="fsDebt">฿0</div></div>
+        <div class="freedom-stat"><div class="freedom-stat-label">เงินเหลือใช้คืนหนี้</div><div class="freedom-stat-num mono" id="fsAvailable">฿0</div></div>
+        <div class="freedom-stat"><div class="freedom-stat-label">คาดว่าหลุดหนี้ใน</div><div class="freedom-stat-num mono" id="fsMonths">—</div></div>
+      </div>
+      <div class="freedom-bar-wrap" id="freedomBarWrap" style="display:none">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px">
+          <span>รายจ่ายประจำ + หนี้</span>
+          <span id="fsRatio">— %</span>
+        </div>
+        <div class="freedom-bar"><div class="freedom-bar-fill" id="freedomBarFill" style="width:0%"></div></div>
+        <div class="freedom-hint" id="freedomHint"></div>
       </div>
     </div>
-    <div class="chart-card" id="chartCat" style="display:none">
-      <div class="chart-head"><div><div class="chart-title">รายจ่ายตามหมวด</div><div class="chart-sub">เดือนนี้</div></div></div>
-      <div class="donut-wrap" id="donutWrap"></div>
-    </div>
-  </div>
 
-  <!-- Savings Goals -->
-  <div class="section-title" style="margin-top:32px">เป้าหมายการออม <span class="st-extra" id="goalsCount"></span></div>
-  <div class="goals-grid" id="goalsGrid"></div>
-  <div style="margin-top:10px">
-    <button class="btn-add-goal" onclick="openGoalModal()">+ เพิ่มเป้าหมายการออม</button>
-    <div class="preset-chips">
-      <span style="font-size:11px;color:var(--text3);margin-right:6px;align-self:center">เริ่มจาก preset:</span>
-      <span class="preset-chip" onclick="usePreset('house')">🏠 ดาวน์บ้าน</span>
-      <span class="preset-chip" onclick="usePreset('wedding')">💍 แต่งงาน</span>
-      <span class="preset-chip" onclick="usePreset('car')">🚗 ซื้อรถ</span>
-      <span class="preset-chip" onclick="usePreset('emergency')">🆘 เงินสำรองฉุกเฉิน</span>
-      <span class="preset-chip" onclick="usePreset('travel')">✈️ ท่องเที่ยว</span>
-      <span class="preset-chip" onclick="usePreset('retire')">🌴 เกษียณ</span>
-    </div>
-  </div>
+  </div><!-- /page-loans -->
 
-  <!-- Transaction list -->
+  <!-- ══ ANALYSIS PAGE ══ -->
+  <div class="page-section" id="page-analysis">
+
+    <div class="section-title" style="margin-top:4px">วิเคราะห์การเงิน</div>
+    <div class="subtabs" id="analysisTabs">
+      <button class="subtab active" data-anatab="trend" onclick="setAnalysisView('trend')">แนวโน้ม 6 เดือน</button>
+      <button class="subtab" data-anatab="cat" onclick="setAnalysisView('cat')">รายจ่ายตามหมวด</button>
+    </div>
+    <div class="charts-grid">
+      <div class="chart-card" id="chartTrend">
+        <div class="chart-head"><div><div class="chart-title">รายรับ vs รายจ่าย</div><div class="chart-sub">6 เดือนล่าสุด</div></div></div>
+        <div class="bars" id="barsBox"></div>
+        <div class="bar-legend">
+          <span><span class="bar-legend-dot" style="background:var(--accent)"></span>รายรับ</span>
+          <span><span class="bar-legend-dot" style="background:var(--red);opacity:0.85"></span>รายจ่าย</span>
+        </div>
+      </div>
+      <div class="chart-card" id="chartCat" style="display:none">
+        <div class="chart-head"><div><div class="chart-title">รายจ่ายตามหมวด</div><div class="chart-sub">เดือนนี้</div></div></div>
+        <div class="donut-wrap" id="donutWrap"></div>
+      </div>
+    </div>
+
+  </div><!-- /page-analysis -->
+
+  <!-- ══ GOALS PAGE ══ -->
+  <div class="page-section" id="page-goals">
+
+    <div class="section-title" style="margin-top:4px">เป้าหมายการออม <span class="st-extra" id="goalsCount"></span></div>
+    <div class="goals-grid" id="goalsGrid"></div>
+    <div style="margin-top:10px">
+      <button class="btn-add-goal" onclick="openGoalModal()">+ เพิ่มเป้าหมายการออม</button>
+      <div class="preset-chips">
+        <span style="font-size:11px;color:var(--text3);margin-right:6px;align-self:center">เริ่มจาก preset:</span>
+        <span class="preset-chip" onclick="usePreset('house')">🏠 ดาวน์บ้าน</span>
+        <span class="preset-chip" onclick="usePreset('wedding')">💍 แต่งงาน</span>
+        <span class="preset-chip" onclick="usePreset('car')">🚗 ซื้อรถ</span>
+        <span class="preset-chip" onclick="usePreset('emergency')">🆘 เงินสำรองฉุกเฉิน</span>
+        <span class="preset-chip" onclick="usePreset('travel')">✈️ ท่องเที่ยว</span>
+        <span class="preset-chip" onclick="usePreset('retire')">🌴 เกษียณ</span>
+      </div>
+    </div>
+
+  </div><!-- /page-goals -->
+
+    <!-- Transaction list always visible -->
   <div class="section-title" style="margin-top:32px">รายการทั้งหมด</div>
   <div class="tabs">
     <button class="tab active" data-tab="all" onclick="switchTab('all')">ทั้งหมด</button>
@@ -1305,10 +1362,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="fg">
       <label class="fl">จ่ายผ่าน</label>
-      <button class="qa-source-btn" id="qcSourceBtn" onclick="openSourcePicker('confirm')">
-        <span class="qsb-left"><span class="qsb-icon" id="qcSourceIcon">💵</span><span id="qcSourceName">เงินสด</span></span>
-        <span class="qsb-chev">▼ เปลี่ยน</span>
-      </button>
+      <div id="qcSourceInlineList" class="source-pick-list" style="max-height:none;gap:6px"></div>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="editFromConfirm()" title="แก้ไขปุ่มลัดนี้">✎ แก้ปุ่ม</button>
@@ -1646,7 +1700,13 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 // ============================================================
 const SUPABASE_URL = 'https://tedzucgqmitfmddxqvge.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_mHb79SXYxFxRo9tAJelFMw_Nyuc-XeO';
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sb;
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.warn('Supabase init failed:', e);
+  sb = null;
+}
 let currentUser = null;
 let cloudReady = false;
 let pushTimer = null;
@@ -1705,6 +1765,7 @@ async function authSignIn(){
   const pass  = document.getElementById('authPass').value;
   if(!email || !pass){ authMsg('กรุณากรอกอีเมลและรหัสผ่าน'); return; }
   document.getElementById('authSignInBtn').textContent = 'กำลังเข้าสู่ระบบ…';
+  if(!sb){ authMsg('ระบบ Auth ไม่พร้อม — กรุณาเปิดบน GitHub Pages'); return; }
   const { error } = await sb.auth.signInWithPassword({ email, password: pass });
   document.getElementById('authSignInBtn').textContent = 'เข้าสู่ระบบ';
   if(error){ authMsg('อีเมลหรือรหัสผ่านไม่ถูกต้อง'); }
@@ -1739,7 +1800,7 @@ async function authSignOut(){
   closeAccountModal();
 }
 
-sb.auth.onAuthStateChange((event, session)=>{
+if(sb) sb.auth.onAuthStateChange((event, session)=>{
   if(session && session.user){
     currentUser = session.user;
     document.getElementById('authBackdrop').classList.remove('open');
@@ -1759,7 +1820,7 @@ function bundle(){
   return { txs:txs||[], goals, loans, sources:paymentSources, shortcuts, theme, v:1 };
 }
 async function cloudPull(){
-  if(!currentUser) return;
+  if(!currentUser || !sb) return;
   try {
     const { data, error } = await sb.from('fin_store').select('data').eq('user_id', currentUser.id).maybeSingle();
     if(error) throw error;
@@ -1794,7 +1855,7 @@ function scheduleCloudPush(){
   pushTimer = setTimeout(cloudPushNow, 1200);
 }
 async function cloudPushNow(){
-  if(!currentUser) return;
+  if(!currentUser || !sb) return;
   try {
     const row = { user_id: currentUser.id, data: bundle(), updated_at: new Date().toISOString() };
     const { error } = await sb.from('fin_store').upsert(row, { onConflict: 'user_id' });
@@ -2155,7 +2216,7 @@ function openSourcePicker(target){
   document.getElementById('sourcePickBackdrop').classList.add('open');
 }
 function pickSource(id){
-  if(sourcePickTarget==='confirm'){ confirmSourceId=id; updateConfirmSourceBtn(); }
+  if(sourcePickTarget==='confirm'){ confirmSourceId=id; renderQcSourceInlineList(); }
   else { qaSourceId=id; updateQaSourceBtn(); }
   closeSourcePicker();
 }
@@ -2256,15 +2317,14 @@ function renderAll(){
   else ab.style.display='none';
 
   renderFreedom(inc,exp,all,unpaidItems,borrowedIn);
-  renderLoans();
+  if(currentPage==='loans' || document.getElementById('page-loans').classList.contains('active')) renderLoans();
   renderSplit(all);
   renderSourceSummary(all);
   renderInsights(inc,exp,all,borrowedIn);
-  renderBars();
-  renderDonut(all);
+  if(currentPage==='analysis' || document.getElementById('page-analysis').classList.contains('active')){ renderBars(); renderDonut(all); }
   renderTemplates();
   updateQaSourceBtn();
-  renderGoals();
+  if(currentPage==='goals' || document.getElementById('page-goals').classList.contains('active')) renderGoals();
   renderTx();
 }
 
@@ -2445,6 +2505,7 @@ function useShortcut(idx){
   document.getElementById('qcTypeLbl').textContent=s.type==='income'?'💰 รายรับ':'💸 รายจ่าย';
   document.getElementById('qcAmt').value=s.amount||'';
   updateConfirmSourceBtn();
+  renderQcSourceInlineList();
   document.getElementById('quickConfirmBackdrop').classList.add('open');
   setTimeout(()=>{ const a=document.getElementById('qcAmt'); if(a){ a.focus(); a.select(); } },100);
 }
@@ -2699,6 +2760,42 @@ function toast(msg){ const el=document.getElementById('toast'); el.textContent=m
 // ALTER TABLE fin_store ENABLE ROW LEVEL SECURITY;
 // CREATE POLICY "own" ON fin_store FOR ALL USING (auth.uid() = user_id);
 
+// ── Page Tab Navigation ──
+let currentPage = 'overview';
+function setPageTab(page){
+  currentPage = page;
+  document.querySelectorAll('#mainPageTabs .page-tab').forEach(t=>t.classList.toggle('active', t.dataset.page===page));
+  // overview-top always visible (hero + quick-add + summary)
+  const overviewTop = document.getElementById('page-overview-top');
+  if(overviewTop) overviewTop.style.display = '';
+  // Toggle content sections
+  ['page-overview','page-loans','page-analysis','page-goals'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.style.display = (id === 'page-'+page) ? '' : 'none';
+  });
+  if(page==='loans') renderLoans();
+  if(page==='analysis'){ renderBars(); renderDonut(monthItems()); }
+  if(page==='goals') renderGoals();
+}
+
+// ── Inline source list in Quick Confirm ──
+function renderQcSourceInlineList(){
+  const wrap = document.getElementById('qcSourceInlineList');
+  if(!wrap) return;
+  wrap.innerHTML = paymentSources.map(s=>{
+    const on = s.id === confirmSourceId;
+    return '<div class="source-pick-item'+(on?' on':'')+'" onclick="pickQcSource(''+s.id+'')" style="padding:10px 14px">'+
+      '<div class="source-pick-icon" style="background:'+s.color+';width:36px;height:36px;font-size:18px">'+s.icon+'</div>'+
+      '<div class="source-pick-info"><div class="source-pick-name" style="font-size:14px">'+esc(s.name)+'</div><div class="source-pick-type">'+(s.type==='credit'?'💳 สินเชื่อ':'💵 เงินสด')+'</div></div>'+
+      (on?'<span class="source-pick-check">✓</span>':'')+
+    '</div>';
+  }).join('');
+}
+function pickQcSource(id){
+  confirmSourceId = id;
+  renderQcSourceInlineList();
+}
+
 // ── Boot ──
 applyTheme();
 initSel();
@@ -2706,7 +2803,13 @@ if(!txs) seed();
 updateQaSourceBtn();
 
 // Check session
-sb.auth.getSession().then(({data:{session}})=>{
+// Init page sections visibility
+['page-overview','page-loans','page-analysis','page-goals'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el && id !== 'page-overview') el.style.display = 'none';
+});
+
+if(sb) sb.auth.getSession().then(({data:{session}})=>{
   if(session&&session.user){
     currentUser=session.user;
     document.getElementById('authBackdrop').classList.remove('open');
