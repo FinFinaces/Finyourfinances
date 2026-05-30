@@ -2895,13 +2895,9 @@ function saveScanKey(){
   localStorage.setItem('fin_or_key', val);
   closeScanSettings();
   toast('✓ บันทึก API Key แล้ว');
-  // update warn
-  const warn = document.getElementById('scanKeyWarn');
-  if(warn) warn.style.display = 'none';
 }
 
 function openScanModal(mode){
-  GEMINI_KEY = localStorage.getItem('fin_or_key') || '';
   scanMode = mode || 'receipt';
   document.getElementById('scanModalTitle').textContent = mode==='installment' ? '📷 นำเข้าตารางผ่อน' : '📷 สแกนใบเสร็จ';
   scanReset();
@@ -2911,9 +2907,6 @@ function openScanModal(mode){
   if(ls){
     ls.innerHTML = '<option value="">— ไม่เชื่อม —</option>' + loans.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');
   }
-  // แสดง warn ถ้าไม่มี key
-  const warn = document.getElementById('scanKeyWarn');
-  if(warn) warn.style.display = GEMINI_KEY ? 'none' : '';
   document.getElementById('scanBackdrop').classList.add('open');
 }
 function closeScanModal(){ document.getElementById('scanBackdrop').classList.remove('open'); }
@@ -3241,9 +3234,7 @@ if(sb){
         📋 <b>ถ่ายรูปอะไรได้บ้าง</b><br>
         ใบเสร็จร้านค้า · สลิปโอนเงิน · หน้าจอ Shopee/Lazada · ตารางงวดผ่อน
       </div>
-      <div id="scanKeyWarn" style="margin-top:10px;display:none;background:var(--amber-bg);border:1px solid var(--amber-br);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:var(--amber)">
-        ⚠️ ยังไม่ได้ตั้งค่า API Key — <a onclick="openScanSettings()" style="cursor:pointer;font-weight:700;text-decoration:underline">กดตั้งค่าที่นี่</a>
-      </div>
+
     </div>
 
     <!-- Step 2: Loading -->
