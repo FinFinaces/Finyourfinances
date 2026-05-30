@@ -2870,7 +2870,7 @@ document.addEventListener('keydown',e=>{
 // ============================================================
 //  Gemini Vision — สแกนใบเสร็จ / ตารางผ่อน
 // ============================================================
-const GEMINI_KEY = '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';
+let GEMINI_KEY = localStorage.getItem('fin_or_key') || '';
 const GEMINI_API  = 'https://openrouter.ai/api/v1/chat/completions';
 
 let scanMode = 'receipt'; // 'receipt' | 'installment'
@@ -2878,7 +2878,30 @@ let scanImageBase64 = null;
 let scanImageMime = 'image/jpeg';
 let scanParsedData = null;
 
+
+function openScanSettings(){
+  const input = document.getElementById('orKeyInput');
+  if(input) input.value = GEMINI_KEY || '';
+  document.getElementById('scanSettingsBackdrop').classList.add('open');
+  setTimeout(()=>{ const i=document.getElementById('orKeyInput'); if(i) i.focus(); }, 100);
+}
+function closeScanSettings(){
+  document.getElementById('scanSettingsBackdrop').classList.remove('open');
+}
+function saveScanKey(){
+  const val = document.getElementById('orKeyInput').value.trim();
+  if(!val){ toast('⚠️ กรอก key ก่อน'); return; }
+  GEMINI_KEY = val;
+  localStorage.setItem('fin_or_key', val);
+  closeScanSettings();
+  toast('✓ บันทึก API Key แล้ว');
+  // update warn
+  const warn = document.getElementById('scanKeyWarn');
+  if(warn) warn.style.display = 'none';
+}
+
 function openScanModal(mode){
+  GEMINI_KEY = localStorage.getItem('fin_or_key') || '';
   scanMode = mode || 'receipt';
   document.getElementById('scanModalTitle').textContent = mode==='installment' ? '📷 นำเข้าตารางผ่อน' : '📷 สแกนใบเสร็จ';
   scanReset();
@@ -2888,6 +2911,9 @@ function openScanModal(mode){
   if(ls){
     ls.innerHTML = '<option value="">— ไม่เชื่อม —</option>' + loans.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');
   }
+  // แสดง warn ถ้าไม่มี key
+  const warn = document.getElementById('scanKeyWarn');
+  if(warn) warn.style.display = GEMINI_KEY ? 'none' : '';
   document.getElementById('scanBackdrop').classList.add('open');
 }
 function closeScanModal(){ document.getElementById('scanBackdrop').classList.remove('open'); }
@@ -2943,6 +2969,10 @@ async function callGemini(){
 ถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้วันนี้`;
 
   try {
+    if(!GEMINI_KEY){ 
+      openScanSettings(); 
+      throw new Error('กรุณากรอก OpenRouter API Key ในหน้าตั้งค่าก่อน'); 
+    }
     if(loadingTxt) loadingTxt.textContent = 'กำลังอ่านรูป...';
     const resp = await fetch(GEMINI_API, {
       method: 'POST',
@@ -3223,6 +3253,9 @@ if(sb){
         📋 <b>ถ่ายรูปอะไรได้บ้าง</b><br>
         ใบเสร็จร้านค้า · สลิปโอนเงิน · หน้าจอ Shopee/Lazada · ตารางงวดผ่อน
       </div>
+      <div id="scanKeyWarn" style="margin-top:10px;display:none;background:var(--amber-bg);border:1px solid var(--amber-br);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:var(--amber)">
+        ⚠️ ยังไม่ได้ตั้งค่า API Key — <a onclick="openScanSettings()" style="cursor:pointer;font-weight:700;text-decoration:underline">กดตั้งค่าที่นี่</a>
+      </div>
     </div>
 
     <!-- Step 2: Loading -->
@@ -3276,6 +3309,31 @@ if(sb){
     <div class="modal-foot" id="scanFooter" style="display:none">
       <button class="btn-cancel" onclick="scanReset()">🔄 ถ่ายใหม่</button>
       <button class="btn-ok" onclick="scanConfirmSave()" id="scanSaveBtn">บันทึก ✓</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Scan Settings Modal ── -->
+<div class="backdrop" id="scanSettingsBackdrop" onclick="if(event.target===event.currentTarget)closeScanSettings()">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-head">
+      <div class="modal-title">⚙️ ตั้งค่า AI สแกนรูป</div>
+      <button class="modal-x" onclick="closeScanSettings()">✕</button>
+    </div>
+    <div style="background:var(--blue-bg);border:1px solid var(--blue-br);border-radius:var(--rs);padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--blue);line-height:1.7">
+      🔑 ใช้ <b>OpenRouter API Key</b> สำหรับอ่านรูปด้วย AI<br>
+      สมัครฟรีที่ <a href="https://openrouter.ai/keys" target="_blank" style="font-weight:700">openrouter.ai/keys</a><br>
+      Key จะเก็บในเครื่องของคุณเท่านั้น ไม่ส่งไปไหน
+    </div>
+    <div class="fg">
+      <label class="fl">OpenRouter API Key</label>
+      <input class="fi" id="orKeyInput" type="password" placeholder="sk-or-v1-..." style="font-family:'IBM Plex Mono',monospace;font-size:13px"/>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">วาง key แล้วกด Save — เก็บในเครื่องนี้เท่านั้น</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeScanSettings()">ยกเลิก</button>
+      <button class="btn-ok" onclick="saveScanKey()">💾 Save</button>
     </div>
   </div>
 </div>
