@@ -926,6 +926,12 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   border-bottom: 2px solid var(--border);
   margin-bottom: 24px;
   margin-top: 0;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .page-tab {
   flex: 1;
@@ -1021,8 +1027,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <button class="page-tab" data-page="goals" onclick="setPageTab('goals')">🎯 เป้าหมาย</button>
   </div>
 
-  <!-- ══ OVERVIEW ══ -->
   <div class="page-section active" id="page-overview-top">
+
   <div class="hero">
     <div class="hero-content">
       <div class="hero-left">
@@ -1144,6 +1150,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 
   <div id="alertBox" class="alert" style="display:none;margin-top:12px"></div>
   <div id="borrowedAlert" class="alert" style="display:none;margin-top:8px;background:linear-gradient(135deg,var(--amber-bg),var(--red-bg));border-color:var(--amber-br);color:var(--amber)"></div>
+
 
   </div><!-- /page-overview-top -->
 
@@ -1279,7 +1286,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   </div><!-- /page-goals -->
 
     <!-- Transaction list always visible -->
-  <div class="section-title" style="margin-top:32px">รายการทั้งหมด</div>
+  <div id="txSection"><div class="section-title" style="margin-top:32px">รายการทั้งหมด</div>
   <div class="tabs">
     <button class="tab active" data-tab="all" onclick="switchTab('all')">ทั้งหมด</button>
     <button class="tab" data-tab="income" onclick="switchTab('income')">รายรับ</button>
@@ -1304,6 +1311,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div id="txEmpty" class="empty" style="display:none">ไม่มีรายการในเดือนนี้</div>
   </div>
 
+</div><!-- /txSection -->
 </div><!-- /app -->
 
 <button class="fab" onclick="openTxModal()" title="เพิ่มรายการแบบละเอียด">+</button>
@@ -1358,7 +1366,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="fg">
       <label class="fl">จำนวนเงิน (บาท) — แก้ไขได้</label>
-      <input class="qc-amt-input" id="qcAmt" type="number" step="0.01" inputmode="decimal" placeholder="0.00"/>
+      <input class="qc-amt-input" id="qcAmt" type="number" step="0.01" inputmode="decimal" placeholder="0.00" onkeydown="if(event.key==='Enter') doQuickConfirmSave()"/>
     </div>
     <div class="fg">
       <label class="fl">จ่ายผ่าน</label>
@@ -1803,13 +1811,17 @@ async function authSignOut(){
 if(sb) sb.auth.onAuthStateChange((event, session)=>{
   if(session && session.user){
     currentUser = session.user;
-    document.getElementById('authBackdrop').classList.remove('open');
+    const ab = document.getElementById('authBackdrop');
+    if(ab) ab.classList.remove('open');
     updateAccountUI();
     cloudPull();
+    if(!onbDone) showOnb();
+    renderAll();
   } else {
     currentUser = null;
     cloudReady = false;
-    document.getElementById('authBackdrop').classList.add('open');
+    const ab = document.getElementById('authBackdrop');
+    if(ab) ab.classList.add('open');
   }
 });
 
@@ -2324,7 +2336,7 @@ function renderAll(){
   if(currentPage==='analysis' || document.getElementById('page-analysis').classList.contains('active')){ renderBars(); renderDonut(all); }
   renderTemplates();
   updateQaSourceBtn();
-  if(currentPage==='goals' || document.getElementById('page-goals').classList.contains('active')) renderGoals();
+  renderGoals();
   renderTx();
 }
 
@@ -2493,21 +2505,24 @@ function addShortcut(){ let idx=shortcuts.indexOf(null); if(idx===-1){ shortcuts
 function removeShortcut(e,idx){ e.stopPropagation(); if(!confirm('ลบปุ่มลัด "'+(shortcuts[idx]&&shortcuts[idx].name||'')+'"?'))return; shortcuts.splice(idx,1); saveShortcuts(); renderTemplates(); toast('ลบปุ่มลัดแล้ว'); }
 function toggleEditMode(){ editMode=!editMode; document.getElementById('editModeBtn').classList.toggle('active',editMode); document.getElementById('editModeBtn').innerHTML=editMode?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> เสร็จสิ้น':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> จัดเรียง / ลบ'; document.getElementById('qaTopHint').textContent=editMode?'✏️ โหมดแก้ไข — กด ◀▶ จัดเรียง, กด × เพื่อลบ':'แตะปุ่มลัด → ปรับราคา → บันทึก'; renderTemplates(); }
 
-// กดปุ่มลัด → เปิด Quick Confirm Modal
+// กดปุ่มลัด → เปิด popup ปรับราคา+แหล่งเงินก่อนบันทึก
 function useShortcut(idx){
   if(editMode) return;
   const s=shortcuts[idx]; if(!s) return;
-  pendingShortcutIdx=idx;
-  confirmSourceId=s.paymentSource||qaSourceId||'cash';
-  // fill modal
-  document.getElementById('qcEmoji').textContent=s.emoji||'📋';
-  document.getElementById('qcName').textContent=s.name;
-  document.getElementById('qcTypeLbl').textContent=s.type==='income'?'💰 รายรับ':'💸 รายจ่าย';
-  document.getElementById('qcAmt').value=s.amount||'';
-  updateConfirmSourceBtn();
+  pendingShortcutIdx = idx;
+  confirmSourceId = s.paymentSource || qaSourceId || 'cash';
+  // ใส่ข้อมูลใน popup
+  document.getElementById('qcEmoji').textContent = s.emoji||'📋';
+  document.getElementById('qcName').textContent = s.name;
+  document.getElementById('qcTypeLbl').textContent = s.type==='income'?'💰 รายรับ':'💸 รายจ่าย';
+  document.getElementById('qcTypeLbl').style.color = s.type==='income'?'var(--green)':'var(--red)';
+  document.getElementById('qcAmt').value = s.amount > 0 ? s.amount : '';
   renderQcSourceInlineList();
   document.getElementById('quickConfirmBackdrop').classList.add('open');
-  setTimeout(()=>{ const a=document.getElementById('qcAmt'); if(a){ a.focus(); a.select(); } },100);
+  setTimeout(()=>{
+    const a = document.getElementById('qcAmt');
+    if(a){ a.focus(); a.select(); }
+  }, 120);
 }
 function closeQuickConfirm(){ document.getElementById('quickConfirmBackdrop').classList.remove('open'); pendingShortcutIdx=null; }
 function closeQuickConfirmIfBg(e){ if(e.target===e.currentTarget) closeQuickConfirm(); }
@@ -2764,18 +2779,36 @@ function toast(msg){ const el=document.getElementById('toast'); el.textContent=m
 let currentPage = 'overview';
 function setPageTab(page){
   currentPage = page;
-  document.querySelectorAll('#mainPageTabs .page-tab').forEach(t=>t.classList.toggle('active', t.dataset.page===page));
-  // overview-top always visible (hero + quick-add + summary)
+  // update tab buttons
+  document.querySelectorAll('#mainPageTabs .page-tab').forEach(t=>
+    t.classList.toggle('active', t.dataset.page===page));
+  // hero+quick-add always visible
   const overviewTop = document.getElementById('page-overview-top');
   if(overviewTop) overviewTop.style.display = '';
-  // Toggle content sections
+  // show/hide content sections
   ['page-overview','page-loans','page-analysis','page-goals'].forEach(id=>{
     const el = document.getElementById(id);
-    if(el) el.style.display = (id === 'page-'+page) ? '' : 'none';
+    if(!el) return;
+    el.style.display = (id === 'page-'+page) ? 'block' : 'none';
   });
-  if(page==='loans') renderLoans();
-  if(page==='analysis'){ renderBars(); renderDonut(monthItems()); }
-  if(page==='goals') renderGoals();
+  // tx list always visible
+  const txSection = document.getElementById('txSection');
+  if(txSection) txSection.style.display = 'block';
+  // re-render section content
+  if(page==='overview') renderAll();
+  else if(page==='loans'){ renderLoans(); renderFreedom(...getFreedomArgs()); }
+  else if(page==='analysis'){ renderBars(); renderDonut(monthItems()); }
+  else if(page==='goals') renderGoals();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function getFreedomArgs(){
+  const all = monthItems();
+  const realInc = all.filter(i=>i.type==='income'&&i.category!=='เงินยืม/สินเชื่อเข้า').reduce((s,i)=>s+i.amount,0);
+  const borrowedIn = all.filter(i=>i.type==='income'&&i.category==='เงินยืม/สินเชื่อเข้า').reduce((s,i)=>s+i.amount,0);
+  const exp = all.filter(i=>i.type==='expense').reduce((s,i)=>s+i.amount,0);
+  const unpaid = all.filter(i=>i.status==='unpaid'&&i.type==='expense');
+  return [realInc, exp, all, unpaid, borrowedIn];
 }
 
 // ── Inline source list in Quick Confirm ──
@@ -2784,11 +2817,14 @@ function renderQcSourceInlineList(){
   if(!wrap) return;
   wrap.innerHTML = paymentSources.map(s=>{
     const on = s.id === confirmSourceId;
-    return '<div class="source-pick-item'+(on?' on':'')+'" onclick="pickQcSource(''+s.id+'')" style="padding:10px 14px">'+
-      '<div class="source-pick-icon" style="background:'+s.color+';width:36px;height:36px;font-size:18px">'+s.icon+'</div>'+
-      '<div class="source-pick-info"><div class="source-pick-name" style="font-size:14px">'+esc(s.name)+'</div><div class="source-pick-type">'+(s.type==='credit'?'💳 สินเชื่อ':'💵 เงินสด')+'</div></div>'+
-      (on?'<span class="source-pick-check">✓</span>':'')+
-    '</div>';
+    return `<div class="source-pick-item${on?' on':''}" onclick="pickQcSource('${s.id}')" style="padding:10px 14px">
+      <div class="source-pick-icon" style="background:${s.color};width:36px;height:36px;font-size:18px;border-radius:10px;display:flex;align-items:center;justify-content:center">${s.icon}</div>
+      <div class="source-pick-info">
+        <div class="source-pick-name" style="font-size:15px;font-weight:600">${esc(s.name)}</div>
+        <div class="source-pick-type">${s.type==='credit'?'💳 สินเชื่อ':'💵 เงินสด'}</div>
+      </div>
+      ${on?'<span class="source-pick-check">✓</span>':''}
+    </div>`;
   }).join('');
 }
 function pickQcSource(id){
@@ -2808,20 +2844,32 @@ updateQaSourceBtn();
   const el = document.getElementById(id);
   if(el && id !== 'page-overview') el.style.display = 'none';
 });
+// Render shortcuts on boot
+renderTemplates();
 
-if(sb) sb.auth.getSession().then(({data:{session}})=>{
-  if(session&&session.user){
-    currentUser=session.user;
-    document.getElementById('authBackdrop').classList.remove('open');
-    updateAccountUI();
-    cloudPull();
-    if(!onbDone) showOnb();
+if(sb){
+  sb.auth.getSession().then(({data:{session}})=>{
+    if(session&&session.user){
+      currentUser=session.user;
+      const ab=document.getElementById('authBackdrop');
+      if(ab) ab.classList.remove('open');
+      updateAccountUI();
+      cloudPull();
+    } else {
+      const ab=document.getElementById('authBackdrop');
+      if(ab) ab.classList.add('open');
+    }
     renderAll();
-  } else {
-    document.getElementById('authBackdrop').classList.add('open');
+  }).catch(err=>{
+    console.warn('getSession error:', err);
     renderAll();
-  }
-});
+  });
+} else {
+  // No supabase - show auth screen
+  const ab=document.getElementById('authBackdrop');
+  if(ab) ab.classList.add('open');
+  renderAll();
+}
 </script>
 </body>
 </html>
