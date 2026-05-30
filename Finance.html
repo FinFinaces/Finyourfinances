@@ -2963,7 +2963,7 @@ async function callGemini(){
       throw new Error(errData.error || 'HTTP ' + proxyResp.status);
     }
     const data = await proxyResp.json();
-    if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    if(data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error)));
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     if(!raw) throw new Error('Gemini ไม่ส่งผลกลับมา');
     const clean = raw.replace(/```json|```/g,'').trim();
@@ -2975,7 +2975,8 @@ async function callGemini(){
     document.getElementById('scanStep3').style.display = '';
     document.getElementById('scanFooter').style.display = '';
     const errEl = document.getElementById('scanError');
-    if(errEl){ errEl.style.display=''; errEl.textContent='⚠️ อ่านไม่ได้: '+err.message+' — ลองถ่ายรูปใหม่ให้ชัดขึ้น'; }
+    const errMsg = (err && err.message) ? err.message : JSON.stringify(err);
+    if(errEl){ errEl.style.display=''; errEl.textContent='⚠️ ' + errMsg; }
     document.getElementById('scanReceiptResult').style.display='none';
     document.getElementById('scanInstallResult').style.display='none';
     document.getElementById('scanSaveBtn').style.display='none';
