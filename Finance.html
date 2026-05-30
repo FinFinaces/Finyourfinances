@@ -2870,8 +2870,8 @@ document.addEventListener('keydown',e=>{
 // ============================================================
 //  Gemini Vision — สแกนใบเสร็จ / ตารางผ่อน
 // ============================================================
-const GEMINI_KEY = 'AQ.Ab8RN6Jr20gCGwjqkLGXWs5DWJPWUhry0GnMtd2KX7EnTpKmaw';
-const GEMINI_API  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_KEY = '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';
+const GEMINI_API  = 'https://openrouter.ai/api/v1/chat/completions';
 
 let scanMode = 'receipt'; // 'receipt' | 'installment'
 let scanImageBase64 = null;
@@ -2944,28 +2944,33 @@ async function callGemini(){
 
   try {
     if(loadingTxt) loadingTxt.textContent = 'กำลังอ่านรูป...';
-    const PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/gemini-proxy';
-    const proxyResp = await fetch(PROXY, {
+    const resp = await fetch(GEMINI_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + GEMINI_KEY,
+        'HTTP-Referer': 'https://finfinaces.github.io',
+        'X-Title': 'Fin App'
+      },
       body: JSON.stringify({
-        key: GEMINI_KEY,
-        contents: [{
-          parts: [
-            {inline_data: {mime_type: scanImageMime, data: scanImageBase64}},
-            {text: prompt}
+        model: 'google/gemini-2.0-flash-exp:free',
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image_url', image_url: { url: 'data:' + scanImageMime + ';base64,' + scanImageBase64 } },
+            { type: 'text', text: prompt }
           ]
         }]
       })
     });
-    if(!proxyResp.ok){
-      const errText = await proxyResp.text().catch(()=>'');
-      throw new Error('HTTP ' + proxyResp.status + ': ' + errText.slice(0,200));
+    if(!resp.ok){
+      const errText = await resp.text().catch(()=>'');
+      throw new Error('HTTP ' + resp.status + ': ' + errText.slice(0,300));
     }
-    const data = await proxyResp.json();
-    if(data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error)));
-    const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    if(!raw) throw new Error('Gemini ไม่ส่งผลกลับมา');
+    const data = await resp.json();
+    if(data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const raw = data.choices?.[0]?.message?.content || '';
+    if(!raw) throw new Error('ไม่ได้รับผลจาก AI');
     const clean = raw.replace(/```json|```/g,'').trim();
     scanParsedData = JSON.parse(clean);
     showScanResults();
