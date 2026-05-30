@@ -1186,7 +1186,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   </div><!-- /page-overview -->
 
   <!-- ══ LOANS PAGE ══ -->
-  <div class="page-section" id="page-loans">
+  <div class="page-section" id="page-loans" style="display:none">
 
     <div class="section-title" style="margin-top:4px">
       สินเชื่อ / หนี้ทั้งหมด
@@ -1241,7 +1241,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   </div><!-- /page-loans -->
 
   <!-- ══ ANALYSIS PAGE ══ -->
-  <div class="page-section" id="page-analysis">
+  <div class="page-section" id="page-analysis" style="display:none">
 
     <div class="section-title" style="margin-top:4px">วิเคราะห์การเงิน</div>
     <div class="subtabs" id="analysisTabs">
@@ -1266,7 +1266,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   </div><!-- /page-analysis -->
 
   <!-- ══ GOALS PAGE ══ -->
-  <div class="page-section" id="page-goals">
+  <div class="page-section" id="page-goals" style="display:none">
 
     <div class="section-title" style="margin-top:4px">เป้าหมายการออม <span class="st-extra" id="goalsCount"></span></div>
     <div class="goals-grid" id="goalsGrid"></div>
@@ -2839,11 +2839,6 @@ if(!txs) seed();
 updateQaSourceBtn();
 
 // Check session
-// Init page sections visibility
-['page-overview','page-loans','page-analysis','page-goals'].forEach(id=>{
-  const el = document.getElementById(id);
-  if(el && id !== 'page-overview') el.style.display = 'none';
-});
 // Render shortcuts on boot
 renderTemplates();
 
