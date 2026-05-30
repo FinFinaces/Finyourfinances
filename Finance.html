@@ -2799,7 +2799,14 @@ function setPageTab(page){
   else if(page==='loans'){ renderLoans(); renderFreedom(...getFreedomArgs()); }
   else if(page==='analysis'){ renderBars(); renderDonut(monthItems()); }
   else if(page==='goals') renderGoals();
-  window.scrollTo({top:0, behavior:'smooth'});
+  // scroll ลงไปที่ content section
+  setTimeout(()=>{
+    const tabBar = document.getElementById('mainPageTabs');
+    if(tabBar){
+      const y = tabBar.getBoundingClientRect().bottom + window.scrollY;
+      window.scrollTo({top: y, behavior:'smooth'});
+    }
+  }, 80);
 }
 
 function getFreedomArgs(){
