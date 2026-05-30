@@ -2871,7 +2871,7 @@ document.addEventListener('keydown',e=>{
 //  Gemini Vision — สแกนใบเสร็จ / ตารางผ่อน
 // ============================================================
 const GEMINI_KEY = 'AQ.Ab8RN6LM2u_SMEYx6rqpnrR8X6HZmafGCdP5L7-rk7bRXFB1jQ';
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
+const GEMINI_API  = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
 
 let scanMode = 'receipt'; // 'receipt' | 'installment'
 let scanImageBase64 = null;
@@ -2943,20 +2943,41 @@ async function callGemini(){
 ถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้วันนี้`;
 
   try {
-    const resp = await fetch(GEMINI_URL, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            {inline_data: {mime_type: scanImageMime, data: scanImageBase64}},
-            {text: prompt}
-          ]
-        }]
-      })
-    });
-    const data = await resp.json();
-    if(!resp.ok) throw new Error(data.error?.message || 'API error ' + resp.status);
+    // ส่งผ่าน Supabase Edge Function เพื่อแก้ CORS
+    const PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/gemini-proxy';
+    const body = {
+      key: GEMINI_KEY,
+      contents: [{
+        parts: [
+          {inline_data: {mime_type: scanImageMime, data: scanImageBase64}},
+          {text: prompt}
+        ]
+      }]
+    };
+    // ลองเรียก direct ก่อน ถ้าไม่ได้ค่อย fallback
+    let resp, data;
+    try {
+      resp = await fetch(GEMINI_API, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({contents: body.contents})
+      });
+      data = await resp.json();
+      if(!resp.ok) throw new Error(data.error?.message || 'direct failed');
+    } catch(directErr) {
+      // fallback: ส่งผ่าน Supabase proxy
+      if(loadingTxt) loadingTxt.textContent = 'กำลังเชื่อมต่อ...';
+      const proxyResp = await fetch(PROXY, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (sb ? (await sb.auth.getSession()).data.session?.access_token : '')
+        },
+        body: JSON.stringify(body)
+      });
+      if(!proxyResp.ok) throw new Error('เชื่อมต่อ Gemini ไม่ได้ กรุณาลองใหม่');
+      data = await proxyResp.json();
+    }
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     const clean = raw.replace(/```json|```/g,'').trim();
     scanParsedData = JSON.parse(clean);
