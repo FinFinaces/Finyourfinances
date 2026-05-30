@@ -2959,8 +2959,8 @@ async function callGemini(){
       })
     });
     if(!proxyResp.ok){
-      const errData = await proxyResp.json().catch(()=>({}));
-      throw new Error(errData.error || 'HTTP ' + proxyResp.status);
+      const errText = await proxyResp.text().catch(()=>'');
+      throw new Error('HTTP ' + proxyResp.status + ': ' + errText.slice(0,200));
     }
     const data = await proxyResp.json();
     if(data.error) throw new Error(typeof data.error === 'string' ? data.error : (data.error.message || JSON.stringify(data.error)));
@@ -2975,7 +2975,12 @@ async function callGemini(){
     document.getElementById('scanStep3').style.display = '';
     document.getElementById('scanFooter').style.display = '';
     const errEl = document.getElementById('scanError');
-    const errMsg = (err && err.message) ? err.message : JSON.stringify(err);
+    let errMsg = 'ไม่ทราบสาเหตุ';
+    try {
+      if(typeof err === 'string') errMsg = err;
+      else if(err && err.message) errMsg = err.message;
+      else errMsg = JSON.stringify(err, Object.getOwnPropertyNames(err));
+    } catch(e){ errMsg = String(err); }
     if(errEl){ errEl.style.display=''; errEl.textContent='⚠️ ' + errMsg; }
     document.getElementById('scanReceiptResult').style.display='none';
     document.getElementById('scanInstallResult').style.display='none';
