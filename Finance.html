@@ -451,7 +451,7 @@ body {
 .loan-card.type-personal::before { background: var(--amber); }
 .loan-card.type-family::before { background: var(--blue); }
 .loan-card.type-other::before { background: var(--purple); }
-.loan-card.done { opacity: 0.65; }
+.loan-card.done { opacity: 0.88; }
 .loan-card.done::before { background: var(--green); }
 .loan-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
 .loan-name { font-size: 15px; font-weight: 600; color: var(--text); }
@@ -489,9 +489,9 @@ body {
 }
 .loan-pay-btn:hover { background: var(--accent2); transform: translateY(-1px); }
 .loan-pay-btn:disabled { background: var(--border); color: var(--text3); cursor: default; transform: none; }
-.loan-edit-btn { background: none; border: 1px solid var(--border); color: var(--text3); border-radius: var(--rs); padding: 9px 12px; cursor: pointer; transition: all 0.15s; }
+.loan-edit-btn { background: none; border: 1px solid var(--border); color: var(--text3); border-radius: var(--rs); padding: 11px 16px; cursor: pointer; transition: all 0.15s; font-size: 16px; }
 .loan-edit-btn:hover { background: var(--bg2); color: var(--text); }
-.loan-del-btn { background: none; border: 1px solid var(--border); color: var(--text3); border-radius: var(--rs); padding: 9px 12px; cursor: pointer; transition: all 0.15s; }
+.loan-del-btn { background: none; border: 1px solid var(--border); color: var(--text3); border-radius: var(--rs); padding: 11px 16px; cursor: pointer; transition: all 0.15s; font-size: 16px; }
 .loan-del-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red-br); }
 .loan-history { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
 .loan-history-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600; margin-bottom: 6px; }
@@ -2902,14 +2902,10 @@ function openScanModal(mode){
   document.getElementById('scanModalTitle').textContent = mode==='installment' ? '📷 นำเข้าตารางผ่อน' : '📷 สแกนใบเสร็จ';
   scanReset();
   populateSourceSelect('scanSource');
+  // populate loan select
   const ls = document.getElementById('scanLoanSelect');
   if(ls){
-    if(!loans.length){
-      ls.innerHTML = '<option value="">— ยังไม่มีสินเชื่อ (เพิ่มใน tab สินเชื่อก่อน) —</option>';
-    } else {
-      ls.innerHTML = '<option value="">— ไม่เชื่อม —</option>' +
-        loans.map(l=>`<option value="${l.id}">${esc(l.name)} (คงเหลือ ฿${fmt(l.remaining||0)})</option>`).join('');
-    }
+    ls.innerHTML = '<option value="">— ไม่เชื่อม —</option>' + loans.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');
   }
   document.getElementById('scanBackdrop').classList.add('open');
 }
@@ -2959,8 +2955,9 @@ async function callGemini(){
   if(loadingTxt) loadingTxt.textContent = 'กำลังอ่านรูป...';
 
   const prompt = scanMode === 'installment'
-    ? `อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:
-{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69},{"date":"2026-08-05","amount":11326.30}]}`
+    ? `อ่านตารางการชำระเงิน/งวดผ่อนหรือประวัติสินเชื่อจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:
+{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69,"status":"paid"},{"date":"2026-08-05","amount":11326.30,"status":"unpaid"}]}
+กฎ: status ให้ใส่ "paid" ถ้าชำระแล้ว/ปิดแล้ว, "unpaid" ถ้ายังค้างอยู่/ยอดคงค้าง ถ้าไม่แน่ใจให้ใส่ "unpaid"`
     : `อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:
 {"type":"receipt","items":[{"name":"ชื่อร้านหรือรายการ","amount":150.00,"date":"2026-05-30"}],"total":150.00,"merchant":"ชื่อร้าน"}
 ถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้วันนี้`;
@@ -3021,14 +3018,26 @@ function showScanResults(){
     const items = scanParsedData?.items || [];
     const wrap = document.getElementById('scanInstallItems');
     if(!items.length){ wrap.innerHTML='<div style="color:var(--text3);padding:20px;text-align:center">ไม่พบตารางงวดในรูป</div>'; return; }
-    wrap.innerHTML = items.map((item,i)=>`
-      <div class="scan-item-row">
-        <div>
+    wrap.innerHTML = items.map((item,i)=>{
+      const isPaid = item.status === 'paid';
+      const statusBadge = isPaid
+        ? `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#e8f5e9;color:#388e3c;font-weight:600">✓ ชำระแล้ว</span>`
+        : `<span style="font-size:11px;padding:2px 8px;border-radius:20px;background:#fff3e0;color:#e65100;font-weight:600">● ค้างชำระ</span>`;
+      const amtField = isPaid
+        ? `<div class="scan-item-amt">฿${fmt(item.amount)}</div>`
+        : `<input type="number" step="0.01" value="${item.amount}" id="scanAmt${i}"
+             style="width:110px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:14px;font-weight:600;
+                    color:var(--red);border:1px solid var(--border);border-radius:8px;padding:4px 8px;background:var(--card)"
+             oninput="scanParsedData.items[${i}].amount=parseFloat(this.value)||0"/>`;
+      return `<div class="scan-item-row" style="align-items:center;gap:8px">
+        <div style="flex:1">
           <div class="scan-item-name">${thDate(item.date)}</div>
+          <div style="margin-top:3px">${statusBadge}</div>
         </div>
-        <div class="scan-item-amt">฿${fmt(item.amount)}</div>
+        ${amtField}
         <input type="checkbox" class="scan-item-check" id="scanCheck${i}" checked/>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } else {
     document.getElementById('scanReceiptResult').style.display = '';
     document.getElementById('scanInstallResult').style.display = 'none';
@@ -3057,28 +3066,24 @@ function scanConfirmSave(){
     let added = 0;
     items.forEach((item,i)=>{
       if(!document.getElementById('scanCheck'+i)?.checked) return;
+      // เพิ่มเป็น transaction รายจ่ายค้างชำระ
       txs.push({
         id:'t'+Date.now()+Math.random().toString(36).slice(2,5),
         type:'expense',
-        name:'💳 '+(loan ? loan.name : 'ผ่อนชำระ'),
+        name:'💳 '+(loan?loan.name:'ผ่อนชำระ')+' '+thDate(item.date),
         amount: item.amount,
         category:'หนี้/สินเชื่อ',
         date: item.date,
         due: item.date,
         status:'unpaid',
-        note:'นำเข้าจากตารางผ่อน'+(loan?' · '+loan.name:''),
-        isRecurring: true,
-        paymentSource: loan ? (loan.source||'cash') : (qaSourceId||'cash')
+        note:'นำเข้าจากตารางผ่อน',
+        isRecurring:false,
+        paymentSource: loan?.source||'cash'
       });
-      if(loan){
-        if(!loan.payments) loan.payments = [];
-        loan.payments.push({date:item.date,amount:item.amount,before:loan.remaining,after:Math.max(0,loan.remaining-item.amount)});
-        loan.remaining = Math.max(0, loan.remaining - item.amount);
-      }
       added++;
     });
-    saveAll(); closeScanModal(); renderAll(); renderLoans();
-    toast('✓ นำเข้า '+added+' งวด'+(loan?' เชื่อม '+loan.name:'')+' — ดูได้ตามเดือนของแต่ละงวด');
+    saveAll(); closeScanModal(); renderAll();
+    toast('✓ นำเข้า '+added+' งวด — อยู่ในรายการค้างชำระแล้ว');
   } else {
     const items = scanParsedData?.items || [];
     const cat = document.getElementById('scanCat')?.value || 'อื่นๆ';
@@ -3330,6 +3335,59 @@ if(sb){
 <script>
 function thDate(s){if(!s)return'—';const d=new Date(s);const _m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];return d.getDate()+' '+_m[d.getMonth()]+' '+(d.getFullYear()+543);}
 function openScanModal(mode){scanMode=mode||'receipt';document.getElementById('scanModalTitle').textContent=mode==='installment'?'📷 นำเข้าตารางผ่อน':'📷 สแกนใบเสร็จ';scanReset();populateSourceSelect('scanSource');const ls=document.getElementById('scanLoanSelect');if(ls){if(!loans.length){ls.innerHTML='<option value="">— ยังไม่มีสินเชื่อ —</option>';}else{ls.innerHTML='<option value="">— ไม่เชื่อม —</option>'+loans.map(l=>`<option value="${l.id}">${esc(l.name)} (คงเหลือ ฿${fmt(l.remaining||0)})</option>`).join('');}}document.getElementById('scanBackdrop').classList.add('open');}
-function scanConfirmSave(){if(scanMode==='installment'){const items=scanParsedData?.items||[];const loanId=document.getElementById('scanLoanSelect')?.value;const loan=loanId?loans.find(l=>l.id===loanId):null;let added=0;items.forEach((item,i)=>{if(!document.getElementById('scanCheck'+i)?.checked)return;txs.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),type:'expense',name:'💳 '+(loan?loan.name:'ผ่อนชำระ'),amount:item.amount,category:'หนี้/สินเชื่อ',date:item.date,due:item.date,status:'unpaid',note:'นำเข้าจากตารางผ่อน'+(loan?' · '+loan.name:''),isRecurring:true,paymentSource:loan?(loan.source||'cash'):(qaSourceId||'cash')});if(loan){if(!loan.payments)loan.payments=[];loan.payments.push({date:item.date,amount:item.amount,before:loan.remaining,after:Math.max(0,loan.remaining-item.amount)});loan.remaining=Math.max(0,loan.remaining-item.amount);}added++;});saveAll();closeScanModal();renderAll();renderLoans();toast('✓ นำเข้า '+added+' งวด'+(loan?' เชื่อม '+loan.name:'')+' — ดูได้ตามเดือนของแต่ละงวด');}else{const items=scanParsedData?.items||[];const cat=document.getElementById('scanCat')?.value||'อื่นๆ';const src=document.getElementById('scanSource')?.value||'cash';let added=0;items.forEach((item,i)=>{if(!document.getElementById('scanCheck'+i)?.checked)return;txs.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),type:'expense',name:item.name||'รายการจากใบเสร็จ',amount:item.amount,category:cat,date:item.date||new Date().toISOString().slice(0,10),due:item.date||new Date().toISOString().slice(0,10),status:'paid',note:'สแกนจากใบเสร็จ',isRecurring:false,paymentSource:src});added++;});saveAll();closeScanModal();renderAll();toast('✓ บันทึก '+added+' รายการจากใบเสร็จ');}}
+function scanConfirmSave(){
+  if(scanMode==='installment'){
+    const items=scanParsedData?.items||[];
+    const loanId=document.getElementById('scanLoanSelect')?.value;
+    const loan=loanId?loans.find(l=>l.id===loanId):null;
+    // sort paid items by date asc so remaining deducts in order
+    const sorted=[...items.map((item,i)=>({...item,_i:i}))].sort((a,b)=>{
+      if(a.status==='paid'&&b.status!=='paid')return-1;
+      if(a.status!=='paid'&&b.status==='paid')return 1;
+      return(a.date||'').localeCompare(b.date||'');
+    });
+    let addedPaid=0,addedUnpaid=0;
+    sorted.forEach(item=>{
+      if(!document.getElementById('scanCheck'+item._i)?.checked)return;
+      const isPaid=item.status==='paid';
+      txs.push({
+        id:'t'+Date.now()+Math.random().toString(36).slice(2,5),
+        type:'expense',
+        name:'💳 '+(loan?loan.name:'ผ่อนชำระ'),
+        amount:item.amount,
+        category:'หนี้/สินเชื่อ',
+        date:item.date,
+        due:item.date,
+        status:isPaid?'paid':'unpaid',
+        note:(isPaid?'ชำระแล้ว':'ค้างชำระ')+(loan?' · '+loan.name:''),
+        isRecurring:true,
+        paymentSource:loan?(loan.source||'cash'):(qaSourceId||'cash')
+      });
+      if(isPaid&&loan){
+        if(!loan.payments)loan.payments=[];
+        loan.payments.push({date:item.date,amount:item.amount,before:loan.remaining,after:Math.max(0,loan.remaining-item.amount)});
+        loan.remaining=Math.max(0,loan.remaining-item.amount);
+      }
+      isPaid?addedPaid++:addedUnpaid++;
+    });
+    saveAll();closeScanModal();renderAll();renderLoans();
+    const msg='✓ นำเข้า '+(addedPaid+addedUnpaid)+' งวด'+(loan?' เชื่อม '+loan.name:'')+
+              (addedPaid?' · ชำระแล้ว '+addedPaid:'')+
+              (addedUnpaid?' · ค้างชำระ '+addedUnpaid:'');
+    toast(msg);
+  }else{
+    const items=scanParsedData?.items||[];
+    const cat=document.getElementById('scanCat')?.value||'อื่นๆ';
+    const src=document.getElementById('scanSource')?.value||'cash';
+    let added=0;
+    items.forEach((item,i)=>{
+      if(!document.getElementById('scanCheck'+i)?.checked)return;
+      txs.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),type:'expense',name:item.name||'รายการจากใบเสร็จ',amount:item.amount,category:cat,date:item.date||new Date().toISOString().slice(0,10),due:item.date||new Date().toISOString().slice(0,10),status:'paid',note:'สแกนจากใบเสร็จ',isRecurring:false,paymentSource:src});
+      added++;
+    });
+    saveAll();closeScanModal();renderAll();
+    toast('✓ บันทึก '+added+' รายการจากใบเสร็จ');
+  }
+}
 </script>
 <!-- inject scan modal before </body> -->
