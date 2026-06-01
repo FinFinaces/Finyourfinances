@@ -3617,8 +3617,7 @@ async function callGemini(){
 ถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้วันนี้`;
 
   try {
-    if(loadingTxt) loadingTxt.textContent = 'กำลังอ่านรูป...';
-    // ส่งผ่าน Supabase Edge Function (key ซ่อนไว้ใน server)
+    if(loadingTxt) loadingTxt.textContent = 'กำลังส่งรูปไปวิเคราะห์...';
     const PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy';
     const resp = await fetch(PROXY, {
       method: 'POST',
@@ -3634,14 +3633,46 @@ async function callGemini(){
       throw new Error('HTTP ' + resp.status + ': ' + errText.slice(0,300));
     }
     const data = await resp.json();
+    console.log('[scan-proxy] response keys:', Object.keys(data));
+    console.log('[scan-proxy] full response:', JSON.stringify(data).slice(0,500));
+
     if(data.error) throw new Error(typeof data.error === 'object' ? (data.error.message||JSON.stringify(data.error)) : data.error);
-    const raw = data.result || '';
-    if(!raw) throw new Error('ไม่ได้รับผลจาก AI');
-    const clean = raw.replace(/```json|```/g,'').trim();
-    scanParsedData = JSON.parse(clean);
+
+    // รองรับหลาย response format จาก proxy
+    let raw = '';
+    if(data.result) {
+      raw = data.result;
+    } else if(data.choices && data.choices[0]) {
+      // OpenRouter direct format
+      raw = data.choices[0].message && data.choices[0].message.content
+        ? data.choices[0].message.content
+        : (data.choices[0].text || '');
+    } else if(data.content) {
+      raw = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
+    } else if(data.text) {
+      raw = data.text;
+    } else if(data.message) {
+      raw = typeof data.message === 'string' ? data.message : (data.message.content||'');
+    }
+
+    console.log('[scan-proxy] raw text:', raw.slice(0,300));
+
+    if(!raw) throw new Error('ไม่ได้รับผลจาก AI — response: ' + JSON.stringify(data).slice(0,200));
+
+    // clean และ parse JSON
+    const clean = raw.replace(/```json[\s\S]*?```/g, m => m.replace(/```json|```/g,'').trim())
+                     .replace(/```/g,'').trim();
+    // หา JSON block ถ้า AI ใส่ข้อความอื่นมาด้วย
+    const jsonMatch = clean.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('ไม่พบ JSON ในผลลัพธ์: ' + clean.slice(0,200));
+
+    scanParsedData = JSON.parse(jsonMatch[0]);
+    if(!scanParsedData.items || !scanParsedData.items.length){
+      throw new Error('ไม่พบรายการในรูป — AI ตอบ: ' + clean.slice(0,200));
+    }
     showScanResults();
   } catch(err) {
-    console.error('Gemini error:', err);
+    console.error('Scan error:', err);
     document.getElementById('scanStep2').style.display = 'none';
     document.getElementById('scanStep3').style.display = '';
     document.getElementById('scanFooter').style.display = '';
