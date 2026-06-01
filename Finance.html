@@ -2336,7 +2336,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 //  Cloud sync (single JSON blob per user → table: fin_store)
 // ============================================================
 function bundle(){
-  return { txs:txs||[], goals, loans, cards, sources:paymentSources, shortcuts, theme, v:1 };
+  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:window.cards||[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, v:1 };
 }
 async function cloudPull(){
   if(!currentUser || !sb) return;
@@ -2348,7 +2348,7 @@ async function cloudPull(){
       if(Array.isArray(b.txs))      txs = b.txs;
       if(Array.isArray(b.goals))    goals = b.goals;
       if(Array.isArray(b.loans))    loans = b.loans;
-      if(Array.isArray(b.cards))    cards = b.cards;
+      if(Array.isArray(b.cards))    { cards = b.cards; window.cards = b.cards; }
       if(Array.isArray(b.sources) && b.sources.length) paymentSources = b.sources;
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
