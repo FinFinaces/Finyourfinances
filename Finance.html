@@ -2902,10 +2902,14 @@ function openScanModal(mode){
   document.getElementById('scanModalTitle').textContent = mode==='installment' ? '📷 นำเข้าตารางผ่อน' : '📷 สแกนใบเสร็จ';
   scanReset();
   populateSourceSelect('scanSource');
-  // populate loan select
   const ls = document.getElementById('scanLoanSelect');
   if(ls){
-    ls.innerHTML = '<option value="">— ไม่เชื่อม —</option>' + loans.map(l=>`<option value="${l.id}">${esc(l.name)}</option>`).join('');
+    if(!loans.length){
+      ls.innerHTML = '<option value="">— ยังไม่มีสินเชื่อ (เพิ่มใน tab สินเชื่อก่อน) —</option>';
+    } else {
+      ls.innerHTML = '<option value="">— ไม่เชื่อม —</option>' +
+        loans.map(l=>`<option value="${l.id}">${esc(l.name)} (คงเหลือ ฿${fmt(l.remaining||0)})</option>`).join('');
+    }
   }
   document.getElementById('scanBackdrop').classList.add('open');
 }
@@ -3334,60 +3338,5 @@ if(sb){
 </html>
 <script>
 function thDate(s){if(!s)return'—';const d=new Date(s);const _m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];return d.getDate()+' '+_m[d.getMonth()]+' '+(d.getFullYear()+543);}
-function openScanModal(mode){scanMode=mode||'receipt';document.getElementById('scanModalTitle').textContent=mode==='installment'?'📷 นำเข้าตารางผ่อน':'📷 สแกนใบเสร็จ';scanReset();populateSourceSelect('scanSource');const ls=document.getElementById('scanLoanSelect');if(ls){if(!loans.length){ls.innerHTML='<option value="">— ยังไม่มีสินเชื่อ —</option>';}else{ls.innerHTML='<option value="">— ไม่เชื่อม —</option>'+loans.map(l=>`<option value="${l.id}">${esc(l.name)} (คงเหลือ ฿${fmt(l.remaining||0)})</option>`).join('');}}document.getElementById('scanBackdrop').classList.add('open');}
-function scanConfirmSave(){
-  if(scanMode==='installment'){
-    const items=scanParsedData?.items||[];
-    const loanId=document.getElementById('scanLoanSelect')?.value;
-    const loan=loanId?loans.find(l=>l.id===loanId):null;
-    // sort paid items by date asc so remaining deducts in order
-    const sorted=[...items.map((item,i)=>({...item,_i:i}))].sort((a,b)=>{
-      if(a.status==='paid'&&b.status!=='paid')return-1;
-      if(a.status!=='paid'&&b.status==='paid')return 1;
-      return(a.date||'').localeCompare(b.date||'');
-    });
-    let addedPaid=0,addedUnpaid=0;
-    sorted.forEach(item=>{
-      if(!document.getElementById('scanCheck'+item._i)?.checked)return;
-      const isPaid=item.status==='paid';
-      txs.push({
-        id:'t'+Date.now()+Math.random().toString(36).slice(2,5),
-        type:'expense',
-        name:'💳 '+(loan?loan.name:'ผ่อนชำระ'),
-        amount:item.amount,
-        category:'หนี้/สินเชื่อ',
-        date:item.date,
-        due:item.date,
-        status:isPaid?'paid':'unpaid',
-        note:(isPaid?'ชำระแล้ว':'ค้างชำระ')+(loan?' · '+loan.name:''),
-        isRecurring:true,
-        paymentSource:loan?(loan.source||'cash'):(qaSourceId||'cash')
-      });
-      if(isPaid&&loan){
-        if(!loan.payments)loan.payments=[];
-        loan.payments.push({date:item.date,amount:item.amount,before:loan.remaining,after:Math.max(0,loan.remaining-item.amount)});
-        loan.remaining=Math.max(0,loan.remaining-item.amount);
-      }
-      isPaid?addedPaid++:addedUnpaid++;
-    });
-    saveAll();closeScanModal();renderAll();renderLoans();
-    const msg='✓ นำเข้า '+(addedPaid+addedUnpaid)+' งวด'+(loan?' เชื่อม '+loan.name:'')+
-              (addedPaid?' · ชำระแล้ว '+addedPaid:'')+
-              (addedUnpaid?' · ค้างชำระ '+addedUnpaid:'');
-    toast(msg);
-  }else{
-    const items=scanParsedData?.items||[];
-    const cat=document.getElementById('scanCat')?.value||'อื่นๆ';
-    const src=document.getElementById('scanSource')?.value||'cash';
-    let added=0;
-    items.forEach((item,i)=>{
-      if(!document.getElementById('scanCheck'+i)?.checked)return;
-      txs.push({id:'t'+Date.now()+Math.random().toString(36).slice(2,5),type:'expense',name:item.name||'รายการจากใบเสร็จ',amount:item.amount,category:cat,date:item.date||new Date().toISOString().slice(0,10),due:item.date||new Date().toISOString().slice(0,10),status:'paid',note:'สแกนจากใบเสร็จ',isRecurring:false,paymentSource:src});
-      added++;
-    });
-    saveAll();closeScanModal();renderAll();
-    toast('✓ บันทึก '+added+' รายการจากใบเสร็จ');
-  }
-}
 </script>
 <!-- inject scan modal before </body> -->
