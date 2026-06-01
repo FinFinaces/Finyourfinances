@@ -1490,9 +1490,9 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="frow">
       <div class="fg">
-        <label class="fl">💳 วงเงินคงเหลือ (ปัจจุบัน)</label>
+        <label class="fl">💳 วงเงินคงเหลือที่ใช้ได้ตอนนี้</label>
         <input class="fi mono" id="lnUsed" type="number" step="0.01" placeholder="0.00" oninput="updateLoanCalc()"/>
-        <div style="font-size:11px;color:var(--text3);margin-top:4px">วงเงินคงเหลือ = วงเงิน − ยอดที่เบิกสะสม</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">กรอกวงเงินที่ยังใช้ได้ ณ ปัจจุบัน</div>
       </div>
       <div class="fg">
         <label class="fl">📅 ระยะเวลาผ่อนทั้งหมด (เดือน)</label>
@@ -1517,9 +1517,9 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="fg"><label class="fl">หมายเหตุ</label><input class="fi" id="lnNote" placeholder="รายละเอียดเพิ่มเติม"/></div>
     <div class="interest-hint" id="loanCalcHint" style="display:none"></div>
     <div class="modal-foot">
-      <button class="btn-cancel" id="lnDelBtn" onclick="deleteLoan()" style="display:none;color:var(--red);border-color:var(--red-br)">🗑 ลบ</button>
-      <button class="btn-cancel" onclick="closeLoanModal()">ยกเลิก</button>
-      <button class="btn-ok" onclick="saveLoan()">บันทึก</button>
+      <button type="button" class="btn-cancel" id="lnDelBtn" onclick="deleteLoan()" style="display:none;color:var(--red);border-color:var(--red-br)">🗑 ลบ</button>
+      <button type="button" class="btn-cancel" onclick="closeLoanModal()">ยกเลิก</button>
+      <button type="button" class="btn-ok" onclick="saveLoan()">บันทึก</button>
     </div>
   </div>
 </div>
@@ -2202,12 +2202,10 @@ function openLoanModal(id, defaultType){
   document.getElementById('lnDueDay').value=l?(l.dueDay||''):'';
   document.getElementById('lnNote').value=l?(l.note||''):'';
   document.getElementById('lnDelBtn').style.display=id?'':'none';
-  // คำนวณวงเงินคงเหลือจาก loan ลูก แล้วแสดงใน lnUsed
-  if(id){
-    const usedFromChildren = loans.filter(x=>x.parentCreditId===id).reduce((s,x)=>s+(x.remaining||0),0);
-    const limit = parseFloat(document.getElementById('lnCreditLimit').value)||0;
-    const avail = Math.max(0, limit - usedFromChildren);
-    document.getElementById('lnUsed').value = avail > 0 ? avail.toFixed(2) : '0.00';
+  // แสดงวงเงินคงเหลือ = creditLimit - used
+  if(l && (l.creditLimit||0) > 0){
+    const avail = Math.max(0, (l.creditLimit||0) - (l.used||0));
+    document.getElementById('lnUsed').value = avail.toFixed(2);
   } else {
     document.getElementById('lnUsed').value = '';
   }
