@@ -1676,8 +1676,6 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <button class="tab" data-tab="expense" onclick="switchTab('expense')">รายจ่าย</button>
     <button class="tab" data-tab="recurring" onclick="switchTab('recurring')">ประจำ</button>
     <button class="tab" data-tab="extra" onclick="switchTab('extra')">เพิ่มเติม</button>
-    <button class="tab" data-tab="recurring" onclick="switchTab('recurring')">ประจำ</button>
-    <button class="tab" data-tab="extra" onclick="switchTab('extra')">เพิ่มเติม</button>
   </div>
   <div class="toolbar">
     <div class="filter-row">
@@ -1799,7 +1797,17 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         </div>
         <div class="frow">
           <div class="fg"><label class="fl">ดอกเบี้ย % ต่อปี (ถ้ามี)</label><input class="fi mono" id="lnInterestCL" type="number" step="0.01" placeholder="เช่น 18" oninput="updateLoanCalc()"/></div>
-          <div class="fg"><label class="fl">วันตัดยอดทุกเดือน</label><input class="fi" id="lnDueDay" type="number" min="1" max="31" placeholder="เช่น 5, 15"/></div>
+          <div class="fg"><label class="fl">วันตัดยอด (Statement)</label><input class="fi" id="lnDueDay" type="number" min="1" max="31" placeholder="เช่น 10, 25" oninput="updateDueDayHint()"/></div>
+        </div>
+        <div class="frow">
+          <div class="fg">
+            <label class="fl">วันครบกำหนดชำระ (Due Date)</label>
+            <input class="fi" id="lnPayDay" type="number" min="1" max="31" placeholder="เช่น 28"/>
+            <div style="font-size:11px;color:var(--text3);margin-top:3px">วันสุดท้ายที่ต้องจ่าย (ปกติห่างจากตัดยอด 15-20 วัน)</div>
+          </div>
+          <div class="fg" style="display:flex;align-items:flex-end">
+            <div id="lnDueDayHint" style="font-size:12px;color:var(--accent);padding-bottom:8px;line-height:1.6"></div>
+          </div>
         </div>
       </div>
       <!-- ผ่อนชำระ fields -->
@@ -2524,7 +2532,7 @@ function renderLoans(){
     const histHtml=history.length?'<div class="loan-history"><div class="loan-history-label">ชำระล่าสุด</div><div class="loan-history-list">'+history.map(p=>'<div class="loan-history-item"><span>'+thDate(p.date)+'</span><span class="loan-history-amt">-฿'+fmt(p.amount)+'</span></div>').join('')+'</div></div>':'';
 
     return '<div class="loan-card type-'+t.cls+(done?' done':'')+'">'+
-      '<div class="loan-head"><div><div class="loan-name">'+esc(l.name)+'</div><div class="loan-source">'+src.icon+' '+esc(src.name)+(l.dueDay?' · ตัดวันที่ '+l.dueDay+' ทุกเดือน':'')+'</div></div>'+
+      '<div class="loan-head"><div><div class="loan-name">'+esc(l.name)+'</div><div class="loan-source">'+src.icon+' '+esc(src.name)+(l.dueDay?' · ตัดยอด '+l.dueDay:''+(l.payDay?' · ครบกำหนด '+l.payDay:''))+'</div></div>'+
       '<span class="loan-type-badge '+(done?'done':t.cls)+'">'+(done?'✅ หมดแล้ว':t.label)+'</span></div>'+
       '<div class="loan-amounts"><div><div class="loan-remain'+(done?' done':'')+'">฿'+fmt(remain)+'</div><div class="loan-original">จากยอดต้น ฿'+fmt(principal)+'</div></div>'+
       '<div style="text-align:right;font-size:12px;color:var(--text3)"><div>ผ่อนไป '+pct+'%</div><div class="mono" style="font-size:11px;margin-top:2px">฿'+fmt(paid)+'</div></div></div>'+
@@ -2578,6 +2586,7 @@ function openLoanModal(id, defaultType){
   v('lnCreditLimit',  l?(l.creditLimit||''):'');
   v('lnInterestCL',   l?(l.interest||''):'');
   v('lnDueDay',       l?(l.dueDay||''):'');
+  v('lnPayDay',       l?(l.payDay||''):'');
   if(l&&(l.creditLimit||0)>0){
     var avail=Math.max(0,(l.creditLimit||0)-(l.used||0));
     v('lnUsed', avail.toFixed(2));
@@ -2658,8 +2667,9 @@ function saveLoan(){
   var pf=function(id){ return parseFloat(g(id))||0; };
   var pi=function(id){ return parseInt(g(id))||0; };
   var isCreditType=(loanType==='credit');
-  var principal,remaining,monthly,interest,creditLimit,used,totalMonths,dueDay,parentCreditId;
+  var principal,remaining,monthly,interest,creditLimit,used,totalMonths,dueDay,payDay,parentCreditId;
   dueDay=pi('lnDueDay');
+  payDay=pi('lnPayDay');
   parentCreditId='';
   if(isCreditPage){
     if(isCreditType){
@@ -2686,7 +2696,7 @@ function saveLoan(){
   var note=g('lnNote').trim();
   var obj={name:name,type:loanType,principal:principal,remaining:remaining,
     monthly:monthly,interest:interest,creditLimit:creditLimit,used:used,
-    totalMonths:totalMonths,dueDay:dueDay,source:source,note:note,
+    totalMonths:totalMonths,dueDay:dueDay,payDay:payDay,source:source,note:note,
     parentCreditId:parentCreditId||''};
   var msg;
   if(editingLoanId){
@@ -3607,87 +3617,110 @@ function processScanFile(file){
 
 async function callGemini(){
   const loadingTxt = document.getElementById('scanLoadingTxt');
-  if(loadingTxt) loadingTxt.textContent = 'กำลังอ่านรูป...';
+  if(loadingTxt) loadingTxt.textContent = 'กำลังส่งรูปไปวิเคราะห์...';
 
+  const today = new Date().toISOString().slice(0,10);
   const prompt = scanMode === 'installment'
-    ? `อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:
+    ? `อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่นนำหน้าหรือตามหลัง รูปแบบ:
 {"type":"installment","items":[{"date":"2026-07-05","amount":12331.69},{"date":"2026-08-05","amount":11326.30}]}`
-    : `อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:
-{"type":"receipt","items":[{"name":"ชื่อร้านหรือรายการ","amount":150.00,"date":"2026-05-30"}],"total":150.00,"merchant":"ชื่อร้าน"}
-ถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้วันนี้`;
+    : `อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่นนำหน้าหรือตามหลัง รูปแบบ:
+{"type":"receipt","items":[{"name":"ชื่อร้านหรือรายการ","amount":150.00,"date":"${today}"}],"total":150.00,"merchant":"ชื่อร้าน"}
+ถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์ items ถ้าไม่แน่ใจวันที่ให้ใช้ ${today}`;
+
+  // helper: parse response regardless of format
+  function extractRaw(data){
+    if(data.result && data.result.trim()) return data.result;
+    if(data.choices && data.choices[0]){
+      var c=data.choices[0];
+      if(c.message && c.message.content) return c.message.content;
+      if(c.text) return c.text;
+    }
+    if(data.content) return typeof data.content==='string'?data.content:JSON.stringify(data.content);
+    if(data.text) return data.text;
+    return '';
+  }
+
+  function parseResult(raw){
+    var clean=raw.replace(/```json[\s\S]*?```/g,function(m){return m.replace(/```json|```/g,'').trim();}).replace(/```/g,'').trim();
+    var m=clean.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('ไม่พบ JSON — AI ตอบ: '+clean.slice(0,150));
+    var parsed=JSON.parse(m[0]);
+    if(!parsed.items||!parsed.items.length) throw new Error('ไม่พบรายการในรูป — AI ตอบ: '+clean.slice(0,150));
+    return parsed;
+  }
 
   try {
-    if(loadingTxt) loadingTxt.textContent = 'กำลังส่งรูปไปวิเคราะห์...';
+    // ── Path 1: Supabase proxy ──
     const PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy';
     const resp = await fetch(PROXY, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mime: scanImageMime,
-        image: scanImageBase64,
-        prompt: prompt
-      })
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mime:scanImageMime,image:scanImageBase64,prompt:prompt})
     });
-    if(!resp.ok){
-      const errText = await resp.text().catch(()=>'');
-      throw new Error('HTTP ' + resp.status + ': ' + errText.slice(0,300));
-    }
-    const data = await resp.json();
-    console.log('[scan-proxy] response keys:', Object.keys(data));
-    console.log('[scan-proxy] full response:', JSON.stringify(data).slice(0,500));
 
-    if(data.error) throw new Error(typeof data.error === 'object' ? (data.error.message||JSON.stringify(data.error)) : data.error);
-
-    // รองรับหลาย response format จาก proxy
-    let raw = '';
-    if(data.result) {
-      raw = data.result;
-    } else if(data.choices && data.choices[0]) {
-      // OpenRouter direct format
-      raw = data.choices[0].message && data.choices[0].message.content
-        ? data.choices[0].message.content
-        : (data.choices[0].text || '');
-    } else if(data.content) {
-      raw = typeof data.content === 'string' ? data.content : JSON.stringify(data.content);
-    } else if(data.text) {
-      raw = data.text;
-    } else if(data.message) {
-      raw = typeof data.message === 'string' ? data.message : (data.message.content||'');
+    var raw='';
+    if(resp.ok){
+      const data=await resp.json();
+      console.log('[proxy] response:', JSON.stringify(data).slice(0,400));
+      if(data.error){
+        // proxy returned error — try fallback
+        console.warn('[proxy] error:', data.error, '— trying direct call');
+        raw = await callOpenRouterDirect(prompt);
+      } else {
+        raw = extractRaw(data);
+        if(!raw){
+          console.warn('[proxy] empty raw — trying direct call');
+          raw = await callOpenRouterDirect(prompt);
+        }
+      }
+    } else {
+      const errTxt=await resp.text().catch(()=>'');
+      console.warn('[proxy] HTTP '+resp.status+' — trying direct call');
+      raw = await callOpenRouterDirect(prompt);
     }
 
-    console.log('[scan-proxy] raw text:', raw.slice(0,300));
-
-    if(!raw) throw new Error('ไม่ได้รับผลจาก AI — response: ' + JSON.stringify(data).slice(0,200));
-
-    // clean และ parse JSON
-    const clean = raw.replace(/```json[\s\S]*?```/g, m => m.replace(/```json|```/g,'').trim())
-                     .replace(/```/g,'').trim();
-    // หา JSON block ถ้า AI ใส่ข้อความอื่นมาด้วย
-    const jsonMatch = clean.match(/\{[\s\S]*\}/);
-    if(!jsonMatch) throw new Error('ไม่พบ JSON ในผลลัพธ์: ' + clean.slice(0,200));
-
-    scanParsedData = JSON.parse(jsonMatch[0]);
-    if(!scanParsedData.items || !scanParsedData.items.length){
-      throw new Error('ไม่พบรายการในรูป — AI ตอบ: ' + clean.slice(0,200));
-    }
+    console.log('[scan] raw result:', raw.slice(0,300));
+    scanParsedData = parseResult(raw);
     showScanResults();
-  } catch(err) {
-    console.error('Scan error:', err);
-    document.getElementById('scanStep2').style.display = 'none';
-    document.getElementById('scanStep3').style.display = '';
-    document.getElementById('scanFooter').style.display = '';
-    const errEl = document.getElementById('scanError');
-    let errMsg = 'ไม่ทราบสาเหตุ';
-    try {
-      if(typeof err === 'string') errMsg = err;
-      else if(err && err.message) errMsg = err.message;
-      else errMsg = JSON.stringify(err, Object.getOwnPropertyNames(err));
-    } catch(e){ errMsg = String(err); }
-    if(errEl){ errEl.style.display=''; errEl.textContent='⚠️ ' + errMsg; }
+
+  } catch(err){
+    console.error('[scan] error:', err);
+    document.getElementById('scanStep2').style.display='none';
+    document.getElementById('scanStep3').style.display='';
+    document.getElementById('scanFooter').style.display='';
+    const errEl=document.getElementById('scanError');
+    if(errEl){ errEl.style.display=''; errEl.textContent='⚠️ '+(err&&err.message?err.message:String(err)); }
     document.getElementById('scanReceiptResult').style.display='none';
     document.getElementById('scanInstallResult').style.display='none';
     document.getElementById('scanSaveBtn').style.display='none';
   }
+}
+
+async function callOpenRouterDirect(prompt){
+  if(!GEMINI_KEY) throw new Error('ไม่พบ API Key — กด ⚙ ตั้งค่า OpenRouter Key ก่อน');
+  const body={
+    model:'google/gemini-2.0-flash-exp:free',
+    messages:[{
+      role:'user',
+      content:[
+        {type:'image_url',image_url:{url:'data:'+scanImageMime+';base64,'+scanImageBase64}},
+        {type:'text',text:prompt}
+      ]
+    }],
+    max_tokens:1000
+  };
+  const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY},
+    body:JSON.stringify(body)
+  });
+  if(!r.ok){
+    const t=await r.text().catch(()=>'');
+    throw new Error('OpenRouter HTTP '+r.status+': '+t.slice(0,200));
+  }
+  const d=await r.json();
+  if(d.error) throw new Error('OpenRouter: '+(d.error.message||JSON.stringify(d.error)));
+  return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
 }
 
 function showScanResults(){
@@ -4044,7 +4077,7 @@ function renderCreditLines(){
         '<div class="cl-bottom">'+
           '<div class="cl-extra">'+
             (l.interest>0?'ดอกเบี้ย '+l.interest+'% ต่อปี<br>':'')  +
-            (l.dueDay?'ตัดยอดวันที่ '+l.dueDay+' ทุกเดือน':'')  +
+            (l.dueDay?'ตัดยอดวันที่ '+l.dueDay+' · ':'')+(l.payDay?'ครบกำหนด '+l.payDay+' ทุกเดือน':'')  +
           '</div>'+
           '<div style="text-align:right;font-size:10px;opacity:0.5">'+
             (linked.length?linked.length+' รายการค้าง':'')  +
@@ -4418,6 +4451,18 @@ function chatAiConfirm(){
   if(wrap){ wrap.style.borderColor='var(--accent)'; setTimeout(function(){ wrap.style.borderColor=''; },1200); }
 }
 
+
+function updateDueDayHint(){
+  var sd=parseInt(document.getElementById('lnDueDay').value)||0;
+  var hint=document.getElementById('lnDueDayHint');
+  if(!hint||!sd) return;
+  // estimate due date = statement + 18 days (common for Thai credit lines)
+  var due=sd+18; if(due>31) due=due-31;
+  hint.textContent='📅 ปกติครบกำหนดประมาณวันที่ '+due;
+  // auto-fill payDay if empty
+  var pd=document.getElementById('lnPayDay');
+  if(pd && !pd.value) pd.value=due;
+}
 </script>
 
 <!-- ── Scan Modal ── -->
