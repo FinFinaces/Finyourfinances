@@ -1059,8 +1059,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 
   <!-- ── Page Tab Nav ── -->
   <div class="page-tabs" id="mainPageTabs">
-    <button class="page-tab active" data-page="cards" onclick="setPageTab('cards')">💳 บัตรเครดิต</button>
-    <button class="page-tab" data-page="loans" onclick="setPageTab('loans')">🏦 สินเชื่อ</button>
+    <button class="page-tab active" data-page="cards" onclick="setPageTab('cards')">💳 วงเงิน</button>
+    <button class="page-tab" data-page="loans" onclick="setPageTab('loans')">📋 บันทึกหนี้</button>
     <button class="page-tab" data-page="overview" onclick="setPageTab('overview')">📊 ภาพรวม</button>
     <button class="page-tab" data-page="analysis" onclick="setPageTab('analysis')">📈 วิเคราะห์</button>
     <button class="page-tab" data-page="goals" onclick="setPageTab('goals')">🎯 เป้าหมาย</button>
@@ -1956,7 +1956,7 @@ async function cloudPull(){
       cloudReady = true;
       renderAll();
       updateAccountUI();
-      toast('☁️ ดึงข้อมูลจากคลาวด์แล้ว');
+
     } else {
       // first login on this account → push current local data up
       cloudReady = true;
