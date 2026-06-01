@@ -998,6 +998,232 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 .scan-item-check { width: 22px; height: 22px; accent-color: var(--accent); cursor: pointer; }
 .scan-loading { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 32px; }
 .scan-spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+
+/* ── Chat AI Input ── */
+.chat-ai-wrap {
+  margin-bottom: 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  background: var(--surface);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.chat-ai-wrap:focus-within {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74,103,65,0.10);
+}
+.chat-ai-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 14px 0;
+}
+.chat-ai-label {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: var(--accent);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+.chat-ai-label-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); display: inline-block;
+  animation: chatPulse 2s ease-in-out infinite;
+}
+@keyframes chatPulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.7); }
+}
+.chat-ai-hint { font-size: 11px; color: var(--text3); }
+.chat-ai-input-row {
+  display: flex; align-items: flex-end; gap: 8px;
+  padding: 8px 10px 10px;
+}
+.chat-ai-input {
+  flex: 1; background: transparent; border: none; outline: none;
+  font-family: 'Sarabun', sans-serif; font-size: 15px;
+  color: var(--text); resize: none; min-height: 38px; max-height: 100px;
+  line-height: 1.5; padding: 6px 4px;
+}
+.chat-ai-input::placeholder { color: var(--text3); }
+.chat-ai-btn-row {
+  display: flex; gap: 6px; align-items: center;
+}
+.chat-ai-slip-btn {
+  background: var(--blue-bg); border: 1px solid var(--blue-br);
+  color: var(--blue); border-radius: var(--rs);
+  padding: 8px 12px; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  font-family: 'Sarabun', sans-serif;
+}
+.chat-ai-slip-btn:active { transform: scale(0.97); }
+.chat-ai-send {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--rs); width: 40px; height: 40px;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; flex-shrink: 0;
+}
+.chat-ai-send:active { transform: scale(0.95); }
+.chat-ai-send:disabled { opacity: 0.45; cursor: not-allowed; }
+/* AI response bubble */
+.chat-ai-result {
+  margin: 0 10px 10px;
+  border-radius: var(--rs);
+  overflow: hidden;
+  animation: fadeSlideIn 0.2s ease;
+}
+@keyframes fadeSlideIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:translateY(0); } }
+.chat-ai-thinking {
+  padding: 10px 14px;
+  font-size: 13px; color: var(--text2);
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg2); border-radius: var(--rs);
+}
+.chat-ai-thinking-dots span {
+  display: inline-block; width: 5px; height: 5px;
+  background: var(--accent); border-radius: 50%; margin: 0 1px;
+  animation: dotBounce 1.2s ease-in-out infinite;
+}
+.chat-ai-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.chat-ai-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes dotBounce { 0%,80%,100%{transform:translateY(0);} 40%{transform:translateY(-5px);} }
+.chat-result-item {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.chat-result-item:last-child { border-bottom: none; }
+.chat-result-badge {
+  font-size: 10px; font-weight: 700; padding: 2px 7px;
+  border-radius: 4px; text-transform: uppercase; flex-shrink: 0;
+}
+.chat-result-badge.exp { background: var(--red-bg); color: var(--red); border: 1px solid var(--red-br); }
+.chat-result-badge.inc { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-br); }
+.chat-result-name { flex: 1; font-size: 13px; font-weight: 500; }
+.chat-result-amt { font-family: 'IBM Plex Mono', monospace; font-size: 14px; font-weight: 600; }
+.chat-result-amt.exp { color: var(--red); }
+.chat-result-amt.inc { color: var(--green); }
+.chat-result-actions {
+  background: var(--surface); padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px; justify-content: flex-end;
+}
+.chat-confirm-btn {
+  background: var(--accent); color: #fff; border: none;
+  border-radius: var(--rs); padding: 8px 18px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: 'Sarabun', sans-serif; transition: all 0.15s;
+}
+.chat-confirm-btn:active { transform: scale(0.97); }
+.chat-cancel-btn {
+  background: transparent; color: var(--text2);
+  border: 1px solid var(--border); border-radius: var(--rs);
+  padding: 8px 14px; font-size: 13px; cursor: pointer;
+  font-family: 'Sarabun', sans-serif;
+}
+/* Slip scan inline preview */
+.chat-slip-preview {
+  background: var(--bg2); border-radius: var(--rs);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 10px;
+}
+.chat-slip-img { width: 52px; height: 52px; object-fit: cover; border-radius: 6px; border: 1px solid var(--border); }
+
+
+/* ── Credit Card UI ── */
+.cc-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:16px; margin-bottom:8px; }
+.cc-card {
+  border-radius:16px; padding:22px 22px 18px;
+  background: linear-gradient(135deg,#2c4a2e 0%,#1a3320 60%,#0d2410 100%);
+  color:#fff; position:relative; overflow:hidden; min-height:170px;
+  display:flex; flex-direction:column; justify-content:space-between;
+  box-shadow:0 6px 24px rgba(0,0,0,0.18);
+}
+.cc-card.blue { background:linear-gradient(135deg,#1e3a5f 0%,#0d2240 60%,#061525 100%); }
+.cc-card.gold { background:linear-gradient(135deg,#6b4c1a 0%,#4a3210 60%,#2d1e08 100%); }
+.cc-card.purple { background:linear-gradient(135deg,#4a2d6b 0%,#2d1a45 60%,#1a0d2d 100%); }
+.cc-card.gray { background:linear-gradient(135deg,#3a3730 0%,#252220 60%,#161410 100%); }
+.cc-card::before {
+  content:''; position:absolute; right:-40px; top:-40px;
+  width:180px; height:180px; border-radius:50%;
+  background:rgba(255,255,255,0.04);
+}
+.cc-card::after {
+  content:''; position:absolute; right:30px; top:20px;
+  width:100px; height:100px; border-radius:50%;
+  background:rgba(255,255,255,0.04);
+}
+.cc-chip {
+  width:36px; height:26px; border-radius:5px;
+  background:linear-gradient(135deg,#d4a843,#f0c860,#b8891e);
+  margin-bottom:14px; position:relative; z-index:1;
+}
+.cc-top { display:flex; justify-content:space-between; align-items:flex-start; z-index:1; position:relative; }
+.cc-bank { font-size:13px; font-weight:700; letter-spacing:0.05em; opacity:0.9; }
+.cc-type { font-size:11px; opacity:0.6; }
+.cc-balance-label { font-size:10px; opacity:0.6; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:2px; }
+.cc-balance { font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; letter-spacing:0.02em; }
+.cc-bottom { display:flex; justify-content:space-between; align-items:flex-end; z-index:1; position:relative; }
+.cc-name { font-size:13px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; }
+.cc-dates { text-align:right; font-size:10px; opacity:0.65; }
+.cc-limit-bar { margin:10px 0 0; z-index:1; position:relative; }
+.cc-limit-bar-track { height:3px; background:rgba(255,255,255,0.15); border-radius:2px; overflow:hidden; }
+.cc-limit-bar-fill { height:100%; border-radius:2px; background:rgba(255,255,255,0.7); transition:width 0.5s; }
+.cc-limit-info { display:flex; justify-content:space-between; font-size:10px; opacity:0.7; margin-top:4px; }
+.cc-actions { display:flex; gap:8px; margin-top:14px; }
+.cc-btn {
+  flex:1; padding:9px; border-radius:var(--rs); border:none; cursor:pointer;
+  font-family:'Sarabun',sans-serif; font-size:13px; font-weight:600; transition:all 0.15s;
+}
+.cc-btn.pay { background:rgba(255,255,255,0.15); color:#fff; }
+.cc-btn.pay:active { background:rgba(255,255,255,0.25); }
+.cc-btn-icon { width:36px; height:36px; border-radius:var(--rs); border:none; cursor:pointer;
+  background:rgba(255,255,255,0.1); color:#fff; font-size:14px;
+  display:flex; align-items:center; justify-content:center; transition:all 0.15s; }
+.cc-btn-icon:active { background:rgba(255,255,255,0.2); }
+
+/* ── Credit Line Card (วงเงินสินเชื่อ) ── */
+.cl-card {
+  border:1.5px solid var(--blue-br); border-radius:var(--r);
+  background:var(--blue-bg); padding:16px; margin-bottom:12px;
+}
+.cl-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; }
+.cl-name { font-size:16px; font-weight:600; }
+.cl-badge { font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px;
+  background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-br); }
+.cl-avail { font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:var(--green); }
+.cl-avail-label { font-size:10px; color:var(--text3); }
+.cl-bar { height:6px; background:var(--bg2); border-radius:3px; overflow:hidden; margin:10px 0 6px; }
+.cl-bar-fill { height:100%; border-radius:3px; transition:width 0.5s; }
+.cl-meta { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.cl-meta-item { font-size:12px; }
+.cl-meta-label { color:var(--text3); font-size:11px; margin-bottom:2px; }
+.cl-meta-val { font-weight:600; font-family:'IBM Plex Mono',monospace; }
+.cl-children { margin-top:10px; background:var(--surface); border-radius:var(--rs); overflow:hidden; }
+.cl-child-row { display:flex; justify-content:space-between; align-items:center;
+  padding:8px 12px; border-bottom:1px solid var(--border); font-size:12px; }
+.cl-child-row:last-child { border-bottom:none; }
+.cl-actions { display:flex; gap:8px; margin-top:12px; }
+
+/* ── Zone Divider ── */
+.zone-divider { 
+  margin:24px 0 20px; display:flex; align-items:center; gap:12px;
+}
+.zone-divider-line { flex:1; height:1px; background:var(--border); }
+.zone-divider-label {
+  font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase;
+  color:var(--text3); white-space:nowrap;
+}
+
+/* ── Debt record list (simple) ── */
+.debt-record {
+  border:1px solid var(--border); border-radius:var(--r);
+  background:var(--surface); padding:14px 16px; margin-bottom:10px;
+}
+.debt-record-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; }
+.debt-record-name { font-size:15px; font-weight:600; }
+.debt-record-badge { font-size:10px; font-weight:700; padding:3px 8px; border-radius:4px; }
+.debt-record-badge.credit { background:var(--blue-bg); color:var(--blue); border:1px solid var(--blue-br); }
+.debt-record-badge.personal { background:var(--amber-bg); color:var(--amber); border:1px solid var(--amber-br); }
+.debt-record-badge.family { background:var(--purple-bg); color:var(--purple); }
+.debt-record-badge.other { background:var(--bg2); color:var(--text2); border:1px solid var(--border); }
+.debt-record-badge.done { background:var(--green-bg); color:var(--green); border:1px solid var(--green-br); }
+
 </style>
 </head>
 <body>
@@ -1064,8 +1290,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 
   <!-- ── Page Tab Nav ── -->
   <div class="page-tabs" id="mainPageTabs">
-    <button class="page-tab active" data-page="cards" onclick="setPageTab('cards')">💳 วงเงิน</button>
-    <button class="page-tab" data-page="loans" onclick="setPageTab('loans')">📋 บันทึกหนี้</button>
+    <button class="page-tab active" data-page="cards" onclick="setPageTab('cards')">💳 วงเงิน & หนี้</button>
     <button class="page-tab" data-page="overview" onclick="setPageTab('overview')">📊 ภาพรวม</button>
     <button class="page-tab" data-page="analysis" onclick="setPageTab('analysis')">📈 วิเคราะห์</button>
     <button class="page-tab" data-page="goals" onclick="setPageTab('goals')">🎯 เป้าหมาย</button>
@@ -1112,7 +1337,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <button class="shortcut-action" onclick="openScanModal('receipt')" style="background:var(--blue-bg);color:var(--blue);border-color:var(--blue-br);padding:7px 14px;font-size:12px">
           📷 สแกนใบเสร็จ
         </button>
-        <div class="qa-top-hint" id="qaTopHint">แตะปุ่มลัด → ปรับราคา → บันทึก</div>
+        <div class="qa-top-hint" id="qaTopHint">พิมพ์บอก AI</div>
       </div>
     </div>
 
@@ -1133,6 +1358,37 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
 
     <div class="shortcut-grid" id="shortcutGrid"></div>
+    <!-- ปุ่ม AI พิเศษ — กดแล้วเด้ง chat popup -->
+    <button class="shortcut-btn" id="aiShortcutBtn" onclick="openChatAiPopup()"
+      style="margin-top:8px;width:100%;border-left:4px solid var(--accent);background:var(--accent3);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;padding:12px 16px;height:auto;transform:none">
+      <span style="font-size:18px">✨</span>
+      <span style="font-size:13px;font-weight:600;color:var(--accent)">พิมพ์บอก AI</span>
+      <span style="font-size:11px;color:var(--text2);margin-left:2px">— บอกรายการเป็นภาษาไทย หรือส่งรูปสลิป</span>
+    </button>
+    <div class="chat-ai-wrap" id="chatAiWrap" style="display:none;margin-top:10px">
+      <div class="chat-ai-header">
+        <div class="chat-ai-label">
+          <span class="chat-ai-label-dot"></span>
+          AI ช่วยบันทึก
+        </div>
+        <div class="chat-ai-hint" id="chatAiHint">เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"</div>
+      </div>
+      <div class="chat-ai-input-row">
+        <textarea class="chat-ai-input" id="chatAiInput" rows="1"
+          placeholder="พิมพ์รายการ เช่น ข้าวเที่ยง 80 น้ำเปล่า 10 หรือรับเงินเดือน 25000..."
+          onkeydown="chatAiKey(event)" oninput="chatAiAutoResize(this)"></textarea>
+        <div class="chat-ai-btn-row">
+          <button class="chat-ai-slip-btn" onclick="chatAiOpenSlip()" title="สแกนสลิปโอนเงิน">
+            📷 สลิป
+          </button>
+          <button class="chat-ai-send" id="chatAiSendBtn" onclick="chatAiSend()" title="ส่ง (Enter)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+      <input type="file" id="chatSlipInput" accept="image/*" style="display:none" onchange="chatAiHandleSlip(event)"/>
+      <div id="chatAiResult" style="display:none"></div>
+    </div>
 
     <div class="quick-add">
       <input class="qa-input" id="qaName" placeholder="พิมพ์ชื่อรายการ เช่น กาแฟ, เงินเดือน…" onkeydown="qaKey(event)"/>
@@ -1239,54 +1495,59 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   
 
   <div class="page-section" id="page-cards" style="display:none">
-    <div class="section-title" style="margin-top:4px">💳 บัตรเครดิต</div>
+
+    <!-- ══ ZONE 1: วงเงิน ══ -->
+    <div class="zone-divider" style="margin-top:4px">
+      <div class="zone-divider-label">💳 บัตรเครดิต</div>
+      <div class="zone-divider-line"></div>
+      <button class="btn-add-loan" onclick="openCardModal(-1)" style="padding:7px 14px;font-size:12px;margin:0">+ เพิ่มบัตร</button>
+    </div>
     <div class="loans-total-bar">
       <div class="ltb-item"><div class="ltb-label">ยอดค้างรวม</div><div class="ltb-val debt mono" id="ctbBalance">฿0</div></div>
       <div class="ltb-item"><div class="ltb-label">วงเงินรวม</div><div class="ltb-val paid mono" id="ctbLimit">฿0</div></div>
       <div class="ltb-item"><div class="ltb-label">วงเงินคงเหลือ</div><div class="ltb-val months mono" id="ctbAvailable">฿0</div></div>
       <div class="ltb-item"><div class="ltb-label">ชำระขั้นต่ำ/เดือน</div><div class="ltb-val debt mono" id="ctbMinPay">฿0</div></div>
     </div>
-    <div class="loans-grid" id="cardsGrid"></div>
-    <div id="cardsEmpty" class="empty" style="display:none">ยังไม่มีบัตรเครดิต</div>
-    <div style="margin-top:10px"><button class="btn-add-loan" onclick="openCardModal(-1)">+ เพิ่มบัตรเครดิต</button></div>
-    <div class="section-title" style="margin-top:24px">🏦 วงเงินสินเชื่อ</div>
-    <div class="loans-grid" id="creditLinesGrid"></div>
+    <div class="cc-grid" id="cardsGrid"></div>
+    <div id="cardsEmpty" class="empty" style="display:none">ยังไม่มีบัตรเครดิต — กด "+ เพิ่มบัตร"</div>
+
+    <div class="zone-divider" style="margin-top:20px">
+      <div class="zone-divider-label">🏦 วงเงินสินเชื่อ</div>
+      <div class="zone-divider-line"></div>
+      <button class="btn-add-loan" onclick="openLoanModal(null,'credit')" style="padding:7px 14px;font-size:12px;margin:0;border-color:var(--blue-br);color:var(--blue)">+ เพิ่มวงเงิน</button>
+    </div>
+    <div id="creditLinesGrid"></div>
     <div id="creditLinesEmpty" class="empty" style="display:none">ยังไม่มีวงเงินสินเชื่อ</div>
-    <div style="margin-top:10px"><button class="btn-add-loan" onclick="openLoanModal(null,'credit')" style="border-color:var(--blue-br);color:var(--blue)">+ เพิ่มวงเงินสินเชื่อ</button></div>
-  </div>
 
-  <div class="page-section" id="page-loans" style="display:none">
-
-    <div class="section-title" style="margin-top:4px">
-      สินเชื่อ / หนี้ทั้งหมด
-      <span class="st-extra" id="loanTotalBadge"></span>
+    <!-- ══ ZONE 2: บันทึกหนี้ ══ -->
+    <div class="zone-divider" style="margin-top:28px">
+      <div class="zone-divider-label">📋 บันทึกหนี้</div>
+      <div class="zone-divider-line"></div>
+      <button class="btn-add-loan" onclick="openLoanModal(null,'personal')" style="padding:7px 14px;font-size:12px;margin:0">+ บันทึกหนี้</button>
     </div>
 
     <div class="loans-total-bar" id="loanTotalBar">
-      <div class="ltb-item"><div class="ltb-label">หนี้รวมทั้งหมด</div><div class="ltb-val debt mono" id="ltbTotal">฿0</div></div>
+      <div class="ltb-item"><div class="ltb-label">หนี้รวม</div><div class="ltb-val debt mono" id="ltbTotal">฿0</div></div>
       <div class="ltb-item"><div class="ltb-label">ผ่อนไปแล้ว</div><div class="ltb-val paid mono" id="ltbPaid">฿0</div></div>
-      <div class="ltb-item"><div class="ltb-label">งวดรวม/เดือน</div><div class="ltb-val months mono" id="ltbMonthly">฿0</div></div>
-      <div class="ltb-item"><div class="ltb-label">วงเงินว่างรวม</div><div class="ltb-val paid mono" id="ltbAvailable">฿0</div></div>
+      <div class="ltb-item"><div class="ltb-label">งวด/เดือน</div><div class="ltb-val months mono" id="ltbMonthly">฿0</div></div>
     </div>
 
     <div class="subtabs" id="loanTabs">
       <button class="subtab active" data-loantab="all" onclick="setLoanFilter('all')">ทั้งหมด</button>
       <button class="subtab" data-loantab="active" onclick="setLoanFilter('active')">กำลังผ่อน</button>
       <button class="subtab" data-loantab="done" onclick="setLoanFilter('done')">หมดแล้ว</button>
-      <button class="subtab" data-loantab="credit" onclick="setLoanFilter('credit')">มีวงเงิน</button>
     </div>
 
     <div class="loans-grid" id="loansGrid"></div>
-    <div id="loansEmpty" class="empty" style="display:none">ไม่มีรายการในแท็บนี้</div>
+    <div id="loansEmpty" class="empty" style="display:none">ไม่มีรายการ</div>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn-add-loan" onclick="openLoanModal(null,'personal')" style="flex:1">+ บันทึกหนี้ / ผ่อนชำระ</button>
-      <button class="btn-add-loan" onclick="openScanModal('installment')" style="flex:0 0 auto;width:auto;padding:16px 20px;border-color:var(--blue-br);color:var(--blue)">📷 นำเข้าตารางผ่อน</button>
+      <button class="btn-add-loan" onclick="openScanModal('installment')" style="flex:0 0 auto;width:auto;padding:12px 16px;border-color:var(--blue-br);color:var(--blue);font-size:12px">📷 นำเข้าตารางผ่อน</button>
       <input type="file" id="loanJsonInput" accept=".json" style="display:none" onchange="handleImportJSON(event)"/>
-      <button class="btn-add-loan" onclick="document.getElementById('loanJsonInput').click()" style="flex:0 0 auto;width:auto;padding:16px 20px;border-color:var(--green-br);color:var(--green)">📂 นำเข้า JSON</button>
+      <button class="btn-add-loan" onclick="document.getElementById('loanJsonInput').click()" style="flex:0 0 auto;width:auto;padding:12px 16px;border-color:var(--green-br);color:var(--green);font-size:12px">📂 นำเข้า JSON</button>
     </div>
 
     <!-- 🎯 Debt Freedom Path -->
-    <div class="section-title">เส้นทางสู่อิสรภาพทางการเงิน</div>
+    <div class="section-title" style="margin-top:24px">เส้นทางสู่อิสรภาพทางการเงิน</div>
     <div class="freedom-card" id="freedomCard">
       <div class="freedom-head">
         <div class="freedom-icon">🎯</div>
@@ -1302,15 +1563,16 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       </div>
       <div class="freedom-bar-wrap" id="freedomBarWrap" style="display:none">
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:6px">
-          <span>รายจ่ายประจำ + หนี้</span>
-          <span id="fsRatio">— %</span>
+          <span>รายจ่ายประจำ + หนี้</span><span id="fsRatio">— %</span>
         </div>
         <div class="freedom-bar"><div class="freedom-bar-fill" id="freedomBarFill" style="width:0%"></div></div>
         <div class="freedom-hint" id="freedomHint"></div>
       </div>
     </div>
 
-  </div><!-- /page-loans -->
+  </div><!-- /page-cards (merged) -->
+
+<!-- page-loans merged into page-cards -->
 
   <!-- ══ ANALYSIS PAGE ══ -->
   <div class="page-section" id="page-analysis" style="display:none">
@@ -1473,7 +1735,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <button type="button" class="type-btn" id="lnTypeFamily" onclick="setLoanType('family')" style="font-size:12px">👨‍👩‍👧 ยืมคน</button>
         <button type="button" class="type-btn" id="lnTypeOther" onclick="setLoanType('other')" style="font-size:12px">📋 อื่นๆ</button>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px">เลือก <b>วงเงินสินเชื่อ</b> ถ้าเป็น SEasyCash, SPayLater — จะแสดงในหน้าวงเงินอัตโนมัติ</div>
+
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">ยอดต้น (ยืมมาทั้งหมด)</label><input class="fi mono" id="lnPrincipal" type="number" step="0.01" placeholder="0.00" oninput="updateLoanCalc()"/></div>
@@ -2111,10 +2373,10 @@ function renderLoans(){
 
   // filter
   // filter
-  let list = loans.slice();
+  // ไม่แสดง type=credit ในโซนบันทึกหนี้ (แสดงใน renderCreditLines แล้ว)
+  let list = loans.filter(l=>l.type!=='credit');
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
-  else if(loanFilter==='credit') list = list.filter(l=>(l.creditLimit||0)>0);
 
   const emptyEl = document.getElementById('loansEmpty');
   if(!loans.length){ grid.innerHTML=''; if(emptyEl) emptyEl.style.display='none'; return; }
@@ -2190,49 +2452,65 @@ function renderLoans(){
 
 function openLoanModal(id, defaultType){
   editingLoanId=id||null;
-  const l=id?loans.find(x=>x.id===id):null;
-  const type = l ? l.type : (defaultType||'personal');
-  const isCreditLine = type==='credit';
-  // เปิดจากหน้าวงเงิน → ซ่อนปุ่มยืมคน / เปิดจากหน้าบันทึกหนี้ → แสดง 4 ปุ่ม
-  const isFromCreditPage = (defaultType==='credit');
-  const familyBtn = document.getElementById('lnTypeFamily');
-  const typeRow = document.getElementById('lnTypeRow');
-  if(familyBtn) familyBtn.style.display = isFromCreditPage ? 'none' : '';
-  if(typeRow) typeRow.style.gridTemplateColumns = isFromCreditPage ? 'repeat(3,1fr)' : 'repeat(4,1fr)';
-  document.getElementById('loanModalTitle').textContent=id?(isCreditLine?'แก้ไขวงเงินสินเชื่อ':'แก้ไขสินเชื่อ'):(isCreditLine?'เพิ่มวงเงินสินเชื่อ':'บันทึกหนี้ / ผ่อนชำระ');
+  var l=id?loans.find(function(x){return x.id===id;}):null;
+  // กำหนด context: 'credit'=หน้าวงเงิน, 'debt'=หน้าบันทึกหนี้
+  var isCreditPage;
+  if(id && l){
+    isCreditPage = (l.type==='credit'||l.type==='personal');
+  } else {
+    isCreditPage = (defaultType==='credit'||defaultType==='personal');
+  }
+  var type = l ? l.type : (defaultType||(isCreditPage?'credit':'credit'));
+  // show/hide type button wraps
+  var ctWrap=document.getElementById('lnCreditTypeWrap');
+  var dtWrap=document.getElementById('lnDebtTypeWrap');
+  if(ctWrap) ctWrap.style.display=isCreditPage?'grid':'none';
+  if(dtWrap) dtWrap.style.display=isCreditPage?'none':'grid';
+  // title
+  var isCreditType=(type==='credit');
+  if(isCreditPage){
+    document.getElementById('loanModalTitle').textContent=id?(isCreditType?'แก้ไขวงเงินสินเชื่อ':'แก้ไขสินเชื่อ'):(type==='credit'?'เพิ่มวงเงินสินเชื่อ':'เพิ่มสินเชื่อ / ผ่อนชำระ');
+  } else {
+    document.getElementById('loanModalTitle').textContent=id?'แก้ไขรายการหนี้':'บันทึกหนี้';
+  }
   setLoanType(type);
   document.getElementById('lnName').value=l?l.name:'';
-  document.getElementById('lnPrincipal').value=l?l.principal:'';
-  document.getElementById('lnRemaining').value=l?l.remaining:'';
-  document.getElementById('lnMonthly').value=l?l.monthly:'';
+  document.getElementById('lnPrincipal').value=l?(l.principal||''):'';
+  document.getElementById('lnRemaining').value=l?(l.remaining||''):'';
+  document.getElementById('lnMonthly').value=l?(l.monthly||''):'';
   document.getElementById('lnInterest').value=l?(l.interest||''):'';
   document.getElementById('lnCreditLimit').value=l?(l.creditLimit||''):'';
   document.getElementById('lnDueDay').value=l?(l.dueDay||''):'';
   document.getElementById('lnNote').value=l?(l.note||''):'';
   document.getElementById('lnDelBtn').style.display=id?'':'none';
-  // แสดงวงเงินคงเหลือ = creditLimit - used
-  if(l && (l.creditLimit||0) > 0){
-    const avail = Math.max(0, (l.creditLimit||0) - (l.used||0));
-    document.getElementById('lnUsed').value = avail.toFixed(2);
+  if(l&&(l.creditLimit||0)>0){
+    var av=Math.max(0,(l.creditLimit||0)-(l.used||0));
+    document.getElementById('lnUsed').value=av.toFixed(2);
   } else {
-    document.getElementById('lnUsed').value = '';
+    document.getElementById('lnUsed').value='';
   }
-  var _w=document.getElementById('lnCreditOnlyWrap');
-  if(_w) _w.style.display=(type==='credit')?'':'none';
+  var cw=document.getElementById('lnCreditOnlyWrap');
+  if(cw) cw.style.display=(type==='credit')?'':'none';
   populateSourceSelect('lnSource');
   if(l&&l.source) document.getElementById('lnSource').value=l.source;
   updateLoanCalc();
   document.getElementById('loanBackdrop').classList.add('open');
-  setTimeout(()=>document.getElementById('lnName').focus(),100);
+  setTimeout(function(){document.getElementById('lnName').focus();},100);
 }
 function setLoanType(t){
   loanType=t;
+  // sync ปุ่มทั้ง 2 groups
   ['credit','personal','family','other'].forEach(function(k){
-    var btn=document.getElementById('lnType'+k.charAt(0).toUpperCase()+k.slice(1));
-    if(btn) btn.className='type-btn'+(k===t?' '+k+' on':'');
+    var K=k.charAt(0).toUpperCase()+k.slice(1);
+    var b=document.getElementById('lnType'+K);
+    if(b) b.className='type-btn'+(k===t?' '+k+' on':'');
   });
-  var w=document.getElementById('lnCreditOnlyWrap');
-  if(w) w.style.display=(t==='credit')?'':'none';
+  var bCA=document.getElementById('lnTypeCreditA');
+  if(bCA) bCA.className='type-btn'+(t==='credit'?' credit on':'');
+  var bPA=document.getElementById('lnTypePersonalA');
+  if(bPA) bPA.className='type-btn'+(t==='personal'?' personal on':'');
+  var cw=document.getElementById('lnCreditOnlyWrap');
+  if(cw) cw.style.display=(t==='credit')?'':'none';
 }
 function updateLoanCalc(){
   const remain=parseFloat(document.getElementById('lnRemaining').value)||0;
@@ -2272,7 +2550,8 @@ function saveLoan(){
   var interest=parseFloat(document.getElementById('lnInterest').value)||0;
   var isCreditType=(loanType==='credit');
   var creditLimit=isCreditType?(parseFloat(document.getElementById('lnCreditLimit').value)||0):0;
-  var avail=isCreditType?(parseFloat(document.getElementById('lnUsed').value)||0):0;
+  var availInput=parseFloat(document.getElementById('lnUsed').value);
+  var avail=isCreditType&&!isNaN(availInput)?availInput:creditLimit; // default: ยังไม่ได้เบิก
   var used=creditLimit>0?Math.max(0,creditLimit-avail):0;
   var totalMonths=isCreditType?(parseInt(document.getElementById('lnTotalMonths').value)||0):0;
   var dueDay=parseInt(document.getElementById('lnDueDay').value)||0;
@@ -2641,7 +2920,7 @@ function renderAll(){
   else ab.style.display='none';
 
   renderFreedom(inc,exp,all,unpaidItems,borrowedIn);
-  if(currentPage==='loans' || document.getElementById('page-loans').classList.contains('active')) renderLoans();
+  if(currentPage==='cards') { renderLoans(); renderCreditLines(); }
   renderSplit(all);
   renderSourceSummary(all);
   renderInsights(inc,exp,all,borrowedIn);
@@ -2815,7 +3094,7 @@ function renderTemplates(){
 function moveShortcut(e,idx,dir){ e.stopPropagation(); e.preventDefault(); const t=idx+dir; if(t<0||t>=shortcuts.length)return; const tmp=shortcuts[idx]; shortcuts[idx]=shortcuts[t]; shortcuts[t]=tmp; saveShortcuts(); renderTemplates(); }
 function addShortcut(){ let idx=shortcuts.indexOf(null); if(idx===-1){ shortcuts.push(null); idx=shortcuts.length-1; } editShortcut(idx); }
 function removeShortcut(e,idx){ e.stopPropagation(); if(!confirm('ลบปุ่มลัด "'+(shortcuts[idx]&&shortcuts[idx].name||'')+'"?'))return; shortcuts.splice(idx,1); saveShortcuts(); renderTemplates(); toast('ลบปุ่มลัดแล้ว'); }
-function toggleEditMode(){ editMode=!editMode; document.getElementById('editModeBtn').classList.toggle('active',editMode); document.getElementById('editModeBtn').innerHTML=editMode?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> เสร็จสิ้น':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> จัดเรียง / ลบ'; document.getElementById('qaTopHint').textContent=editMode?'✏️ โหมดแก้ไข — กด ◀▶ จัดเรียง, กด × เพื่อลบ':'แตะปุ่มลัด → ปรับราคา → บันทึก'; renderTemplates(); }
+function toggleEditMode(){ editMode=!editMode; document.getElementById('editModeBtn').classList.toggle('active',editMode); document.getElementById('editModeBtn').innerHTML=editMode?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> เสร็จสิ้น':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> จัดเรียง / ลบ'; document.getElementById('qaTopHint').textContent=editMode?'✏️ โหมดแก้ไข — กด ◀▶ จัดเรียง, กด × เพื่อลบ':'พิมพ์บอก AI'; renderTemplates(); }
 
 // กดปุ่มลัด → เปิด popup ปรับราคา+แหล่งเงินก่อนบันทึก
 function useShortcut(idx){
@@ -3356,7 +3635,7 @@ function setPageTab(page){
   // hero+quick-add always visible
   const overviewTop = document.getElementById('page-overview-top');
   // show/hide content sections
-  ['page-overview','page-cards','page-loans','page-analysis','page-goals'].forEach(id=>{
+  ['page-overview','page-cards','page-analysis','page-goals'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     el.style.display = (id === 'page-'+page) ? 'block' : 'none';
@@ -3368,13 +3647,12 @@ function setPageTab(page){
   if(overviewTop) overviewTop.style.display = (page==='overview') ? '' : 'none';
   // re-render section content
   if(page==='overview') renderAll();
-  else if(page==='cards'){ renderCards(); renderCreditLines(); }
-  else if(page==='loans'){ renderLoans(); var _fa=getFreedomArgs();renderFreedom(_fa[0],_fa[1],_fa[2],_fa[3],_fa[4]); }
+  else if(page==='cards'){ renderCards(); renderCreditLines(); renderLoans(); var _fa=getFreedomArgs();renderFreedom(_fa[0],_fa[1],_fa[2],_fa[3],_fa[4]); }
   else if(page==='analysis'){ renderBars(); renderDonut(monthItems()); }
   else if(page==='goals') renderGoals();
   // scroll ไปที่ content section ของแท็บนั้นๆ
   setTimeout(()=>{
-    const sectionId = 'page-' + page;
+    const sectionId = page==='loans' ? 'page-cards' : 'page-' + page;
     const el = document.getElementById(sectionId);
     if(el){
       const y = el.getBoundingClientRect().top + window.scrollY - 8;
@@ -3468,25 +3746,38 @@ function renderCards(){
   el=document.getElementById('ctbMinPay');if(el)el.textContent='฿'+fmt(cards.reduce(function(s,c){return s+Math.max(0,(c.balance||0)*0.1);},0));
   if(!cards.length){grid.innerHTML='';empty.style.display='';return;}
   empty.style.display='none';
+  var CARD_COLORS=['','blue','gold','purple','gray'];
   grid.innerHTML=cards.map(function(c,idx){
     var used=c.balance||0,limit=c.limit||0,avail=Math.max(0,limit-used);
     var pct=limit>0?Math.min(100,Math.round(used/limit*100)):0;
-    var bc=pct>80?'var(--red)':pct>50?'#e6a817':'var(--accent)';
-    var hist=(c.payments||[]).slice(-3).reverse().map(function(p){return '<div class="loan-history-item"><span>'+thDate(p.date)+'</span><span class="loan-history-amt">-฿'+fmt(p.amount)+'</span></div>';}).join('');
-    var histHtml=hist?'<div class="loan-history"><div class="loan-history-label">ชำระล่าสุด</div><div class="loan-history-list">'+hist+'</div></div>':'';
-    return '<div class="loan-card" style="margin-bottom:14px">'+
-      '<div class="loan-card-head"><div><div class="loan-name">'+esc(c.name)+'</div><div class="loan-type-badge">'+esc(c.bank||'บัตรเครดิต')+'</div></div>'+
-      '<div style="text-align:right"><div style="font-size:11px;color:var(--text3)">ยอดค้าง</div><div class="loan-remaining">'+(used>0?'฿'+fmt(used):'฿0')+'</div></div></div>'+
-      '<div class="loan-progress-wrap"><div class="loan-progress-bar"><div class="loan-progress-fill" style="width:'+pct+'%;background:'+bc+'"></div></div>'+
-      '<div class="loan-progress-labels"><span>ใช้ไป '+pct+'%</span><span>วงเงิน ฿'+fmt(limit)+'</span></div></div>'+
-      '<div class="loan-meta"><div class="loan-meta-box"><div class="loan-meta-label">วงเงินคงเหลือ</div><div class="loan-meta-val mono" style="color:var(--green)">฿'+fmt(avail)+'</div></div>'+
-      '<div class="loan-meta-box"><div class="loan-meta-label">รอบ/ชำระ วันที่</div><div class="loan-meta-val">'+(c.statementDate||'—')+' / '+(c.dueDate||'—')+'</div></div></div>'+
-      histHtml+
-      '<div style="display:flex;gap:8px;margin-top:12px">'+
-        '<button class="btn-ok" style="flex:1;padding:10px" onclick="openPayCard('+idx+')">💳 ชำระบัตร</button>'+
-        '<button class="loan-edit-btn" onclick="openCardModal('+idx+')">✎</button>'+
-        '<button class="loan-del-btn" onclick="deleteCard('+idx+')">✕</button>'+
-      '</div></div>';
+    var colorIdx=idx%CARD_COLORS.length;
+    var colorCls=CARD_COLORS[colorIdx];
+    var bankLower=(c.bank||'').toLowerCase();
+    if(bankLower.indexOf('scb')>=0||bankLower.indexOf('ไทยพาณิชย์')>=0) colorCls='purple';
+    else if(bankLower.indexOf('bbl')>=0||bankLower.indexOf('กรุงเทพ')>=0) colorCls='blue';
+    else if(bankLower.indexOf('ktc')>=0||bankLower.indexOf('krungthai')>=0||bankLower.indexOf('กรุงไทย')>=0) colorCls='blue';
+    return '<div class="cc-card '+colorCls+'">'+
+      '<div class="cc-top">'+
+        '<div><div class="cc-bank">'+esc(c.bank||'BANK')+'</div><div class="cc-type">Credit Card</div></div>'+
+        '<div style="text-align:right"><div class="cc-balance-label">ยอดค้าง</div><div class="cc-balance">฿'+fmt(used)+'</div></div>'+
+      '</div>'+
+      '<div class="cc-chip"></div>'+
+      '<div class="cc-limit-bar">'+
+        '<div class="cc-limit-bar-track"><div class="cc-limit-bar-fill" style="width:'+pct+'%"></div></div>'+
+        '<div class="cc-limit-info"><span>'+esc(c.name)+'</span><span>วงเงิน ฿'+fmt(limit)+' · ใช้ไป '+pct+'%</span></div>'+
+      '</div>'+
+      '<div class="cc-bottom">'+
+        '<div><div style="font-size:9px;opacity:0.6;margin-bottom:2px">คงเหลือ</div><div style="font-family:monospace;font-size:15px;font-weight:600;color:'+(avail>0?'#7dda6f':'#ff9e9e')+'">฿'+fmt(avail)+'</div></div>'+
+        '<div class="cc-dates">'+
+          (c.statementDate?'ตัดรอบ '+c.statementDate+' ทุกเดือน<br>':'')+(c.dueDate?'ครบกำหนด '+c.dueDate+' ทุกเดือน':'')+
+        '</div>'+
+      '</div>'+
+      '<div class="cc-actions">'+
+        '<button class="cc-btn pay" onclick="openPayCard('+idx+')">💳 ชำระบัตร</button>'+
+        '<button class="cc-btn-icon" onclick="openCardModal('+idx+')" title="แก้ไข">✎</button>'+
+        '<button class="cc-btn-icon" onclick="deleteCard('+idx+')" title="ลบ" style="color:#ff9e9e">✕</button>'+
+      '</div>'+
+    '</div>';
   }).join('');
 }
 
@@ -3494,39 +3785,41 @@ function renderCreditLines(){
   var grid=document.getElementById('creditLinesGrid');
   var empty=document.getElementById('creditLinesEmpty');
   if(!grid)return;
-  var lines=(loans||[]).filter(function(l){return l.type==='credit' && (l.creditLimit||0)>0;});
-  if(!lines.length){grid.innerHTML='';empty.style.display='';return;}
-  empty.style.display='none';
+  var lines=(loans||[]).filter(function(l){return l.type==='credit';});
+  if(!lines.length){grid.innerHTML='';if(empty)empty.style.display='';return;}
+  if(empty)empty.style.display='none';
   grid.innerHTML=lines.map(function(l){
     var limit=l.creditLimit||l.principal||0;
-    // used = ยอด remaining รวมของ loan ลูกทั้งหมดที่ยัง active
-    var children=loans.filter(function(x){return x.parentCreditId===l.id&&(x.remaining||0)>0;});
-    var used=children.reduce(function(s,x){return s+(x.remaining||0);},0);
-    // sync l.used ให้ตรงด้วย
-    l.used=used;
+    var used=l.used||0;
     var avail=Math.max(0,limit-used);
     var pct=limit>0?Math.min(100,Math.round(used/limit*100)):0;
-    var bc=pct>80?'var(--red)':pct>50?'#e6a817':'var(--accent)';
-    // แสดงรายการที่เบิกอยู่
-    var childrenHtml=children.length?
-      '<div class="loan-history" style="margin-top:10px"><div class="loan-history-label">รายการเบิกที่ยังค้างอยู่</div><div class="loan-history-list">'+
-      children.map(function(c){return '<div class="loan-history-item"><span>'+esc(c.name)+'</span><span class="loan-history-amt" style="color:var(--red)">฿'+fmt(c.remaining)+'</span></div>';}).join('')+
-      '</div></div>':'';
-    return '<div class="loan-card" style="margin-bottom:14px">'+
-      '<div class="loan-card-head"><div><div class="loan-name">'+esc(l.name)+'</div><div class="loan-type-badge">วงเงินสินเชื่อ</div></div>'+
-      '<div style="text-align:right"><div style="font-size:11px;color:var(--text3)">ยังกดได้</div><div class="loan-remaining" style="color:var(--green)">฿'+fmt(avail)+'</div></div></div>'+
-      '<div class="loan-progress-wrap"><div class="loan-progress-bar"><div class="loan-progress-fill" style="width:'+pct+'%;background:'+bc+'"></div></div>'+
-      '<div class="loan-progress-labels"><span>ใช้ไป '+pct+'%</span><span>วงเงิน ฿'+fmt(limit)+'</span></div></div>'+
-      '<div class="loan-meta">'+
-        '<div class="loan-meta-box"><div class="loan-meta-label">ค้างชำระรวม</div><div class="loan-meta-val mono" style="color:var(--red)">฿'+fmt(used)+'</div></div>'+
-        '<div class="loan-meta-box"><div class="loan-meta-label">รายการที่เบิก</div><div class="loan-meta-val mono">'+children.length+' รายการ</div></div>'+
+    var barColor=pct>80?'var(--red)':pct>50?'var(--amber)':'var(--blue)';
+    var drawHistory=(l.drawHistory||[]).slice(-3).reverse();
+    var histHtml=drawHistory.length?
+      '<div class="cl-children">'+
+      drawHistory.map(function(d){return '<div class="cl-child-row"><span>'+thDate(d.date)+(d.note?' · '+esc(d.note):'')+'</span><span class="mono" style="color:var(--red)">+฿'+fmt(d.amount)+'</span></div>';}).join('')+
+      '</div>':'';
+    return '<div class="cl-card">'+
+      '<div class="cl-head">'+
+        '<div><div class="cl-name">'+esc(l.name)+'</div></div>'+
+        '<div style="text-align:right">'+
+          '<div class="cl-avail-label">ยังกดได้</div>'+
+          '<div class="cl-avail">฿'+fmt(avail)+'</div>'+
+        '</div>'+
       '</div>'+
-      childrenHtml+
-      '<div style="display:flex;gap:8px;margin-top:12px">'+
-        '<button class="btn-ok" style="flex:1;padding:10px;background:var(--blue)" onclick="openDraw(\''+l.id+'\')">💰 เบิกวงเงิน</button>'+
+      '<div class="cl-bar"><div class="cl-bar-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'+
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px">'+
+        '<span>ใช้ไปแล้ว '+pct+'% (฿'+fmt(used)+')</span>'+
+        '<span>วงเงิน ฿'+fmt(limit)+'</span>'+
+      '</div>'+
+      (l.interest>0?'<div style="font-size:11px;color:var(--text3);margin-top:4px">ดอกเบี้ย '+l.interest+'% ต่อปี</div>':'')+
+      (histHtml?'<div style="font-size:11px;color:var(--text3);margin:10px 0 4px">เบิกล่าสุด</div>'+histHtml:'')+
+      '<div class="cl-actions">'+
+        '<button class="btn-ok" style="flex:1;padding:10px;background:var(--blue);border-color:var(--blue)" onclick="openDraw(\''+l.id+'\')" >💰 เบิกวงเงิน</button>'+
         '<button class="loan-edit-btn" data-lid="'+l.id+'" onclick="openLoanModal(this.dataset.lid)">✎</button>'+
         '<button class="loan-del-btn" data-lid="'+l.id+'" onclick="deleteLoan(this.dataset.lid)">✕</button>'+
-      '</div></div>';
+      '</div>'+
+    '</div>';
   }).join('');
 }
 
@@ -3591,6 +3884,299 @@ function confirmPayCard(){
   txs.push({id:'t'+Date.now(),type:'expense',name:'💳 ชำระ '+c.name,amount:amt,
     category:'หนี้/สินเชื่อ',date:date,due:date,status:'paid',note:'ชำระบัตร',isRecurring:false,paymentSource:src});
   saveAll();closePayCard();renderCards();renderAll();toast('✓ ชำระ '+c.name+' ฿'+fmt(amt));
+}
+
+
+
+// ── Chat AI Popup ──
+function openChatAiPopup(){
+  document.getElementById('chatAiBackdrop').classList.add('open');
+  document.getElementById('chatAiResultModal').style.display='none';
+  document.getElementById('chatAiResultModal').innerHTML='';
+  document.getElementById('chatAiHintModal').textContent='เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
+  setTimeout(function(){ var i=document.getElementById('chatAiInputModal'); if(i){i.value='';i.style.height='auto';i.focus();} },120);
+}
+function closeChatAiPopup(){
+  document.getElementById('chatAiBackdrop').classList.remove('open');
+  chatAiPending=null;
+}
+function chatAiKeyModal(e){
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();chatAiSendModal();}
+}
+function chatAiOpenSlipModal(){
+  document.getElementById('chatSlipInputModal').click();
+}
+function chatAiHandleSlipModal(e){
+  var file=e.target.files[0]; if(!file) return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    var base64=ev.target.result.split(',')[1];
+    var mime=file.type||'image/jpeg';
+    document.getElementById('chatAiHintModal').innerHTML='📷 อ่านสลิป...';
+    chatAiShowThinkingModal('🔍 กำลังอ่านสลิปโอนเงิน...');
+    callChatProxyModal({mime:mime,image:base64,
+      prompt:'อ่านสลิปโอนเงินจากรูปนี้ ตอบเป็น JSON เท่านั้น รูปแบบ:\n{"items":[{"name":"โอนเงิน/ชื่อผู้รับ","amount":1500.00,"type":"expense","date":"'+todayStr()+'"}]}\ntype คือ expense เสมอสำหรับสลิปโอนออก income ถ้าเป็นสลิปรับเงินเข้า'
+    });
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+async function chatAiSendModal(){
+  var input=document.getElementById('chatAiInputModal');
+  var text=(input.value||'').trim(); if(!text) return;
+  var btn=document.getElementById('chatAiSendBtnModal');
+  btn.disabled=true;
+  document.getElementById('chatAiHintModal').textContent='⏳ กำลังวิเคราะห์...';
+  chatAiShowThinkingModal('🤔 กำลังวิเคราะห์ "'+text.slice(0,30)+(text.length>30?'...':'')+'"');
+  callChatProxyModal({
+    prompt:'ผู้ใช้พิมพ์: "'+text+'"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr()+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์'
+  });
+  input.value=''; input.style.height='auto';
+}
+async function callChatProxyModal(payload){
+  var btn=document.getElementById('chatAiSendBtnModal');
+  try{
+    var resp=await fetch(CHAT_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    if(!resp.ok) throw new Error('HTTP '+resp.status);
+    var data=await resp.json();
+    if(data.error) throw new Error(typeof data.error==='object'?data.error.message:data.error);
+    var raw=(data.result||'').replace(/```json|```/g,'').trim();
+    var parsed=JSON.parse(raw);
+    chatAiPending=parsed.items||[];
+    if(!chatAiPending.length) throw new Error('ไม่พบรายการ');
+    chatAiShowResultModal(chatAiPending);
+    document.getElementById('chatAiHintModal').textContent='ตรวจสอบแล้วกด "บันทึก"';
+  }catch(err){
+    chatAiShowErrorModal(err.message||'เกิดข้อผิดพลาด');
+    document.getElementById('chatAiHintModal').textContent='เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
+  }
+  if(btn) btn.disabled=false;
+}
+function chatAiShowThinkingModal(msg){
+  var r=document.getElementById('chatAiResultModal');
+  r.style.display='';
+  r.innerHTML='<div class="chat-ai-thinking"><div class="chat-ai-thinking-dots"><span></span><span></span><span></span></div><span>'+esc(msg)+'</span></div>';
+}
+function chatAiShowResultModal(items){
+  var r=document.getElementById('chatAiResultModal');
+  r.style.display='';
+  var rows=items.map(function(item){
+    var isInc=item.type==='income'; var cls=isInc?'inc':'exp';
+    return '<div class="chat-result-item"><span class="chat-result-badge '+cls+'">'+(isInc?'รับ':'จ่าย')+'</span>'+
+      '<span class="chat-result-name">'+esc(item.name||'')+'</span>'+
+      '<span class="chat-result-amt '+cls+'">'+(isInc?'+':'-')+'฿'+fmt(item.amount||0)+'</span></div>';
+  }).join('');
+  r.innerHTML=rows+'<div class="chat-result-actions">'+
+    '<button class="chat-cancel-btn" onclick="chatAiCancelModal()">ยกเลิก</button>'+
+    '<button class="chat-confirm-btn" onclick="chatAiConfirmModal()">✓ บันทึก '+items.length+' รายการ</button>'+
+    '</div>';
+}
+function chatAiShowErrorModal(msg){
+  var r=document.getElementById('chatAiResultModal');
+  r.style.display='';
+  r.innerHTML='<div class="chat-result-item" style="background:var(--red-bg)"><span style="font-size:13px;color:var(--red)">⚠️ '+esc(msg)+' — ลองพิมพ์ใหม่อีกครั้ง</span></div>';
+  setTimeout(function(){chatAiCancelModal();},3000);
+}
+function chatAiCancelModal(){
+  chatAiPending=null;
+  var r=document.getElementById('chatAiResultModal');
+  r.style.display='none'; r.innerHTML='';
+  document.getElementById('chatAiHintModal').textContent='เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
+}
+function chatAiConfirmModal(){
+  if(!chatAiPending||!chatAiPending.length) return;
+  var src=''; var qsn=document.getElementById('qaSourceName');
+  if(qsn&&sources&&sources.length){ var found=sources.find(function(s){return s.name===qsn.textContent;}); if(found) src=found.id; }
+  chatAiPending.forEach(function(item){
+    var tx={id:'t'+Date.now()+Math.random().toString(36).slice(2,6),
+      type:item.type==='income'?'income':'expense',name:item.name||'รายการ',
+      amount:parseFloat(item.amount)||0,category:item.category||'อื่นๆ',
+      date:item.date||todayStr(),due:item.date||todayStr(),
+      status:'paid',note:'บันทึกโดย AI',isRecurring:false,paymentSource:src};
+    txs.push(tx);
+    if(src&&sources){var s=sources.find(function(x){return x.id===src;});if(s){if(tx.type==='income')s.balance=(s.balance||0)+tx.amount;else s.balance=(s.balance||0)-tx.amount;}}
+  });
+  var cnt=chatAiPending.length;
+  saveAll(); renderAll();
+  closeChatAiPopup();
+  toast('✓ บันทึก '+cnt+' รายการโดย AI');
+}
+function todayStr(){ var t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
+
+
+const CHAT_PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy';
+
+let chatAiPending = null; // parsed items waiting for confirm
+
+function chatAiKey(e){
+  // Enter ส่ง, Shift+Enter ขึ้นบรรทัด
+  if(e.key==='Enter' && !e.shiftKey){
+    e.preventDefault();
+    chatAiSend();
+  }
+}
+
+function chatAiAutoResize(el){
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 100) + 'px';
+}
+
+function chatAiOpenSlip(){
+  document.getElementById('chatSlipInput').click();
+}
+
+function chatAiHandleSlip(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var base64 = ev.target.result.split(',')[1];
+    var mime = file.type || 'image/jpeg';
+    // Show preview in hint
+    document.getElementById('chatAiHint').innerHTML = '📷 อ่านสลิป...';
+    chatAiShowThinking('🔍 กำลังอ่านสลิปโอนเงิน...');
+    callChatProxy({
+      mime: mime,
+      image: base64,
+      prompt: 'อ่านสลิปโอนเงินจากรูปนี้ ตอบเป็น JSON เท่านั้น รูปแบบ:\n{"items":[{"name":"โอนเงิน/ชื่อผู้รับ","amount":1500.00,"type":"expense","date":"2026-06-01"}]}\ntype คือ expense เสมอสำหรับสลิปโอนออก income ถ้าเป็นสลิปรับเงินเข้า วันที่จากสลิป ถ้าไม่มีให้ใช้วันนี้'
+    });
+  };
+  reader.readAsDataURL(file);
+  // reset input
+  e.target.value = '';
+}
+
+async function chatAiSend(){
+  var input = document.getElementById('chatAiInput');
+  var text = (input.value||'').trim();
+  if(!text) return;
+  var btn = document.getElementById('chatAiSendBtn');
+  btn.disabled = true;
+  document.getElementById('chatAiHint').textContent = '⏳ กำลังวิเคราะห์...';
+  chatAiShowThinking('🤔 กำลังวิเคราะห์ "' + text.slice(0,30) + (text.length>30?'...':'') + '"');
+  var today = new Date();
+  var todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  callChatProxy({
+    prompt: 'ผู้ใช้พิมพ์: "' + text + '"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์ ถ้าไม่แน่ใจ type ให้ใช้ expense'
+  });
+  input.value = '';
+  input.style.height = 'auto';
+}
+
+async function callChatProxy(payload){
+  var btn = document.getElementById('chatAiSendBtn');
+  try {
+    var resp = await fetch(CHAT_PROXY, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+    var data = await resp.json();
+    if(data.error) throw new Error(typeof data.error==='object'?data.error.message:data.error);
+    var raw = (data.result||'').replace(/```json|```/g,'').trim();
+    var parsed = JSON.parse(raw);
+    chatAiPending = parsed.items || [];
+    if(!chatAiPending.length) throw new Error('ไม่พบรายการ');
+    chatAiShowResult(chatAiPending);
+    document.getElementById('chatAiHint').textContent = 'ตรวจสอบแล้วกด "บันทึก"';
+  } catch(err){
+    chatAiShowError(err.message||'เกิดข้อผิดพลาด');
+    document.getElementById('chatAiHint').textContent = 'เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
+  }
+  if(btn) btn.disabled = false;
+}
+
+function chatAiShowThinking(msg){
+  var r = document.getElementById('chatAiResult');
+  r.style.display = '';
+  r.innerHTML = '<div class="chat-ai-thinking">' +
+    '<div class="chat-ai-thinking-dots"><span></span><span></span><span></span></div>' +
+    '<span>' + esc(msg) + '</span>' +
+    '</div>';
+}
+
+function chatAiShowResult(items){
+  var r = document.getElementById('chatAiResult');
+  r.style.display = '';
+  var rows = items.map(function(item, i){
+    var isInc = item.type==='income';
+    var cls = isInc?'inc':'exp';
+    var lbl = isInc?'รับ':'จ่าย';
+    var sign = isInc?'+':'-';
+    return '<div class="chat-result-item">' +
+      '<span class="chat-result-badge '+cls+'">'+lbl+'</span>' +
+      '<span class="chat-result-name">'+esc(item.name||'')+'</span>' +
+      '<span class="chat-result-amt '+cls+'">'+sign+'฿'+fmt(item.amount||0)+'</span>' +
+      '</div>';
+  }).join('');
+  r.innerHTML = rows +
+    '<div class="chat-result-actions">' +
+    '<button class="chat-cancel-btn" onclick="chatAiCancel()">ยกเลิก</button>' +
+    '<button class="chat-confirm-btn" onclick="chatAiConfirm()">✓ บันทึก ' + items.length + ' รายการ</button>' +
+    '</div>';
+}
+
+function chatAiShowError(msg){
+  var r = document.getElementById('chatAiResult');
+  r.style.display = '';
+  r.innerHTML = '<div class="chat-result-item" style="background:var(--red-bg)">' +
+    '<span style="font-size:13px;color:var(--red)">⚠️ ' + esc(msg) + ' — ลองพิมพ์ใหม่อีกครั้ง</span>' +
+    '</div>';
+  setTimeout(function(){ chatAiCancel(); }, 3000);
+}
+
+function chatAiCancel(){
+  chatAiPending = null;
+  var r = document.getElementById('chatAiResult');
+  r.style.display = 'none';
+  r.innerHTML = '';
+  document.getElementById('chatAiHint').textContent = 'เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
+}
+
+function chatAiConfirm(){
+  if(!chatAiPending || !chatAiPending.length) return;
+  var defaultSrc = document.getElementById('qaSourceName') ? document.getElementById('qaSourceName').textContent : '';
+  var src = sources && sources.length ? sources[0].id : '';
+  // หา default source จาก qaSourceBtn
+  var qsn = document.getElementById('qaSourceName');
+  if(qsn && sources && sources.length){
+    var found = sources.find(function(s){ return s.name===qsn.textContent; });
+    if(found) src = found.id;
+  }
+  var today = new Date();
+  var todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  chatAiPending.forEach(function(item){
+    var tx = {
+      id: 't'+Date.now()+Math.random().toString(36).slice(2,6),
+      type: item.type==='income'?'income':'expense',
+      name: item.name||'รายการ',
+      amount: parseFloat(item.amount)||0,
+      category: item.category||'อื่นๆ',
+      date: item.date||todayStr,
+      due: item.date||todayStr,
+      status: 'paid',
+      note: 'บันทึกโดย AI',
+      isRecurring: false,
+      paymentSource: src
+    };
+    txs.push(tx);
+    // อัปเดต source balance
+    if(src && sources){
+      var s = sources.find(function(x){ return x.id===src; });
+      if(s){
+        if(tx.type==='income') s.balance=(s.balance||0)+tx.amount;
+        else s.balance=(s.balance||0)-tx.amount;
+      }
+    }
+  });
+  saveAll();
+  renderAll();
+  chatAiCancel();
+  toast('✓ บันทึก ' + chatAiPending.length + ' รายการ' || '✓ บันทึกแล้ว');
+  // confetti-like feedback
+  var wrap = document.getElementById('chatAiWrap');
+  if(wrap){ wrap.style.borderColor='var(--accent)'; setTimeout(function(){ wrap.style.borderColor=''; },1200); }
 }
 
 </script>
@@ -3745,6 +4331,46 @@ function confirmPayCard(){
   </div>
 </div>
 
+<!-- ── AI Chat Popup Modal ── -->
+<div class="backdrop" id="chatAiBackdrop" onclick="if(event.target===this)closeChatAiPopup()" style="z-index:1100">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-head">
+      <div class="modal-title">
+        <span style="color:var(--accent)">✨</span> พิมพ์บอก AI
+      </div>
+      <button class="modal-x" onclick="closeChatAiPopup()">✕</button>
+    </div>
+    <div style="padding:0 0 4px">
+      <div class="chat-ai-wrap" id="chatAiWrapModal" style="border:none;border-radius:0;background:transparent;box-shadow:none">
+        <div class="chat-ai-header" style="padding-top:4px">
+          <div class="chat-ai-label">
+            <span class="chat-ai-label-dot"></span>
+            AI วิเคราะห์และบันทึกให้อัตโนมัติ
+          </div>
+          <div class="chat-ai-hint" id="chatAiHintModal">เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"</div>
+        </div>
+        <div class="chat-ai-input-row">
+          <textarea class="chat-ai-input" id="chatAiInputModal" rows="2"
+            placeholder="พิมพ์รายการ เช่น ข้าวเที่ยง 80 น้ำเปล่า 10 หรือรับเงินเดือน 25000..."
+            onkeydown="chatAiKeyModal(event)" oninput="chatAiAutoResize(this)"></textarea>
+          <div class="chat-ai-btn-row">
+            <button class="chat-ai-slip-btn" onclick="chatAiOpenSlipModal()" title="สแกนสลิปโอนเงิน">
+              📷 สลิป
+            </button>
+            <button class="chat-ai-send" id="chatAiSendBtnModal" onclick="chatAiSendModal()" title="ส่ง (Enter)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+        </div>
+        <input type="file" id="chatSlipInputModal" accept="image/*" style="display:none" onchange="chatAiHandleSlipModal(event)"/>
+        <div id="chatAiResultModal" style="display:none;margin:0 0 8px"></div>
+      </div>
+      <div style="padding:8px 14px 4px;font-size:11px;color:var(--text3);border-top:1px solid var(--border)">
+        💡 ตัวอย่าง: "กินข้าว 80 น้ำ 15" · "ซื้อยา 320" · "รับเงินเดือน 25000" · ส่งรูปสลิปโอนเงินได้เลย
+      </div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
