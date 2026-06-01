@@ -1467,9 +1467,10 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="fg">
       <label class="fl">ประเภท</label>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px" id="lnTypeRow">
+      <div style="display:grid;gap:6px" id="lnTypeRow">
         <button type="button" class="type-btn" id="lnTypePersonal" onclick="setLoanType('personal')" style="font-size:12px">📋 ผ่อนชำระ</button>
         <button type="button" class="type-btn" id="lnTypeCredit" onclick="setLoanType('credit')" style="font-size:12px">🏦 วงเงินสินเชื่อ</button>
+        <button type="button" class="type-btn" id="lnTypeFamily" onclick="setLoanType('family')" style="font-size:12px">👨‍👩‍👧 ยืมคน</button>
         <button type="button" class="type-btn" id="lnTypeOther" onclick="setLoanType('other')" style="font-size:12px">📋 อื่นๆ</button>
       </div>
       <div style="font-size:11px;color:var(--text3);margin-top:4px">เลือก <b>วงเงินสินเชื่อ</b> ถ้าเป็น SEasyCash, SPayLater — จะแสดงในหน้าวงเงินอัตโนมัติ</div>
@@ -2192,7 +2193,13 @@ function openLoanModal(id, defaultType){
   const l=id?loans.find(x=>x.id===id):null;
   const type = l ? l.type : (defaultType||'personal');
   const isCreditLine = type==='credit';
-  document.getElementById('loanModalTitle').textContent=id?(isCreditLine?'แก้ไขวงเงินสินเชื่อ':'แก้ไขสินเชื่อ'):(isCreditLine?'เพิ่มวงเงินสินเชื่อ':'บันทึกสินเชื่อ / หนี้');
+  // เปิดจากหน้าวงเงิน → ซ่อนปุ่มยืมคน / เปิดจากหน้าบันทึกหนี้ → แสดง 4 ปุ่ม
+  const isFromCreditPage = (defaultType==='credit');
+  const familyBtn = document.getElementById('lnTypeFamily');
+  const typeRow = document.getElementById('lnTypeRow');
+  if(familyBtn) familyBtn.style.display = isFromCreditPage ? 'none' : '';
+  if(typeRow) typeRow.style.gridTemplateColumns = isFromCreditPage ? 'repeat(3,1fr)' : 'repeat(4,1fr)';
+  document.getElementById('loanModalTitle').textContent=id?(isCreditLine?'แก้ไขวงเงินสินเชื่อ':'แก้ไขสินเชื่อ'):(isCreditLine?'เพิ่มวงเงินสินเชื่อ':'บันทึกหนี้ / ผ่อนชำระ');
   setLoanType(type);
   document.getElementById('lnName').value=l?l.name:'';
   document.getElementById('lnPrincipal').value=l?l.principal:'';
@@ -2220,7 +2227,7 @@ function openLoanModal(id, defaultType){
 }
 function setLoanType(t){
   loanType=t;
-  ['credit','personal','other'].forEach(function(k){
+  ['credit','personal','family','other'].forEach(function(k){
     var btn=document.getElementById('lnType'+k.charAt(0).toUpperCase()+k.slice(1));
     if(btn) btn.className='type-btn'+(k===t?' '+k+' on':'');
   });
