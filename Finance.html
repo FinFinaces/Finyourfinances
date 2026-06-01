@@ -1045,10 +1045,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <button class="icon-btn" onclick="toggleTheme()" title="สลับธีมมืด/สว่าง" id="themeBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
       </button>
-      <button class="sync-btn" id="syncBtn" onclick="openAccountModal()" title="บัญชี / ซิงค์ข้อมูล">
-        <span class="sync-dot"></span>
-        <svg class="sync-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-        <span id="syncBtnTxt">บัญชี</span>
+      <button class="icon-btn" id="syncBtn" onclick="openAccountModal()" title="บัญชี / ซิงค์ข้อมูล">
+        <svg class="sync-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
       </button>
       <button class="icon-btn" onclick="openBackupManager()" title="สำรอง / กู้คืนข้อมูล">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
@@ -1904,7 +1902,7 @@ function bundle(){
 let _cloudPulling = false;
 async function cloudPull(){
   if(!currentUser || !sb) return;
-  if(_cloudPulling) return; // ป้องกัน double call
+  if(_cloudPulling) return;
   _cloudPulling = true;
   try {
     const { data, error } = await sb.from('fin_store').select('data').eq('user_id', currentUser.id).maybeSingle();
@@ -1921,7 +1919,6 @@ async function cloudPull(){
       cloudReady = true;
       renderAll();
       updateAccountUI();
-      toast('☁️ ซิงค์แล้ว');
     } else {
       cloudReady = true;
       if(!txs) txs = [];
@@ -1930,7 +1927,7 @@ async function cloudPull(){
   } catch(err){
     cloudReady = true;
     console.error('cloudPull', err);
-    toast('⚠️ ดึงคลาวด์ไม่ได้ — ใช้ข้อมูลในเครื่องไปก่อน');
+    toast('⚠️ ดึงคลาวด์ไม่ได้');
   } finally {
     _cloudPulling = false;
   }
