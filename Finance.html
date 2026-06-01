@@ -1337,6 +1337,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <button class="tab active" data-tab="all" onclick="switchTab('all')">ทั้งหมด</button>
     <button class="tab" data-tab="income" onclick="switchTab('income')">รายรับ</button>
     <button class="tab" data-tab="expense" onclick="switchTab('expense')">รายจ่าย</button>
+    <button class="tab" data-tab="recurring" onclick="switchTab('recurring')">ประจำ</button>
+    <button class="tab" data-tab="extra" onclick="switchTab('extra')">เพิ่มเติม</button>
   </div>
   <div class="toolbar">
     <div class="filter-row">
@@ -2770,7 +2772,16 @@ function closeAddToGoalIfBg(e){ if(e.target===e.currentTarget) closeAddToGoal();
 function doAddToGoal(){ const amt=parseFloat(document.getElementById('atgAmt').value)||0; if(amt<=0){ toast('⚠️ กรอกจำนวน'); return; } const g=goals.find(x=>x.id===addToGoalId); const rec=document.getElementById('atgAsExpense').checked; g.saved+=amt; if(rec){ const p=period(); const today=new Date(); let dateStr; if(p.m===today.getMonth()&&p.y===today.getFullYear()){ dateStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0'); } else { const ld=new Date(p.y,p.m+1,0).getDate(); dateStr=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(Math.min(today.getDate(),ld)).padStart(2,'0'); } txs.push({id:'t'+Date.now(),type:'expense',name:'💰 ออมเข้า '+g.name,amount:amt,category:'ออมทรัพย์',date:dateStr,due:dateStr,status:'paid',note:'เพิ่มเข้าเป้าหมาย: '+g.name,isRecurring:false,paymentSource:qaSourceId||'cash'}); } saveAll(); closeAddToGoal(); renderAll(); toast('✓ เพิ่ม ฿'+fmt(amt)+' ใน '+g.name+(rec?' · บันทึกเป็นค่าใช้จ่าย':'')); }
 
 // ── Transactions ──
-function getFiltered(){ return monthItems().filter(t=>{ if(activeTab!=='all'&&t.type!==activeTab)return false; if(activeFilter==='paid'&&t.status!=='paid')return false; if(activeFilter==='unpaid'&&t.status!=='unpaid')return false; return true; }); }
+function getFiltered(){
+  return monthItems().filter(t=>{
+    if(activeTab==='recurring' && !t.isRecurring) return false;
+    if(activeTab==='extra' && t.isRecurring) return false;
+    if(activeTab!=='all'&&activeTab!=='recurring'&&activeTab!=='extra'&&t.type!==activeTab) return false;
+    if(activeFilter==='paid'&&t.status!=='paid') return false;
+    if(activeFilter==='unpaid'&&t.status!=='unpaid') return false;
+    return true;
+  });
+}
 function renderTx(){
   const list=getFiltered();
   const tbody=document.getElementById('txBody');
@@ -2778,7 +2789,7 @@ function renderTx(){
   if(!list.length){ tbody.innerHTML=''; empty.innerHTML='ยังไม่มีรายการ — เริ่มบันทึกด้วยช่อง quick add ด้านบน'; empty.style.display=''; return; }
   empty.style.display='none';
   // เรียงตามวันที่บันทึก ล่าสุดก่อน
-  const sorted=list.slice().sort((a,b)=> new Date(b.date)-new Date(a.date));
+  const sorted=list.slice().sort((a,b)=>{ const dd=new Date(b.date)-new Date(a.date); return dd!==0?dd:(b.id>a.id?1:-1); });
   tbody.innerHTML=sorted.map(rowHtml).join('');
 }
 function rowHtml(t){
