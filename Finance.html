@@ -1901,8 +1901,11 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 function bundle(){
   return { txs:txs||[], goals, loans, sources:paymentSources, shortcuts, theme, v:1 };
 }
+let _cloudPulling = false;
 async function cloudPull(){
   if(!currentUser || !sb) return;
+  if(_cloudPulling) return; // ป้องกัน double call
+  _cloudPulling = true;
   try {
     const { data, error } = await sb.from('fin_store').select('data').eq('user_id', currentUser.id).maybeSingle();
     if(error) throw error;
@@ -1918,17 +1921,18 @@ async function cloudPull(){
       cloudReady = true;
       renderAll();
       updateAccountUI();
-      toast('☁️ ดึงข้อมูลจากคลาวด์แล้ว');
+      toast('☁️ ซิงค์แล้ว');
     } else {
-      // first login on this account → push current local data up
       cloudReady = true;
       if(!txs) txs = [];
       await cloudPushNow();
     }
   } catch(err){
-    cloudReady = true; // allow local use even if pull failed
+    cloudReady = true;
     console.error('cloudPull', err);
     toast('⚠️ ดึงคลาวด์ไม่ได้ — ใช้ข้อมูลในเครื่องไปก่อน');
+  } finally {
+    _cloudPulling = false;
   }
 }
 function scheduleCloudPush(){
