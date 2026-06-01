@@ -1252,7 +1252,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="section-title" style="margin-top:24px">🏦 วงเงินสินเชื่อ</div>
     <div class="loans-grid" id="creditLinesGrid"></div>
     <div id="creditLinesEmpty" class="empty" style="display:none">ยังไม่มีวงเงินสินเชื่อ</div>
-    <div style="margin-top:10px"><button class="btn-add-loan" onclick="openLoanModal()" style="border-color:var(--blue-br);color:var(--blue)">+ เพิ่มวงเงินสินเชื่อ</button></div>
+    <div style="margin-top:10px"><button class="btn-add-loan" onclick="openLoanModal(null,'credit')" style="border-color:var(--blue-br);color:var(--blue)">+ เพิ่มวงเงินสินเชื่อ</button></div>
   </div>
 
   <div class="page-section" id="page-loans" style="display:none">
@@ -2093,10 +2093,11 @@ function setLoanFilter(f){
 function renderLoans(){
   const grid = document.getElementById('loansGrid');
   if(!grid) return;
-  const totalRemain  = loans.reduce((s,l)=>s+(l.remaining||0),0);
-  const totalPaid    = loans.reduce((s,l)=>s+((l.principal||0)-(l.remaining||0)),0);
-  const totalMonthly = loans.filter(l=>(l.remaining||0)>0).reduce((s,l)=>s+(l.monthly||0),0);
-  const totalAvailable = loans.reduce((s,l)=> s + (l.creditLimit>0 ? Math.max(0,(l.creditLimit||0)-(l.used||0)) : 0), 0);
+  const nonCredit = loans.filter(l=>l.type!=='credit');
+  const totalRemain  = nonCredit.reduce((s,l)=>s+(l.remaining||0),0);
+  const totalPaid    = nonCredit.reduce((s,l)=>s+((l.principal||0)-(l.remaining||0)),0);
+  const totalMonthly = nonCredit.filter(l=>(l.remaining||0)>0).reduce((s,l)=>s+(l.monthly||0),0);
+  const totalAvailable = nonCredit.reduce((s,l)=> s + (l.creditLimit>0 ? Math.max(0,(l.creditLimit||0)-(l.used||0)) : 0), 0);
 
   const set=(id,v)=>{ const e=document.getElementById(id); if(e) e.textContent=v; };
   set('ltbTotal','฿'+fmt(totalRemain));
@@ -2104,10 +2105,11 @@ function renderLoans(){
   set('ltbMonthly','฿'+fmt(totalMonthly));
   set('ltbAvailable','฿'+fmt(totalAvailable));
   const badge=document.getElementById('loanTotalBadge');
-  if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
+  if(badge) badge.textContent = nonCredit.length ? nonCredit.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
   // filter
-  let list = loans.slice();
+  // type=credit แสดงในหน้าวงเงินแยกต่างหาก ไม่ซ้ำที่นี่
+  let list = loans.filter(l=>l.type!=='credit');
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
   else if(loanFilter==='credit') list = list.filter(l=>(l.creditLimit||0)>0);
@@ -2184,11 +2186,13 @@ function renderLoans(){
   }).join('');
 }
 
-function openLoanModal(id){
+function openLoanModal(id, defaultType){
   editingLoanId=id||null;
   const l=id?loans.find(x=>x.id===id):null;
-  document.getElementById('loanModalTitle').textContent=id?'แก้ไขสินเชื่อ':'บันทึกสินเชื่อ / หนี้';
-  setLoanType(l?l.type:'credit');
+  const type = l ? l.type : (defaultType||'personal');
+  const isCreditLine = type==='credit';
+  document.getElementById('loanModalTitle').textContent=id?(isCreditLine?'แก้ไขวงเงินสินเชื่อ':'แก้ไขสินเชื่อ'):(isCreditLine?'เพิ่มวงเงินสินเชื่อ':'บันทึกสินเชื่อ / หนี้');
+  setLoanType(type);
   document.getElementById('lnName').value=l?l.name:'';
   document.getElementById('lnPrincipal').value=l?l.principal:'';
   document.getElementById('lnRemaining').value=l?l.remaining:'';
