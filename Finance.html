@@ -2188,7 +2188,7 @@ function renderLoans(){
 function openLoanModal(id, defaultType){
   editingLoanId=id||null;
   const l=id?loans.find(x=>x.id===id):null;
-  const type = l ? l.type : (defaultType||'personal');
+  const type = l ? l.type : (defaultType||'credit');
   const isCreditLine = type==='credit';
   document.getElementById('loanModalTitle').textContent=id?(isCreditLine?'แก้ไขวงเงินสินเชื่อ':'แก้ไขสินเชื่อ'):(isCreditLine?'เพิ่มวงเงินสินเชื่อ':'บันทึกสินเชื่อ / หนี้');
   setLoanType(type);
