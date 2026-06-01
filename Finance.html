@@ -3127,7 +3127,7 @@ function scanConfirmSave(){
 }
 
 let tt;
-function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('show'),2200); }
+function toast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('show'),2500); }
 
 // ── Supabase Table (create if not exist) ──
 // Run this SQL once in Supabase:
@@ -3345,9 +3345,6 @@ if(sb){
   </div>
 </div>
 
+
 </body>
 </html>
-<script>
-function thDate(s){if(!s)return'—';const d=new Date(s);const _m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];return d.getDate()+' '+_m[d.getMonth()]+' '+(d.getFullYear()+543);}
-</script>
-<!-- inject scan modal before </body> -->
