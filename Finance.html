@@ -2239,8 +2239,9 @@ function updateLoanCalc(){
     parts.push(t);
   }
   if(limit>0){
-    const avail = Math.max(0, limit - used);
-    const usedPct = limit>0 ? Math.round((used/limit)*100) : 0;
+    const avail = parseFloat(document.getElementById('lnUsed').value)||0; // lnUsed เก็บ "คงเหลือ"
+    const usedAmt = Math.max(0, limit - avail);
+    const usedPct = Math.round((usedAmt/limit)*100);
     parts.push('💰 วงเงินว่าง <b>฿'+fmt(avail)+'</b> จากวงเงิน ฿'+fmt(limit)+' (เบิกไปแล้ว '+usedPct+'%)');
   }
   if(totalMonths>0&&monthly>0){
