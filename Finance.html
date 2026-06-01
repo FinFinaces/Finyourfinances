@@ -2244,6 +2244,7 @@ const PRESETS = {
   retire:{name:'เกษียณ',target:1000000,note:'เก็บไว้ตอนแก่'}
 };
 
+window.cards = JSON.parse(localStorage.getItem('fin_cards') || '[]');
 let txs   = JSON.parse(localStorage.getItem('fin_tx')   || 'null');
 let goals = JSON.parse(localStorage.getItem('fin_goals') || '[]');
 let loans = JSON.parse(localStorage.getItem('fin_loans') || '[]');
@@ -2336,7 +2337,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 //  Cloud sync (single JSON blob per user → table: fin_store)
 // ============================================================
 function bundle(){
-  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:window.cards||[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, v:1 };
+  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:window.cards||[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, orKey:GEMINI_KEY||'', v:1 };
 }
 async function cloudPull(){
   if(!currentUser || !sb) return;
@@ -2348,10 +2349,11 @@ async function cloudPull(){
       if(Array.isArray(b.txs))      txs = b.txs;
       if(Array.isArray(b.goals))    goals = b.goals;
       if(Array.isArray(b.loans))    loans = b.loans;
-      if(Array.isArray(b.cards))    { cards = b.cards; window.cards = b.cards; }
+      if(Array.isArray(b.cards))    { window.cards = b.cards; }
       if(Array.isArray(b.sources) && b.sources.length) paymentSources = b.sources;
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
+      if(b.orKey){ GEMINI_KEY=b.orKey; localStorage.setItem('fin_or_key',b.orKey); }
       persistLocal();
       cloudReady = true;
       renderAll();
@@ -2432,7 +2434,6 @@ function saveAll(){ persistLocal(); scheduleCloudPush(); }
 //  State
 // ============================================================
 let txType='expense', activeTab='all', activeFilter='all';
-let cards = JSON.parse(localStorage.getItem('fin_cards') || '[]'); window.cards = cards;
 let editTxId=null, editGoalId=null, addToGoalId=null;
 let qaType='expense';
 let qaSourceId = 'cash';
@@ -3455,7 +3456,7 @@ function populateSourceSelect(elId){ const el=document.getElementById(elId); if(
 function updateCardBalance(tx, delta){
   // delta = +1 เพิ่ม (ใช้บัตร), -1 ลด (ยกเลิก)
   if(!tx || !tx.paymentSource) return;
-  const card = cards.find(c=>c.id===tx.paymentSource);
+  const card = (window.cards||[]).find(c=>c.id===tx.paymentSource);
   if(!card) return;
   if(tx.type==='expense' && tx.status==='paid'){
     card.balance = Math.max(0, (card.balance||0) + delta * tx.amount);
@@ -3558,8 +3559,9 @@ function saveScanKey(){
   if(!val){ toast('⚠️ กรอก key ก่อน'); return; }
   GEMINI_KEY = val;
   localStorage.setItem('fin_or_key', val);
+  scheduleCloudPush();
   closeScanSettings();
-  toast('✓ บันทึก API Key แล้ว');
+  toast('✓ บันทึก API Key แล้ว — sync ขึ้น cloud แล้ว');
 }
 
 function openScanModal(mode){
@@ -3697,7 +3699,7 @@ async function callGemini(){
 }
 
 async function callOpenRouterDirect(prompt){
-  if(!GEMINI_KEY) throw new Error('ไม่พบ API Key — กด ⚙ ตั้งค่า OpenRouter Key ก่อน');
+  if(!GEMINI_KEY){ if(typeof openScanSettings==='function') openScanSettings(); throw new Error('กรุณาใส่ OpenRouter API Key ก่อน'); }
   // ลอง free model ก่อน ถ้าไม่ได้ค่อย fallback
   var models = ['meta-llama/llama-3.2-11b-vision-instruct:free', 'google/gemini-2.0-flash-lite-001'];
   var lastErr = '';
@@ -3930,10 +3932,8 @@ if(sb){
   renderAll();
 }
 
-
 // ── Cards (บัตรเครดิต) ──
-window.cards = JSON.parse(localStorage.getItem('fin_cards') || '[]');
-window.cards = cards; // sync
+if(!window.cards) window.cards = JSON.parse(localStorage.getItem('fin_cards') || '[]');
 var editCardId=null, payingCardId=null;
 
 function renderCards(){
@@ -4249,7 +4249,7 @@ async function callChatProxyModal(payload){
 }
 
 async function callOpenRouterDirectChat(payload){
-  if(!GEMINI_KEY) throw new Error('ไม่พบ API Key — กด ⚙ ตั้งค่า OpenRouter Key');
+  if(!GEMINI_KEY){ if(typeof openScanSettings==='function') openScanSettings(); throw new Error('กรุณาใส่ OpenRouter API Key ก่อน'); }
   var isTextOnly = !payload.image;
   // text-only → ใช้ free text model, มีรูป → ใช้ vision model
   var models = isTextOnly
