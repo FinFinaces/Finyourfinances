@@ -3698,29 +3698,32 @@ async function callGemini(){
 
 async function callOpenRouterDirect(prompt){
   if(!GEMINI_KEY) throw new Error('ไม่พบ API Key — กด ⚙ ตั้งค่า OpenRouter Key ก่อน');
-  const body={
-    model:'google/gemini-2.0-flash-exp:free',
-    messages:[{
-      role:'user',
-      content:[
-        {type:'image_url',image_url:{url:'data:'+scanImageMime+';base64,'+scanImageBase64}},
-        {type:'text',text:prompt}
-      ]
-    }],
-    max_tokens:1000
-  };
-  const r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY},
-    body:JSON.stringify(body)
-  });
-  if(!r.ok){
-    const t=await r.text().catch(()=>'');
-    throw new Error('OpenRouter HTTP '+r.status+': '+t.slice(0,200));
+  // ลอง free model ก่อน ถ้าไม่ได้ค่อย fallback
+  var models = ['meta-llama/llama-3.2-11b-vision-instruct:free', 'google/gemini-2.0-flash-lite-001'];
+  var lastErr = '';
+  for(var mi=0; mi<models.length; mi++){
+    try{
+      var body={
+        model: models[mi],
+        messages:[{role:'user',content:[
+          {type:'image_url',image_url:{url:'data:'+scanImageMime+';base64,'+scanImageBase64}},
+          {type:'text',text:prompt}
+        ]}],
+        max_tokens:1000
+      };
+      var r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY},
+        body:JSON.stringify(body)
+      });
+      var d=await r.json();
+      if(d.error){ lastErr=d.error.message||JSON.stringify(d.error); continue; }
+      var content=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
+      if(content) return content;
+      lastErr='empty response';
+    }catch(e){ lastErr=e.message; }
   }
-  const d=await r.json();
-  if(d.error) throw new Error('OpenRouter: '+(d.error.message||JSON.stringify(d.error)));
-  return (d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
+  throw new Error('OpenRouter: '+lastErr);
 }
 
 function showScanResults(){
@@ -4166,7 +4169,11 @@ function openChatAiPopup(){
   document.getElementById('chatAiResultModal').style.display='none';
   document.getElementById('chatAiResultModal').innerHTML='';
   document.getElementById('chatAiHintModal').textContent='เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
-  setTimeout(function(){ var i=document.getElementById('chatAiInputModal'); if(i){i.value='';i.style.height='auto';i.focus();} },120);
+  // iOS Safari ต้องการ delay นานกว่า Chrome
+  setTimeout(function(){
+    var i=document.getElementById('chatAiInputModal');
+    if(i){ i.value=''; i.style.height='auto'; i.removeAttribute('readonly'); i.focus(); i.click(); }
+  }, 300);
 }
 function closeChatAiPopup(){
   document.getElementById('chatAiBackdrop').classList.remove('open');
@@ -4208,12 +4215,28 @@ async function chatAiSendModal(){
 async function callChatProxyModal(payload){
   var btn=document.getElementById('chatAiSendBtnModal');
   try{
-    var resp=await fetch(CHAT_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-    if(!resp.ok) throw new Error('HTTP '+resp.status);
-    var data=await resp.json();
-    if(data.error) throw new Error(typeof data.error==='object'?data.error.message:data.error);
-    var raw=(data.result||'').replace(/```json|```/g,'').trim();
-    var parsed=JSON.parse(raw);
+    var raw='';
+    // ── Path 1: proxy ──
+    try{
+      var resp=await fetch(CHAT_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+      if(resp.ok){
+        var data=await resp.json();
+        if(data.error||!data.result){
+          // proxy failed → fallback
+          raw=await callOpenRouterDirectChat(payload);
+        } else {
+          raw=data.result;
+        }
+      } else {
+        raw=await callOpenRouterDirectChat(payload);
+      }
+    }catch(e){
+      raw=await callOpenRouterDirectChat(payload);
+    }
+    raw=raw.replace(/```json|```/g,'').trim();
+    var m=raw.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('AI ตอบ: '+raw.slice(0,100));
+    var parsed=JSON.parse(m[0]);
     chatAiPending=parsed.items||[];
     if(!chatAiPending.length) throw new Error('ไม่พบรายการ');
     chatAiShowResultModal(chatAiPending);
@@ -4223,6 +4246,35 @@ async function callChatProxyModal(payload){
     document.getElementById('chatAiHintModal').textContent='เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
   }
   if(btn) btn.disabled=false;
+}
+
+async function callOpenRouterDirectChat(payload){
+  if(!GEMINI_KEY) throw new Error('ไม่พบ API Key — กด ⚙ ตั้งค่า OpenRouter Key');
+  var isTextOnly = !payload.image;
+  // text-only → ใช้ free text model, มีรูป → ใช้ vision model
+  var models = isTextOnly
+    ? ['meta-llama/llama-3.3-70b-instruct:free','mistralai/mistral-7b-instruct:free']
+    : ['meta-llama/llama-3.2-11b-vision-instruct:free','google/gemini-2.0-flash-lite-001'];
+  var lastErr = '';
+  for(var mi=0; mi<models.length; mi++){
+    try{
+      var messages=[{role:'user',content:[{type:'text',text:payload.prompt}]}];
+      if(payload.image){
+        messages[0].content.unshift({type:'image_url',image_url:{url:'data:'+(payload.mime||'image/jpeg')+';base64,'+payload.image}});
+      }
+      var r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY},
+        body:JSON.stringify({model:models[mi],messages:messages,max_tokens:1000})
+      });
+      var d=await r.json();
+      if(d.error){ lastErr=d.error.message||JSON.stringify(d.error); continue; }
+      var content=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
+      if(content) return content;
+      lastErr='empty response';
+    }catch(e){ lastErr=e.message; }
+  }
+  throw new Error('OpenRouter: '+lastErr);
 }
 function chatAiShowThinkingModal(msg){
   var r=document.getElementById('chatAiResultModal');
@@ -4636,6 +4688,7 @@ function updateDueDayHint(){
         <div class="chat-ai-input-row">
           <textarea class="chat-ai-input" id="chatAiInputModal" rows="2"
             placeholder="พิมพ์รายการ เช่น ข้าวเที่ยง 80 น้ำเปล่า 10 หรือรับเงินเดือน 25000..."
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
             onkeydown="chatAiKeyModal(event)" oninput="chatAiAutoResize(this)"></textarea>
           <div class="chat-ai-btn-row">
             <button class="chat-ai-slip-btn" onclick="chatAiOpenSlipModal()" title="สแกนสลิปโอนเงิน">
