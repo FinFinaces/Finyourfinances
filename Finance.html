@@ -2250,32 +2250,34 @@ function updateLoanCalc(){
   if(parts.length){ hint.style.display=''; hint.innerHTML=parts.join('<br>'); } else hint.style.display='none';
 }
 function saveLoan(){
-  try {
   const name=document.getElementById('lnName').value.trim();
+  if(!name){ toast('⚠️ กรุณากรอกชื่อ'); return; }
   const principal=parseFloat(document.getElementById('lnPrincipal').value)||0;
   let remaining=parseFloat(document.getElementById('lnRemaining').value);
+  if(isNaN(remaining)) remaining=principal;
   const monthly=parseFloat(document.getElementById('lnMonthly').value)||0;
   const interest=parseFloat(document.getElementById('lnInterest').value)||0;
-  const creditLimit  = parseFloat(document.getElementById('lnCreditLimit').value)||0;
-  const avail        = parseFloat(document.getElementById('lnUsed').value)||0;
-  const used         = creditLimit > 0 ? Math.max(0, creditLimit - avail) : 0;
-  const totalMonths  = parseInt(document.getElementById('lnTotalMonths').value)||0;
-  const dueDay       = parseInt(document.getElementById('lnDueDay').value)||0;
+  const creditLimit=parseFloat(document.getElementById('lnCreditLimit').value)||0;
+  const avail=parseFloat(document.getElementById('lnUsed').value)||0;
+  const used=creditLimit>0?Math.max(0,creditLimit-avail):0;
+  const totalMonths=parseInt(document.getElementById('lnTotalMonths').value)||0;
+  const dueDay=parseInt(document.getElementById('lnDueDay').value)||0;
   const source=document.getElementById('lnSource').value;
   const note=document.getElementById('lnNote').value.trim();
-  if(!name){ toast('⚠️ กรุณากรอกชื่อ'); return; }
-  if(isNaN(remaining)) remaining=principal;
   const obj={name,type:loanType,principal,remaining,monthly,interest,creditLimit,used,totalMonths,dueDay,source,note};
   if(editingLoanId){
     const i=loans.findIndex(x=>x.id===editingLoanId);
-    loans[i]=Object.assign({},loans[i],obj);
+    if(i>=0) loans[i]=Object.assign({},loans[i],obj);
     toast('✓ แก้ไขสินเชื่อแล้ว');
   } else {
     loans.push(Object.assign({},obj,{id:'l'+Date.now(),payments:[]}));
     toast('✓ บันทึกสินเชื่อแล้ว');
   }
-  saveAll(); closeLoanModal(); renderLoans(); renderCreditLines(); renderAll();
-  } catch(e){ toast('⚠️ เกิดข้อผิดพลาด: '+e.message); console.error('saveLoan error:',e); }
+  saveAll();
+  closeLoanModal();
+  renderLoans();
+  renderCreditLines();
+  renderAll();
 }
 function deleteLoan(id){
   const targetId=id||editingLoanId;
