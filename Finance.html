@@ -2897,6 +2897,28 @@ function parseCSVLine(line){ const result=[]; let current='',inQ=false; for(let 
 function parseCSV(text){ if(text.charCodeAt(0)===0xFEFF)text=text.slice(1); const lines=text.split(/\r?\n/).filter(l=>l.trim()); if(lines.length<2)return null; const headers=parseCSVLine(lines[0]).map(h=>h.trim()); const rows=[]; for(let i=1;i<lines.length;i++){ const cells=parseCSVLine(lines[i]); const obj={}; headers.forEach((h,idx)=>{ obj[h]=cells[idx]!==undefined?cells[idx].trim():''; }); rows.push(obj); } return {headers,rows}; }
 function csvRowToTx(row){ const sources=paymentSources.reduce((m,s)=>{ m[s.name.toLowerCase()]=s.id; return m; },{}); const sourceId=sources[(row['Source']||'').toLowerCase()]||'cash'; return {id:'t'+Date.now()+Math.random().toString(36).slice(2,6),type:(row['Type']||'expense').toLowerCase(),name:row['Name']||'',amount:parseFloat(row['Amount'])||0,category:row['Category']||'อื่นๆ',date:row['Date']||new Date().toISOString().slice(0,10),due:row['Due']||'',status:(row['Status']||'paid').toLowerCase(),note:row['Note']||'',isRecurring:(row['Recurring']||'').toLowerCase()==='yes',paymentSource:sourceId}; }
 function handleImportFile(e){ const file=e.target.files[0]; if(!file)return; const reader=new FileReader(); reader.onload=function(ev){ try { const parsed=parseCSV(ev.target.result); if(!parsed||!parsed.rows.length){ toast('⚠️ ไฟล์ว่างหรือไม่ถูกต้อง'); e.target.value=''; return; } const required=['Type','Name','Amount','Date']; const missing=required.filter(h=>parsed.headers.indexOf(h)===-1); if(missing.length){ toast('⚠️ ไฟล์ต้องมีคอลัมน์: '+missing.join(', ')); e.target.value=''; return; } const newTxs=parsed.rows.map(csvRowToTx).filter(t=>t.name); if(!newTxs.length){ toast('⚠️ ไม่พบรายการที่ถูกต้อง'); e.target.value=''; return; } const mode=confirm('พบ '+newTxs.length+' รายการ\n\n👉 กด OK = แทนที่ข้อมูลทั้งหมด (ของเดิมจะหาย!)\n👉 กด Cancel = รวมกับข้อมูลที่มี'); if(mode){ if(!confirm('⚠️ ยืนยัน! รายการปัจจุบันทั้งหมดจะถูกแทนที่')){ e.target.value=''; return; } txs=newTxs; toast('✓ นำเข้า '+newTxs.length+' รายการ (แทนที่แล้ว)'); } else { const existingKeys=txs.map(t=>t.date+'|'+t.name+'|'+t.amount); let added=0; newTxs.forEach(t=>{ const key=t.date+'|'+t.name+'|'+t.amount; if(existingKeys.indexOf(key)===-1){ txs.push(t); existingKeys.push(key); added++; } }); toast('✓ รวมข้อมูลแล้ว — เพิ่ม '+added+' รายการ'); } saveAll(); closeBackupManager(); renderAll(); } catch(err){ toast('⚠️ อ่านไฟล์ไม่สำเร็จ: '+err.message); } e.target.value=''; }; reader.readAsText(file); }
+function handleImportJSON(e){
+  var file=e.target.files[0]; if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      var data=JSON.parse(ev.target.result);
+      var addedLoans=0,addedTxs=0;
+      if(Array.isArray(data.loans)){
+        var ex=loans.map(function(l){return l.name;});
+        data.loans.forEach(function(l){ if(ex.indexOf(l.name)===-1){loans.push(l);addedLoans++;} });
+      }
+      if(Array.isArray(data.txs)){
+        var exk=txs.map(function(t){return t.date+'|'+t.name+'|'+t.amount;});
+        data.txs.forEach(function(t){ var k=t.date+'|'+t.name+'|'+t.amount; if(exk.indexOf(k)===-1){txs.push(t);exk.push(k);addedTxs++;} });
+      }
+      saveAll();closeBackupManager();renderAll();renderLoans();
+      toast('✓ นำเข้าแล้ว — loans '+addedLoans+' · txs '+addedTxs);
+    }catch(err){ toast('⚠️ อ่านไฟล์ JSON ไม่สำเร็จ: '+err.message); }
+    e.target.value='';
+  };
+  reader.readAsText(file);
+}
 function resetAllData(){ if(!confirm('⚠️ ลบข้อมูลทั้งหมดและเริ่มใหม่?\n\nรายการ, เป้าหมาย, ปุ่มลัด, แหล่งเงิน จะถูกลบ\nไม่สามารถย้อนกลับได้!'))return; if(!confirm('⚠️ ยืนยันอีกครั้ง — ลบทั้งหมดจริงๆ?'))return; localStorage.removeItem('fin_tx'); localStorage.removeItem('fin_goals'); localStorage.removeItem('fin_shortcuts'); localStorage.removeItem('fin_sources'); localStorage.removeItem('fin_loans'); txs=null; goals=[]; loans=[]; shortcuts=DEFAULT_SHORTCUTS.slice(); paymentSources=DEFAULT_SOURCES.slice(); seed(); closeBackupManager(); renderAll(); toast('✓ เริ่มใหม่แล้ว'); }
 
 // ── Keyboard ──
@@ -3054,7 +3076,7 @@ function showScanResults(){
   if(scanMode === 'installment'){
     document.getElementById('scanReceiptResult').style.display = 'none';
     document.getElementById('scanInstallResult').style.display = '';
-    const items = scanParsedData?.items || [];
+    const items = (scanParsedData && scanParsedData.items) || [];
     const wrap = document.getElementById('scanInstallItems');
     if(!items.length){ wrap.innerHTML='<div style="color:var(--text3);padding:20px;text-align:center">ไม่พบตารางงวดในรูป</div>'; return; }
     wrap.innerHTML = items.map((item,i)=>`
@@ -3068,9 +3090,9 @@ function showScanResults(){
   } else {
     document.getElementById('scanReceiptResult').style.display = '';
     document.getElementById('scanInstallResult').style.display = 'none';
-    const items = scanParsedData?.items || [];
-    const total = scanParsedData?.total || 0;
-    const merchant = scanParsedData?.merchant || '';
+    const items = (scanParsedData && scanParsedData.items) || [];
+    const total = (scanParsedData && scanParsedData.total) || 0;
+    const merchant = (scanParsedData && scanParsedData.merchant) || '';
     const wrap = document.getElementById('scanReceiptItems');
     if(!items.length){ wrap.innerHTML='<div style="color:var(--text3);padding:20px;text-align:center">ไม่พบรายการในรูป</div>'; return; }
     wrap.innerHTML = items.map((item,i)=>`
@@ -3087,12 +3109,12 @@ function showScanResults(){
 
 function scanConfirmSave(){
   if(scanMode === 'installment'){
-    const items = scanParsedData?.items || [];
-    const loanId = document.getElementById('scanLoanSelect')?.value;
+    const items = (scanParsedData && scanParsedData.items) || [];
+    const loanId = (document.getElementById('scanLoanSelect') ? document.getElementById('scanLoanSelect').value : '');
     const loan = loanId ? loans.find(l=>l.id===loanId) : null;
     let added = 0;
     items.forEach((item,i)=>{
-      if(!document.getElementById('scanCheck'+i)?.checked) return;
+      if(!(document.getElementById('scanCheck'+i) && document.getElementById('scanCheck'+i).checked)) return;
       // เพิ่มเป็น transaction รายจ่ายค้างชำระ
       txs.push({
         id:'t'+Date.now()+Math.random().toString(36).slice(2,5),
@@ -3105,19 +3127,19 @@ function scanConfirmSave(){
         status:'unpaid',
         note:'นำเข้าจากตารางผ่อน',
         isRecurring:false,
-        paymentSource: loan?.source||'cash'
+        paymentSource: (loan && loan.source)||'cash'
       });
       added++;
     });
     saveAll(); closeScanModal(); renderAll();
     toast('✓ นำเข้า '+added+' งวด — อยู่ในรายการค้างชำระแล้ว');
   } else {
-    const items = scanParsedData?.items || [];
-    const cat = document.getElementById('scanCat')?.value || 'อื่นๆ';
-    const src = document.getElementById('scanSource')?.value || 'cash';
+    const items = (scanParsedData && scanParsedData.items) || [];
+    const cat = (document.getElementById('scanCat') ? document.getElementById('scanCat').value : '') || 'อื่นๆ';
+    const src = (document.getElementById('scanSource') ? document.getElementById('scanSource').value : '') || 'cash';
     let added = 0;
     items.forEach((item,i)=>{
-      if(!document.getElementById('scanCheck'+i)?.checked) return;
+      if(!(document.getElementById('scanCheck'+i) && document.getElementById('scanCheck'+i).checked)) return;
       txs.push({
         id:'t'+Date.now()+Math.random().toString(36).slice(2,5),
         type:'expense',
@@ -3325,7 +3347,7 @@ function setPageTab(page){
   // re-render section content
   if(page==='overview') renderAll();
   else if(page==='cards'){ renderCards(); }
-  else if(page==='loans'){ renderLoans(); renderFreedom(...getFreedomArgs()); }
+  else if(page==='loans'){ renderLoans(); var _fa=getFreedomArgs();renderFreedom(_fa[0],_fa[1],_fa[2],_fa[3],_fa[4]); }
   else if(page==='analysis'){ renderBars(); renderDonut(monthItems()); }
   else if(page==='goals') renderGoals();
   // scroll ไปที่ content section ของแท็บนั้นๆ
