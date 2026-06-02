@@ -2570,6 +2570,7 @@ function renderLoans(){
 
   // โซนบันทึกหนี้ = ทุกอย่างที่ไม่ใช่ credit line
   // credit line = มี creditLimit > 0 และไม่มี parentCreditId
+  console.log('[loans debug]', loans.map(function(l){return l.name+'|limit:'+l.creditLimit+'|parent:'+l.parentCreditId+'|type:'+l.type;}));
   let list = loans.filter(l=> !((l.creditLimit||0)>0 && !l.parentCreditId));
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
