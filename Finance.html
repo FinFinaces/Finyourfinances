@@ -2213,11 +2213,12 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="frow">
       <div class="fg">
         <label class="fl">สถานะ</label>
-        <select class="fs" id="txStatus">
-          <option value="paid">✅ ชำระแล้ว</option>
-          <option value="unpaid">❌ ค้างชำระ</option>
-          <option value="pending">⏳ รอดำเนินการ</option>
-        </select>
+        <input type="hidden" id="txStatus" value="unpaid"/>
+        <div style="display:flex;gap:6px">
+          <button type="button" id="txStatusPaid" onclick="setTxStatus('paid')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">✅ ชำระแล้ว</button>
+          <button type="button" id="txStatusUnpaid" onclick="setTxStatus('unpaid')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--red-br);background:var(--red-bg);color:var(--red);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">❌ ค้างชำระ</button>
+          <button type="button" id="txStatusPending" onclick="setTxStatus('pending')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">⏳ รอ</button>
+        </div>
       </div>
       <div class="fg"><label class="fl">จ่ายผ่าน</label><select class="fs" id="txSource"></select></div>
     </div>
@@ -3576,7 +3577,7 @@ function openTxModal(id){
     document.getElementById('txAmt').value=t.amount;
     document.getElementById('txDate').value=t.date;
     document.getElementById('txDue').value=t.due||'';
-    document.getElementById('txStatus').value=t.status;
+    setTxStatus(t.status);
     document.getElementById('txNote').value=t.note||'';
     document.getElementById('txRecurring').checked=t.isRecurring||false;
     if(document.getElementById('txSource')) document.getElementById('txSource').value=t.paymentSource||'cash';
@@ -3598,7 +3599,7 @@ function openTxModal(id){
     let dd=p.m===today.getMonth()&&p.y===today.getFullYear()?today.getDate():1;
     const ld=new Date(p.y,p.m+1,0).getDate(); dd=Math.min(dd,ld);
     document.getElementById('txDate').value=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
-    document.getElementById('txStatus').value='unpaid';
+    setTxStatus('unpaid');
     document.getElementById('txRecurring').checked=false;
     if(document.getElementById('txSource')) document.getElementById('txSource').value='cash';
   }
@@ -3608,6 +3609,24 @@ function openTxModal(id){
 function closeTxModal(){ document.getElementById('txBackdrop').classList.remove('open'); }
 function closeTxIfBg(e){ if(e.target===e.currentTarget) closeTxModal(); }
 function setTxType(t){ txType=t; document.getElementById('btnExp').classList.toggle('on',t==='expense'); document.getElementById('btnInc').classList.toggle('on',t==='income'); }
+function setTxStatus(s){
+  document.getElementById('txStatus').value=s;
+  var styles={
+    paid:{border:'1.5px solid var(--green-br)',background:'var(--green-bg)',color:'var(--green)'},
+    unpaid:{border:'1.5px solid var(--red-br)',background:'var(--red-bg)',color:'var(--red)'},
+    pending:{border:'1.5px solid var(--amber-br)',background:'var(--amber-bg)',color:'var(--amber)'}
+  };
+  var base={border:'1.5px solid var(--border)',background:'var(--surface)',color:'var(--text)'};
+  ['paid','unpaid','pending'].forEach(function(v){
+    var btn=document.getElementById('txStatus'+v.charAt(0).toUpperCase()+v.slice(1));
+    if(!btn) return;
+    var st=v===s?styles[v]:base;
+    btn.style.border=st.border;
+    btn.style.background=st.background;
+    btn.style.color=st.color;
+    btn.style.fontWeight=v===s?'700':'400';
+  });
+}
 function populateSourceSelect(elId){ const el=document.getElementById(elId); if(!el)return; const cur=el.value; el.innerHTML=paymentSources.map(s=>'<option value="'+s.id+'">'+s.icon+' '+esc(s.name)+'</option>').join(''); if(cur)el.value=cur; }
 function updateCardBalance(tx, delta){
   // delta = +1 เพิ่ม (ใช้บัตร), -1 ลด (ยกเลิก)
