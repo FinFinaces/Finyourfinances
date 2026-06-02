@@ -2325,11 +2325,13 @@ let txs   = JSON.parse(localStorage.getItem('fin_tx')   || 'null');
 function migrateLoansType(){
   var changed=0;
   (loans||[]).forEach(function(l){
-    if(l.type==='credit'){
-      if((l.creditLimit||0)>0&&!l.parentCreditId){l.type='creditline';changed++;}
-      else{l.type='debt';changed++;}
-    } else if(l.type==='personal'||l.type==='family'||l.type==='other'){
-      l.type='debt';changed++;
+    if(l.type==='creditline'||l.type==='debt') return; // migrate แล้ว
+    // credit line แท้ = มี creditLimit > 0 และไม่มี parentCreditId และไม่มี principal อื่น
+    var isTrueCreditLine = l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId && (l.principal||0)===( l.creditLimit||0);
+    if(isTrueCreditLine){
+      l.type='creditline'; changed++;
+    } else {
+      l.type='debt'; changed++;
     }
   });
   if(changed>0){
@@ -2550,9 +2552,7 @@ function setLoanFilter(f){
 }
 
 function renderLoans(){
-  // ตรวจสอบ type ก่อน render เสมอ
-  var needMigrate=(loans||[]).some(function(l){return l.type==='credit'||l.type==='personal'||l.type==='family'||l.type==='other';});
-  if(needMigrate) migrateLoansType();
+
   const grid = document.getElementById('loansGrid');
   if(!grid) return;
   const totalRemain  = loans.reduce((s,l)=>s+(l.remaining||0),0);
@@ -2568,8 +2568,9 @@ function renderLoans(){
   const badge=document.getElementById('loanTotalBadge');
   if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
-  // creditline = โซนวงเงิน | อื่นๆ = โซนบันทึกหนี้
-  let list = loans.filter(l=> l.type !== 'creditline');
+  // โซนบันทึกหนี้ = ทุกอย่างที่ไม่ใช่ credit line
+  // credit line = มี creditLimit > 0 และไม่มี parentCreditId
+  let list = loans.filter(l=> !((l.creditLimit||0)>0 && !l.parentCreditId));
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
 
@@ -2669,7 +2670,7 @@ function openLoanModal(id, defaultType){
   // populate parent credit dropdown
   var sel=document.getElementById('lnParentCredit');
   if(sel){
-    var creditLines=loans.filter(function(x){return x.type==='creditline';});
+    var creditLines=loans.filter(function(x){return (x.creditLimit||0)>0 && !x.parentCreditId;});
     sel.innerHTML='<option value="">-- ไม่ระบุ --</option>'+
       creditLines.map(function(x){return '<option value="'+x.id+'" '+(l&&l.parentCreditId===x.id?'selected':'')+'>'+esc(x.name)+'</option>';}).join('');
   }
@@ -4010,7 +4011,7 @@ function renderCreditLines(){
   var grid=document.getElementById('creditLinesGrid');
   var empty=document.getElementById('creditLinesEmpty');
   if(!grid)return;
-  var lines=(loans||[]).filter(function(l){return l.type==='creditline';});
+  var lines=(loans||[]).filter(function(l){return (l.creditLimit||0)>0 && !l.parentCreditId;});
   if(!lines.length){grid.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
 
