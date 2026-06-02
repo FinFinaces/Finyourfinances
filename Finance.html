@@ -2420,11 +2420,14 @@ let onbDone = localStorage.getItem('fin_onb') === '1';
 (function repairLoansTypeNow(){
   var repaired=0;
   (loans||[]).forEach(function(l){
-    // ถ้าเป็น debt แต่มี creditLimit หรือ ชื่อบ่งชี้ว่าเป็นวงเงิน → คืนเป็น creditline
-    var nameHints=['seasy','spay','truepay','linebk','line bk','lazada','ktc','tiktok','monee','easy cash'];
+    if(l.parentCreditId) return; // ข้ามหนี้ที่เบิกจากวงเงิน
+    var nameHints=['seasy','spay','truepay','linebk','line bk','lazada','ktc','tiktok','monee','easy cash','spaylater','s easy'];
     var n=(l.name||'').toLowerCase();
     var isNameHint=nameHints.some(function(h){return n.indexOf(h)>=0;});
-    if(l.type==='debt' && !l.parentCreditId && ((l.creditLimit||0)>0 || isNameHint)){
+    var hasCreditLimit=(l.creditLimit||0)>0;
+    var noMonthly=(l.monthly||0)===0;
+    // คืนเป็น creditline ถ้า: มี creditLimit หรือ ชื่อบ่งชี้ หรือ ไม่มีงวดผ่อนและไม่ใช่ family/other
+    if((l.type==='debt'||l.type==='personal') && (hasCreditLimit||isNameHint)){
       l.type='creditline'; repaired++;
     }
   });
@@ -2869,8 +2872,10 @@ function updateLoanCalc(){
 function saveLoan(){
   var name=document.getElementById('lnName').value.trim();
   if(!name){ toast('⚠️ กรุณากรอกชื่อ'); return; }
-  var isCreditPage=(document.getElementById('lnCtxCredit').style.display!=='none');
-  if(isCreditPage && (loanType==='credit'||loanType==='creditline')) loanType='creditline';
+  // ตรวจจาก loanType โดยตรง ไม่พึ่ง DOM display (แก้บั๊ก Safari)
+  var isCreditPage=(loanType==='creditline'||loanType==='credit')||
+    (document.getElementById('lnCtxCredit')&&document.getElementById('lnCtxCredit').style.display!=='none');
+  if(isCreditPage && (loanType==='credit'||loanType==='creditline'||loanType===''||!loanType)) loanType='creditline';
   if(!isCreditPage && loanType!=='family' && loanType!=='other') loanType='personal';
   var g=function(id){ var e=document.getElementById(id); return e?e.value:''; };
   var pf=function(id){ return parseFloat(g(id))||0; };
