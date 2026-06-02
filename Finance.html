@@ -1963,9 +1963,13 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="fg">
       <label class="fl">จำนวนที่ชำระ (บาท)</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn-copy" id="payLoanFullBtn" onclick="fillFullPayment()" style="flex:1;font-size:12px;padding:8px 10px">💳 เต็มจำนวน</button>
+        <button class="btn-copy" id="payLoanMinBtn" onclick="fillMinPayment()" style="flex:1;font-size:12px;padding:8px 10px">⚡ ขั้นต่ำ 10%</button>
+        <button class="btn-copy" onclick="fillMonthlyPayment()" style="flex:1;font-size:12px;padding:8px 10px;white-space:nowrap">🔁 งวดปกติ</button>
+      </div>
       <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
         <input class="fi mono" id="payLoanAmt" type="number" step="0.01" placeholder="0.00" style="flex:1" oninput="updatePayHint()"/>
-        <button class="btn-copy" onclick="fillMonthlyPayment()" style="flex-shrink:0;white-space:nowrap;font-size:12px">งวดปกติ</button>
       </div>
       <div id="payHint" style="font-size:11px;color:var(--text3)"></div>
     </div>
@@ -2776,12 +2780,12 @@ function saveLoan(){
   var name=document.getElementById('lnName').value.trim();
   if(!name){ toast('⚠️ กรุณากรอกชื่อ'); return; }
   var isCreditPage=(document.getElementById('lnCtxCredit').style.display!=='none');
-  if(isCreditPage && loanType==='credit') loanType='creditline';
+  if(isCreditPage && (loanType==='credit'||loanType==='creditline')) loanType='creditline';
   if(!isCreditPage && loanType!=='family' && loanType!=='other') loanType='personal';
   var g=function(id){ var e=document.getElementById(id); return e?e.value:''; };
   var pf=function(id){ return parseFloat(g(id))||0; };
   var pi=function(id){ return parseInt(g(id))||0; };
-  var isCreditType=(loanType==='credit');
+  var isCreditType=(loanType==='credit'||loanType==='creditline');
   var principal,remaining,monthly,interest,creditLimit,used,totalMonths,dueDay,payDay,dueDate,parentCreditId;
   dueDay=pi('lnDueDay');
   payDay=pi('lnPayDay');
@@ -2879,6 +2883,8 @@ function openPayLoan(id){
   setTimeout(()=>{ const a=document.getElementById('payLoanAmt'); if(a) a.focus(); },100);
 }
 function fillMonthlyPayment(){ const l=loans.find(x=>x.id===payingLoanId); if(l&&l.monthly) document.getElementById('payLoanAmt').value=l.monthly; updatePayHint(); }
+function fillFullPayment(){ const l=loans.find(x=>x.id===payingLoanId); if(l) document.getElementById('payLoanAmt').value=(l.remaining||0).toFixed(2); updatePayHint(); }
+function fillMinPayment(){ const l=loans.find(x=>x.id===payingLoanId); if(!l) return; const min=Math.max(100, Math.round((l.remaining||0)*0.1*100)/100); document.getElementById('payLoanAmt').value=min.toFixed(2); updatePayHint(); }
 function updatePayHint(){
   const l=loans.find(x=>x.id===payingLoanId); if(!l) return;
   const amt=parseFloat(document.getElementById('payLoanAmt').value)||0;
@@ -4187,6 +4193,7 @@ function renderCreditLines(){
         '</div>'+
         '<div class="cl-actions">'+
           '<button class="cl-btn" onclick="openDraw(\'' + l.id + '\')">💰 เบิกวงเงิน</button>'+
+          '<button class="cl-btn" style="background:rgba(255,255,255,0.15)" onclick="openPayLoan(\'' + l.id + '\')">✓ ตัดชำระ</button>'+
           '<button class="cl-btn-icon" onclick="openLoanModal(\'' + l.id + '\')" title="แก้ไข">✎</button>'+
           '<button class="cl-btn-icon" onclick="deleteLoan(\'' + l.id + '\')" title="ลบ" style="color:#ff9e9e">✕</button>'+
         '</div>'+
