@@ -4474,7 +4474,51 @@ function renderCreditLines(){
         (draws.length?'<div style="padding:6px 14px 4px;font-size:10px;color:var(--text3);font-weight:600;letter-spacing:0.05em;text-transform:uppercase">เบิกล่าสุด</div>'+drawHtml:'') +
       '</div>':'';
 
-    return '<div>'+
+    // รวมยอดบิลตามรอบตัดบัตร (dueDay) หรือเดือนปัจจุบันถ้าไม่มี dueDay
+    var linkedSrcs=paymentSources.filter(function(s){
+      return s.loanId&&(s.loanId==='loan:'+l.id||s.loanId===l.id);
+    });
+    var monthlyBill=0; var monthlyBillCount=0;
+    var cycleLabel='เดือนนี้';
+    if(linkedSrcs.length&&txs){
+      var srcIds=linkedSrcs.map(function(s){return s.id;});
+      var now=new Date();
+      var cycleStart, cycleEnd;
+      if(l.dueDay){
+        // รอบตัดบัตร: จาก (dueDay+1 เดือนก่อน) ถึง dueDay เดือนนี้
+        var cut=parseInt(l.dueDay)||1;
+        var thisMonth=new Date(now.getFullYear(),now.getMonth(),cut);
+        if(now.getDate()<=cut){
+          // ยังไม่ถึงวันตัด — รอบปัจจุบันคือเดือนก่อน+1 ถึงเดือนนี้
+          cycleEnd=thisMonth;
+          cycleStart=new Date(now.getFullYear(),now.getMonth()-1,cut+1);
+        } else {
+          // เลยวันตัดแล้ว — รอบปัจจุบันคือวันตัดเดือนนี้+1 ถึงวันตัดเดือนหน้า
+          cycleStart=new Date(now.getFullYear(),now.getMonth(),cut+1);
+          cycleEnd=new Date(now.getFullYear(),now.getMonth()+1,cut);
+        }
+        var cs=cycleStart, ce=cycleEnd;
+        var csLabel=(cs.getDate())+' '+(cs.getMonth()+1)+'/'+cs.getFullYear().toString().slice(2);
+        var ceLabel=(ce.getDate())+' '+(ce.getMonth()+1)+'/'+ce.getFullYear().toString().slice(2);
+        cycleLabel='รอบ '+csLabel+' – '+ceLabel;
+        txs.filter(function(t){
+          var d=new Date(t.date);
+          return t.type==='expense'&&d>=cycleStart&&d<=cycleEnd&&srcIds.indexOf(t.paymentSource)>=0;
+        }).forEach(function(t){ monthlyBill+=t.amount; monthlyBillCount++; });
+      } else {
+        var p=period();
+        cycleLabel='เดือนนี้';
+        txs.filter(function(t){
+          var d=new Date(t.date);
+          return t.type==='expense'&&d.getFullYear()===p.y&&d.getMonth()===p.m&&srcIds.indexOf(t.paymentSource)>=0;
+        }).forEach(function(t){ monthlyBill+=t.amount; monthlyBillCount++; });
+      }
+    }
+    var billHtml=monthlyBill>0?
+      '<div style="padding:6px 14px 8px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1)">'+
+        '<span style="font-size:11px;opacity:0.7">🧾 '+cycleLabel+' ('+monthlyBillCount+' รายการ)</span>'+
+        '<span class="mono" style="font-size:13px;font-weight:700;color:#ffcc66">฿'+fmt(monthlyBill)+'</span>'+
+      '</div>':'';
       '<div class="cl-card" data-brand="'+brand+'">'+
         '<div class="cl-top">'+
           '<div>'+
@@ -4510,6 +4554,7 @@ function renderCreditLines(){
           '<button class="cl-btn-icon" onclick="openLoanModal(\'' + l.id + '\')" title="แก้ไข">✎</button>'+
           '<button class="cl-btn-icon" onclick="deleteLoan(\'' + l.id + '\')" title="ลบ" style="color:#ff9e9e">✕</button>'+
         '</div>'+
+        billHtml+
       '</div>'+
       histHtml+
     '</div>';
@@ -4678,7 +4723,15 @@ function chatAiShowResultModal(items){
       '<span class="chat-result-name">'+esc(item.name||'')+'</span>'+
       '<span class="chat-result-amt '+cls+'">'+(isInc?'+':'-')+'฿'+fmt(item.amount||0)+'</span></div>';
   }).join('');
-  r.innerHTML=rows+'<div class="chat-result-actions">'+
+  var sourceOpts=paymentSources.map(function(s){
+    return '<option value="'+s.id+'"'+(s.id===(qaSourceId||'bank')?' selected':'')+'>'+s.icon+' '+esc(s.name)+'</option>';
+  }).join('');
+  r.innerHTML=rows+
+    '<div style="padding:8px 0 4px;display:flex;align-items:center;gap:8px">'+
+      '<span style="font-size:12px;color:var(--text3)">จ่ายผ่าน:</span>'+
+      '<select id="chatAiSource" class="fs" style="flex:1;font-size:13px">'+sourceOpts+'</select>'+
+    '</div>'+
+    '<div class="chat-result-actions">'+
     '<button class="chat-cancel-btn" onclick="chatAiCancelModal()">ยกเลิก</button>'+
     '<button class="chat-confirm-btn" onclick="chatAiConfirmModal()">✓ บันทึก '+items.length+' รายการ</button>'+
     '</div>';
@@ -4697,10 +4750,11 @@ function chatAiCancelModal(){
 }
 function chatAiConfirmModal(){
   if(!chatAiPending||!chatAiPending.length) return;
-  var cnt=chatAiPending.length; // เก็บก่อน reset
-  var src=qaSourceId||'bank';
-  var qsn=document.getElementById('qaSourceName');
-  if(qsn&&paymentSources&&paymentSources.length){ var found=paymentSources.find(function(s){return s.name===qsn.textContent;}); if(found) src=found.id; }
+  var cnt=chatAiPending.length;
+  // อ่าน source จาก dropdown ใน popup ก่อน ถ้าไม่มีใช้ qaSourceId
+  var popupSrc=document.getElementById('chatAiSource');
+  var src=popupSrc?popupSrc.value:qaSourceId||'bank';
+  if(!src) src='bank';
   chatAiPending.forEach(function(item){
     var tx={id:'t'+Date.now()+Math.random().toString(36).slice(2,6),
       type:item.type==='income'?'income':'expense',name:item.name||'รายการ',
@@ -4708,6 +4762,7 @@ function chatAiConfirmModal(){
       date:item.date||todayStr(),due:item.date||todayStr(),
       status:'paid',note:'บันทึกโดย AI',isRecurring:false,paymentSource:src};
     txs.push(tx);
+    if(tx.status==='paid') adjustLoanUsed(tx,+1);
   });
   saveAll(); renderAll();
   closeChatAiPopup();
