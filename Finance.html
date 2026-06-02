@@ -2139,6 +2139,13 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
           <option value="ออมทรัพย์">💰 ออมทรัพย์</option>
           <option value="หุ้น/การลงทุน">📈 หุ้น/การลงทุน</option>
           <option value="เงินเดือน">💼 เงินเดือน</option>
+          <option value="โบนัส">🎁 โบนัส</option>
+          <option value="ปันผล/หุ้น">📈 ปันผล / หุ้น</option>
+          <option value="กองทุน">💹 กองทุน</option>
+          <option value="กำไรเทรด">💰 กำไรเทรด</option>
+          <option value="ค่าเช่า/ค่าลิขสิทธิ์">🏠 ค่าเช่า / ลิขสิทธิ์</option>
+          <option value="ขายของ">🛍️ ขายของ</option>
+          <option value="รายได้เสริม">💡 รายได้เสริม</option>
           <option value="รายได้อื่น">📊 รายได้อื่น</option>
           <option value="เงินยืม/สินเชื่อเข้า">⚠️ เงินยืม/สินเชื่อเข้า</option>
           <option value="อื่นๆ">📋 อื่นๆ</option>
@@ -2180,6 +2187,13 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
           <option value="อาหาร">🍜 อาหาร</option>
           <option value="เดินทาง">🚗 เดินทาง</option>
           <option value="เงินเดือน">💼 เงินเดือน</option>
+          <option value="โบนัส">🎁 โบนัส</option>
+          <option value="ปันผล/หุ้น">📈 ปันผล / หุ้น</option>
+          <option value="กองทุน">💹 กองทุน</option>
+          <option value="กำไรเทรด">💰 กำไรเทรด</option>
+          <option value="ค่าเช่า/ค่าลิขสิทธิ์">🏠 ค่าเช่า / ลิขสิทธิ์</option>
+          <option value="ขายของ">🛍️ ขายของ</option>
+          <option value="รายได้เสริม">💡 รายได้เสริม</option>
           <option value="รายได้อื่น">📊 รายได้อื่น</option>
           <option value="เงินยืม/สินเชื่อเข้า">⚠️ เงินยืม/สินเชื่อเข้า</option>
           <option value="อื่นๆ">📋 อื่นๆ</option>
@@ -2293,7 +2307,7 @@ const MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค
 const CAT_EMOJI = {
   'หนี้/สินเชื่อ':'💳','ประกัน':'🛡️','อินเตอร์เน็ต':'📶','ออนไลน์/ช็อปปิ้ง':'🛍️',
   'สาธารณูปโภค':'💡','ออมทรัพย์':'💰','หุ้น/การลงทุน':'📈','อาหาร':'🍜',
-  'เดินทาง':'🚗','เงินเดือน':'💼','รายได้อื่น':'📊','เงินยืม/สินเชื่อเข้า':'⚠️','อื่นๆ':'📋'
+  'เดินทาง':'🚗','เงินเดือน':'💼','รายได้อื่น':'📊','เงินยืม/สินเชื่อเข้า':'⚠️','อื่นๆ':'📋','ปันผล/หุ้น':'📈','กองทุน':'💹','กำไรเทรด':'💰','โบนัส':'🎁','ค่าเช่า/ค่าลิขสิทธิ์':'🏠','ขายของ':'🛍️','รายได้เสริม':'💡'
 };
 const CAT_COLORS = ['#4a6741','#9b4a3a','#8a6a2a','#2e5a8a','#6b4a7d','#3d6b38','#c89a3a','#5c7d52','#a85c4a','#7d6a4a'];
 const PRESETS = {
@@ -2747,7 +2761,7 @@ function saveLoan(){
     }
   } else {
     // หนี้
-    principal=pf('lnPrincipal'); remaining=pf('lnRemaining')||pf('lnPrincipal');
+    principal=pf('lnPrincipal'); var rem=pf('lnRemaining'); remaining=rem>0?rem:principal;
     monthly=pf('lnMonthly'); interest=pf('lnInterest');
     totalMonths=pi('lnTotalMonthsD'); creditLimit=0; used=0;
     if(isCreditType){ var pce=document.getElementById('lnParentCredit'); parentCreditId=pce?pce.value:''; }
@@ -2768,7 +2782,7 @@ function saveLoan(){
     msg='✓ บันทึกแล้ว';
   }
   // ถ้าเป็นหนี้จากวงเงิน → อัปเดต used ของ parent
-  if(obj.parentCreditId){
+  if(obj.parentCreditId && obj.parentCreditId!==''){
     var parent=loans.find(function(x){return x.id===obj.parentCreditId;});
     if(parent){
       var totalDrawn=loans.filter(function(x){return x.parentCreditId===obj.parentCreditId;})
@@ -2779,7 +2793,7 @@ function saveLoan(){
   saveAll();
   closeLoanModal();
   renderLoans(); renderCreditLines(); renderAll();
-  toast(msg);
+  toast(msg+(obj.parentCreditId?' [link:'+obj.parentCreditId.slice(-4)+']':''));
 }
 function deleteLoan(id){
   const targetId=id||editingLoanId;
@@ -3413,7 +3427,7 @@ function qaSubmit(){
   const name=document.getElementById('qaName').value.trim();
   const amt=parseFloat(document.getElementById('qaAmt').value)||0;
   if(!name||amt<=0){ toast('⚠️ กรอกชื่อและจำนวน'); document.getElementById('qaName').focus(); return; }
-  const map={'กาแฟ':'อาหาร','ข้าว':'อาหาร','อาหาร':'อาหาร','ก๋วยเตี๋ยว':'อาหาร','เน็ต':'อินเตอร์เน็ต','บัตร':'หนี้/สินเชื่อ','ผ่อน':'หนี้/สินเชื่อ','น้ำมัน':'เดินทาง','รถ':'เดินทาง','ค่าน้ำ':'สาธารณูปโภค','ค่าไฟ':'สาธารณูปโภค','เงินเดือน':'เงินเดือน','shopee':'ออนไลน์/ช็อปปิ้ง','lazada':'ออนไลน์/ช็อปปิ้ง','ออนไลน์':'ออนไลน์/ช็อปปิ้ง','ประกัน':'ประกัน','ออม':'ออมทรัพย์','หุ้น':'หุ้น/การลงทุน','กองทุน':'หุ้น/การลงทุน'};
+  const map={'กาแฟ':'อาหาร','ข้าว':'อาหาร','อาหาร':'อาหาร','ก๋วยเตี๋ยว':'อาหาร','เน็ต':'อินเตอร์เน็ต','บัตร':'หนี้/สินเชื่อ','ผ่อน':'หนี้/สินเชื่อ','น้ำมัน':'เดินทาง','รถ':'เดินทาง','ค่าน้ำ':'สาธารณูปโภค','ค่าไฟ':'สาธารณูปโภค','เงินเดือน':'เงินเดือน','shopee':'ออนไลน์/ช็อปปิ้ง','lazada':'ออนไลน์/ช็อปปิ้ง','ออนไลน์':'ออนไลน์/ช็อปปิ้ง','ประกัน':'ประกัน','ออม':'ออมทรัพย์','หุ้น':'ปันผล/หุ้น','กองทุน':'กองทุน','ปันผล':'ปันผล/หุ้น','เทรด':'กำไรเทรด','dividend':'ปันผล/หุ้น','fund':'กองทุน','โบนัส':'โบนัส','bonus':'โบนัส'};
   let cat=qaType==='income'?'รายได้อื่น':'อื่นๆ';
   const lower=name.toLowerCase();
   for(const k in map){ if(lower.includes(k.toLowerCase())){ cat=map[k]; break; } }
@@ -3973,7 +3987,7 @@ function renderCreditLines(){
   var grid=document.getElementById('creditLinesGrid');
   var empty=document.getElementById('creditLinesEmpty');
   if(!grid)return;
-  var lines=(loans||[]).filter(function(l){return l.type==='credit' && !l.parentCreditId;});
+  var lines=(loans||[]).filter(function(l){return l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId;});
   if(!lines.length){grid.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
 
@@ -4195,7 +4209,7 @@ async function chatAiSendModal(){
   document.getElementById('chatAiHintModal').textContent='⏳ กำลังวิเคราะห์...';
   chatAiShowThinkingModal('🤔 กำลังวิเคราะห์ "'+text.slice(0,30)+(text.length>30?'...':'')+'"');
   callChatProxyModal({
-    prompt:'ผู้ใช้พิมพ์: "'+text+'"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr()+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์'
+    prompt:'ผู้ใช้พิมพ์: "'+text+'"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr()+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/โบนัส/ปันผล-หุ้น/กองทุน/กำไรเทรด/รายได้เสริม/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์'
   });
   input.value=''; input.style.height='auto';
 }
@@ -4328,7 +4342,7 @@ async function chatAiSend(){
   var today = new Date();
   var todayStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   callChatProxy({
-    prompt: 'ผู้ใช้พิมพ์: "' + text + '"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์ ถ้าไม่แน่ใจ type ให้ใช้ expense'
+    prompt: 'ผู้ใช้พิมพ์: "' + text + '"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/โบนัส/ปันผล-หุ้น/กองทุน/กำไรเทรด/รายได้เสริม/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์ ถ้าไม่แน่ใจ type ให้ใช้ expense'
   });
   input.value = '';
   input.style.height = 'auto';
