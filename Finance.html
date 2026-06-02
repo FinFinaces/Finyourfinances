@@ -2421,13 +2421,16 @@ let onbDone = localStorage.getItem('fin_onb') === '1';
   var repaired=0;
   (loans||[]).forEach(function(l){
     if(l.parentCreditId) return; // ข้ามหนี้ที่เบิกจากวงเงิน
-    var nameHints=['seasy','spay','truepay','linebk','line bk','lazada','ktc','tiktok','monee','easy cash','spaylater','s easy'];
+    // ถ้ามี creditLimit > 0 → เป็นวงเงินสินเชื่อเสมอ
+    if((l.creditLimit||0)>0 && l.type!=='creditline'){
+      l.type='creditline'; repaired++;
+      return;
+    }
+    // ตรวจจากชื่อ
+    var nameHints=['seasy','s easy','spay','spaylater','truepay','true pay','linebk','line bk','lazada','ktc','tiktok','monee','easy cash','truepaynext','truemoney'];
     var n=(l.name||'').toLowerCase();
     var isNameHint=nameHints.some(function(h){return n.indexOf(h)>=0;});
-    var hasCreditLimit=(l.creditLimit||0)>0;
-    var noMonthly=(l.monthly||0)===0;
-    // คืนเป็น creditline ถ้า: มี creditLimit หรือ ชื่อบ่งชี้ หรือ ไม่มีงวดผ่อนและไม่ใช่ family/other
-    if((l.type==='debt'||l.type==='personal') && (hasCreditLimit||isNameHint)){
+    if(isNameHint && l.type!=='creditline'){
       l.type='creditline'; repaired++;
     }
   });
