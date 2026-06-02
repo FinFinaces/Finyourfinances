@@ -2575,8 +2575,13 @@ function renderLoans(){
   const badge=document.getElementById('loanTotalBadge');
   if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
-  // โซนบันทึกหนี้ = ทุกอย่างที่ไม่ใช่ creditline
-  let list = (loans||[]).filter(function(l){ return l.type !== 'creditline'; });
+  // โซนบันทึกหนี้ = ทุกอย่างที่ไม่ใช่ credit line
+  // credit line = type=creditline หรือ (มี creditLimit>0 และไม่มี parentCreditId)
+  // ป้องกัน data เก่าที่ยัง migrate ไม่ครบ
+  let list = (loans||[]).filter(function(l){
+    var isCL = l.type==='creditline' || ((l.creditLimit||0)>0 && !l.parentCreditId && (l.type==='credit'));
+    return !isCL;
+  });
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
 
@@ -3548,9 +3553,41 @@ function setFilter(f){ activeFilter=f; document.querySelectorAll('.chip').forEac
 function openTxModal(id){
   editTxId=id||null;
   document.getElementById('txModalTitle').textContent=id?'แก้ไขรายการ':'เพิ่มรายการ';
-  if(id){ const t=txs.find(x=>x.id===id); setTxType(t.type); document.getElementById('txName').value=t.name; document.getElementById('txAmt').value=t.amount; document.getElementById('txCat').value=t.category; document.getElementById('txDate').value=t.date; document.getElementById('txDue').value=t.due||''; document.getElementById('txStatus').value=t.status; document.getElementById('txNote').value=t.note||''; document.getElementById('txRecurring').checked=t.isRecurring||false; if(document.getElementById('txSource'))document.getElementById('txSource').value=t.paymentSource||'cash'; }
-  else { setTxType('expense'); ['txName','txAmt','txDue','txNote'].forEach(i=>document.getElementById(i).value=''); const p=period(); const today=new Date(); let dd=p.m===today.getMonth()&&p.y===today.getFullYear()?today.getDate():1; const ld=new Date(p.y,p.m+1,0).getDate(); dd=Math.min(dd,ld); document.getElementById('txDate').value=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0'); document.getElementById('txStatus').value='unpaid'; document.getElementById('txRecurring').checked=false; if(document.getElementById('txSource'))document.getElementById('txSource').value='cash'; }
   populateSourceSelect('txSource');
+  if(id){
+    const t=txs.find(x=>x.id===id);
+    if(!t) return;
+    setTxType(t.type);
+    document.getElementById('txName').value=t.name;
+    document.getElementById('txAmt').value=t.amount;
+    document.getElementById('txDate').value=t.date;
+    document.getElementById('txDue').value=t.due||'';
+    document.getElementById('txStatus').value=t.status;
+    document.getElementById('txNote').value=t.note||'';
+    document.getElementById('txRecurring').checked=t.isRecurring||false;
+    if(document.getElementById('txSource')) document.getElementById('txSource').value=t.paymentSource||'cash';
+    // set category — ถ้าไม่มีใน options ให้เพิ่มชั่วคราว
+    var catEl=document.getElementById('txCat');
+    if(catEl){
+      var hasOpt=Array.from(catEl.options).some(function(o){return o.value===t.category;});
+      if(!hasOpt){
+        var opt=document.createElement('option');
+        opt.value=t.category; opt.textContent=t.category;
+        catEl.appendChild(opt);
+      }
+      catEl.value=t.category;
+    }
+  } else {
+    setTxType('expense');
+    ['txName','txAmt','txDue','txNote'].forEach(i=>document.getElementById(i).value='');
+    const p=period(); const today=new Date();
+    let dd=p.m===today.getMonth()&&p.y===today.getFullYear()?today.getDate():1;
+    const ld=new Date(p.y,p.m+1,0).getDate(); dd=Math.min(dd,ld);
+    document.getElementById('txDate').value=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+    document.getElementById('txStatus').value='unpaid';
+    document.getElementById('txRecurring').checked=false;
+    if(document.getElementById('txSource')) document.getElementById('txSource').value='cash';
+  }
   document.getElementById('txBackdrop').classList.add('open');
   setTimeout(()=>document.getElementById('txName').focus(),100);
 }
@@ -4021,7 +4058,9 @@ function renderCreditLines(){
   var grid=document.getElementById('creditLinesGrid');
   var empty=document.getElementById('creditLinesEmpty');
   if(!grid)return;
-  var lines=(loans||[]).filter(function(l){return l.type==='creditline';});
+  var lines=(loans||[]).filter(function(l){
+    return l.type==='creditline' || (l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId);
+  });
   if(!lines.length){grid.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
 
