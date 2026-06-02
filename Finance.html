@@ -2415,6 +2415,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
     updateAccountUI();
     cloudPull();
     if(!onbDone) showOnb();
+    migrateLoansType();
     renderAll();
   } else {
     currentUser = null;
@@ -2549,6 +2550,9 @@ function setLoanFilter(f){
 }
 
 function renderLoans(){
+  // ตรวจสอบ type ก่อน render เสมอ
+  var needMigrate=(loans||[]).some(function(l){return l.type==='credit'||l.type==='personal'||l.type==='family'||l.type==='other';});
+  if(needMigrate) migrateLoansType();
   const grid = document.getElementById('loansGrid');
   if(!grid) return;
   const totalRemain  = loans.reduce((s,l)=>s+(l.remaining||0),0);
