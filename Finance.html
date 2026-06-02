@@ -2321,6 +2321,22 @@ const PRESETS = {
 
 window.cards = JSON.parse(localStorage.getItem('fin_cards') || '[]');
 let txs   = JSON.parse(localStorage.getItem('fin_tx')   || 'null');
+
+function migrateLoansType(){
+  var changed=0;
+  (loans||[]).forEach(function(l){
+    if(l.type==='credit'){
+      if((l.creditLimit||0)>0&&!l.parentCreditId){l.type='creditline';changed++;}
+      else{l.type='debt';changed++;}
+    } else if(l.type==='personal'||l.type==='family'||l.type==='other'){
+      l.type='debt';changed++;
+    }
+  });
+  if(changed>0){
+    localStorage.setItem('fin_loans',JSON.stringify(loans));
+    console.log('[migrate] Updated',changed,'loan records');
+  }
+}
 let goals = JSON.parse(localStorage.getItem('fin_goals') || '[]');
 let loans = JSON.parse(localStorage.getItem('fin_loans') || '[]');
 let theme = localStorage.getItem('fin_theme') || 'light';
@@ -2429,6 +2445,7 @@ async function cloudPull(){
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
       persistLocal();
+      migrateLoansType();
       cloudReady = true;
       renderAll();
       updateAccountUI();
@@ -2517,6 +2534,8 @@ let analysisView = 'trend';
 // ── Loans ──
 let editingLoanId=null, payingLoanId=null, loanType='credit';
 const LOAN_TYPES = {
+  creditline:{label:'🏦 วงเงินสินเชื่อ',cls:'credit'},
+  debt:{label:'📋 ผ่อนชำระ/หนี้',cls:'personal'},
   credit:{label:'🏦 วงเงินสินเชื่อ',cls:'credit'},
   personal:{label:'📋 ผ่อนชำระ',cls:'personal'},
   family:{label:'👨‍👩‍👧 ยืมคน',cls:'family'},
@@ -2545,9 +2564,8 @@ function renderLoans(){
   const badge=document.getElementById('loanTotalBadge');
   if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
-  // credit line แท้ = type='credit' + creditLimit>0 + ไม่มี parentCreditId → ซ่อน (อยู่ในโซนวงเงินแล้ว)
-  // อื่นๆ ทั้งหมด → แสดงในโซนบันทึกหนี้
-  let list = loans.filter(l=> !(l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId));
+  // creditline = โซนวงเงิน | อื่นๆ = โซนบันทึกหนี้
+  let list = loans.filter(l=> l.type !== 'creditline');
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
 
@@ -2647,7 +2665,7 @@ function openLoanModal(id, defaultType){
   // populate parent credit dropdown
   var sel=document.getElementById('lnParentCredit');
   if(sel){
-    var creditLines=loans.filter(function(x){return x.type==='credit' && (x.creditLimit||0)>0 && !x.parentCreditId;});
+    var creditLines=loans.filter(function(x){return x.type==='creditline';});
     sel.innerHTML='<option value="">-- ไม่ระบุ --</option>'+
       creditLines.map(function(x){return '<option value="'+x.id+'" '+(l&&l.parentCreditId===x.id?'selected':'')+'>'+esc(x.name)+'</option>';}).join('');
   }
@@ -2736,6 +2754,9 @@ function saveLoan(){
   var name=document.getElementById('lnName').value.trim();
   if(!name){ toast('⚠️ กรุณากรอกชื่อ'); return; }
   var isCreditPage=(document.getElementById('lnCtxCredit').style.display!=='none');
+  if(isCreditPage && loanType==='credit') loanType='creditline';
+  if(isCreditPage && loanType==='personal') loanType='creditline';
+  if(!isCreditPage) loanType='debt';
   var g=function(id){ var e=document.getElementById(id); return e?e.value:''; };
   var pf=function(id){ return parseFloat(g(id))||0; };
   var pi=function(id){ return parseInt(g(id))||0; };
@@ -3757,11 +3778,13 @@ function showScanResults(){
     if(!items.length){ wrap.innerHTML='<div style="color:var(--text3);padding:20px;text-align:center">ไม่พบรายการในรูป</div>'; return; }
     wrap.innerHTML = items.map((item,i)=>`
       <div class="scan-item-row">
-        <div>
+        <div style="flex:1">
           <div class="scan-item-name">${esc(item.name||merchant||'รายการ '+(i+1))}</div>
           <div class="scan-item-date">${thDate(item.date)}</div>
         </div>
-        <div class="scan-item-amt">฿${fmt(item.amount)}</div>
+        <input type="number" step="0.01" value="${item.amount}" id="scanAmt${i}"
+          style="width:100px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;border:1px solid var(--border);border-radius:var(--rs);padding:4px 8px;background:var(--bg2);color:var(--text)"
+          oninput="scanParsedData.items[${i}].amount=parseFloat(this.value)||0"/>
         <input type="checkbox" class="scan-item-check" id="scanCheck${i}" checked/>
       </div>`).join('');
   }
@@ -3917,12 +3940,8 @@ if(sb){
       const ab=document.getElementById('authBackdrop');
       if(ab) ab.classList.add('open');
     }
-    renderAll();
-    renderCards();
-  }).catch(err=>{
-    console.warn('getSession error:', err);
-    renderAll();
-  });
+    migrateLoansType(); renderAll(); renderCards();
+  }).catch(err=>{ console.warn('getSession error:', err); migrateLoansType(); renderAll(); });
 } else {
   // No supabase - show auth screen
   const ab=document.getElementById('authBackdrop');
@@ -3987,7 +4006,7 @@ function renderCreditLines(){
   var grid=document.getElementById('creditLinesGrid');
   var empty=document.getElementById('creditLinesEmpty');
   if(!grid)return;
-  var lines=(loans||[]).filter(function(l){return l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId;});
+  var lines=(loans||[]).filter(function(l){return l.type==='creditline';});
   if(!lines.length){grid.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
 
