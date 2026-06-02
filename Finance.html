@@ -2416,6 +2416,24 @@ let loans = JSON.parse(localStorage.getItem('fin_loans') || '[]');
 let theme = localStorage.getItem('fin_theme') || 'light';
 let onbDone = localStorage.getItem('fin_onb') === '1';
 
+// repair วงเงินที่ถูก migrate ผิดเป็น debt — รันทันทีหลัง load
+(function repairLoansTypeNow(){
+  var repaired=0;
+  (loans||[]).forEach(function(l){
+    // ถ้าเป็น debt แต่มี creditLimit หรือ ชื่อบ่งชี้ว่าเป็นวงเงิน → คืนเป็น creditline
+    var nameHints=['seasy','spay','truepay','linebk','line bk','lazada','ktc','tiktok','monee','easy cash'];
+    var n=(l.name||'').toLowerCase();
+    var isNameHint=nameHints.some(function(h){return n.indexOf(h)>=0;});
+    if(l.type==='debt' && !l.parentCreditId && ((l.creditLimit||0)>0 || isNameHint)){
+      l.type='creditline'; repaired++;
+    }
+  });
+  if(repaired>0){
+    localStorage.setItem('fin_loans',JSON.stringify(loans));
+    console.log('[repairNow]',repaired,'loans restored to creditline');
+  }
+})();
+
 const DEFAULT_SOURCES = [
   {id:'cash',name:'เงินสด',icon:'💵',color:'#3d6b38',type:'cash'},
   {id:'bank',name:'บัญชีธนาคาร',icon:'🏦',color:'#2e5a8a',type:'cash'},
