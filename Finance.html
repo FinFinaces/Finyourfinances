@@ -2608,8 +2608,8 @@ function renderLoans(){
 function openLoanModal(id, defaultType){
   editingLoanId=id||null;
   var l=id?loans.find(function(x){return x.id===id;}):null;
-  var isCreditPage = (defaultType==='credit'||defaultType==='personal') ||
-                     (id && l && (l.type==='credit'||l.type==='personal'));
+  var isCreditPage = (defaultType==='credit') ||
+                     (id && l && (l.type==='credit') && !l.parentCreditId);
   var type = l ? l.type : (defaultType||(isCreditPage?'credit':'credit'));
 
   // show/hide context divs
