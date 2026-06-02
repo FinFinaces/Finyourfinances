@@ -2837,11 +2837,11 @@ function saveLoan(){
       parent.used=totalDrawn;
     }
   }
+  closeLoanModal();
   try {
     saveAll();
-  } catch(e){ console.error('saveLoan',e); toast('⚠️ บันทึกไม่สำเร็จ: '+e.message); }
-  closeLoanModal();
-  try { renderLoans(); renderCreditLines(); renderAll(); } catch(e){ console.error('renderLoans',e); }
+    renderLoans(); renderCreditLines(); renderAll();
+  } catch(e){ console.error('saveLoan',e); toast('⚠️ บันทึกไม่สำเร็จ: '+e.message); try{renderLoans();renderCreditLines();renderAll();}catch(e2){} }
   toast(msg+(obj.parentCreditId?' [link:'+obj.parentCreditId.slice(-4)+']':''));
 }
 function deleteLoan(id){
@@ -3622,8 +3622,9 @@ function saveTx(){
   const name=document.getElementById('txName').value.trim();
   const date=document.getElementById('txDate').value;
   if(!name||!date){ toast('⚠️ กรุณากรอกชื่อและวันที่'); return; }
-  const obj={name,amount:parseFloat(document.getElementById('txAmt').value)||0,category:document.getElementById('txCat').value,date,due:document.getElementById('txDue').value,status:document.getElementById('txStatus').value,note:document.getElementById('txNote').value.trim(),type:txType,isRecurring:document.getElementById('txRecurring').checked,paymentSource:document.getElementById('txSource')?document.getElementById('txSource').value:'cash'};
+  closeTxModal();
   try {
+    const obj={name,amount:parseFloat(document.getElementById('txAmt').value)||0,category:document.getElementById('txCat').value,date,due:document.getElementById('txDue').value,status:document.getElementById('txStatus').value,note:document.getElementById('txNote').value.trim(),type:txType,isRecurring:document.getElementById('txRecurring').checked,paymentSource:document.getElementById('txSource')?document.getElementById('txSource').value:'cash'};
     if(!Array.isArray(txs)) txs=[];
     if(editTxId){
       const i=txs.findIndex(x=>x.id===editTxId);
@@ -3635,9 +3636,8 @@ function saveTx(){
       toast('✓ เพิ่มรายการแล้ว');
     }
     saveAll();
-  } catch(e){ console.error('saveTx',e); toast('⚠️ บันทึกไม่สำเร็จ: '+e.message); }
-  closeTxModal();
-  try { renderAll(); } catch(e){ console.error('renderAll',e); }
+    renderAll();
+  } catch(e){ console.error('saveTx',e); toast('⚠️ บันทึกไม่สำเร็จ: '+e.message); renderAll(); }
 }
 function deleteTx(id){ if(!confirm('ลบรายการนี้?'))return; txs=txs.filter(t=>t.id!==id); saveAll(); renderAll(); toast('ลบแล้ว'); }
 function toggleStatus(id){ const t=txs.find(x=>x.id===id); t.status={paid:'unpaid',unpaid:'pending',pending:'paid'}[t.status]||'paid'; saveAll(); renderAll(); toast('สถานะ: '+sLabel(t.status)); }
