@@ -2531,11 +2531,9 @@ function renderLoans(){
   const badge=document.getElementById('loanTotalBadge');
   if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
-  // แสดงเฉพาะรายการหนี้:
-  // - type ไม่ใช่ credit → แสดงเสมอ
-  // - type = credit + มี parentCreditId → หนี้จากวงเงิน → แสดง
-  // - type = credit + ไม่มี parentCreditId → credit line → ซ่อน
-  let list = loans.filter(l=> l.type!=='credit' || !!l.parentCreditId);
+  // credit line แท้ = type='credit' + creditLimit>0 + ไม่มี parentCreditId → ซ่อน (อยู่ในโซนวงเงินแล้ว)
+  // อื่นๆ ทั้งหมด → แสดงในโซนบันทึกหนี้
+  let list = loans.filter(l=> !(l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId));
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
 
@@ -2616,8 +2614,8 @@ function openLoanModal(id, defaultType){
   var l=id?loans.find(function(x){return x.id===id;}):null;
   var isCreditPage = (defaultType==='credit') ||
                      (id && l && (l.type==='credit') && !l.parentCreditId);
-  // 'debt' = บันทึกหนี้ context, default type = credit (จากวงเงิน)
-  var type = l ? l.type : 'credit';
+  // debt context → default personal, credit page → default credit
+  var type = l ? l.type : (isCreditPage ? 'credit' : 'personal');
 
   // show/hide context divs
   var ctxC=document.getElementById('lnCtxCredit');
@@ -3683,7 +3681,7 @@ async function callGemini(){
   var today=new Date().toISOString().slice(0,10);
   var prompt=scanMode==='installment'
     ?'อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:\n{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69}]}'
-    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":150.00,"date":"'+today+'"}],"total":150.00,"merchant":"ชื่อร้าน"}\nถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
   try{
     var resp=await fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -3817,7 +3815,7 @@ function scanConfirmSave(){
 // CREATE POLICY "own" ON fin_store FOR ALL USING (auth.uid() = user_id);
 
 // ── Page Tab Navigation ──
-let currentPage='cards';
+let currentPage='overview';
 function setPageTab(page){
   currentPage = page;
   // update tab buttons
