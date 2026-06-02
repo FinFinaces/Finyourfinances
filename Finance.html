@@ -3622,13 +3622,25 @@ function saveTx(){
   const name=document.getElementById('txName').value.trim();
   const date=document.getElementById('txDate').value;
   if(!name||!date){ toast('⚠️ กรุณากรอกชื่อและวันที่'); return; }
+  // อ่านค่าทั้งหมดจาก form ก่อนปิด modal
+  const obj={
+    name,
+    amount:parseFloat(document.getElementById('txAmt').value)||0,
+    category:document.getElementById('txCat').value,
+    date,
+    due:document.getElementById('txDue').value,
+    status:document.getElementById('txStatus').value,
+    note:document.getElementById('txNote').value.trim(),
+    type:txType,
+    isRecurring:document.getElementById('txRecurring').checked,
+    paymentSource:document.getElementById('txSource')?document.getElementById('txSource').value:'cash'
+  };
+  const savedEditId = editTxId;
   closeTxModal();
-  console.log('saveTx: name='+name+' date='+date+' editTxId='+editTxId+' txType='+txType);
   try {
-    const obj={name,amount:parseFloat(document.getElementById('txAmt').value)||0,category:document.getElementById('txCat').value,date,due:document.getElementById('txDue').value,status:document.getElementById('txStatus').value,note:document.getElementById('txNote').value.trim(),type:txType,isRecurring:document.getElementById('txRecurring').checked,paymentSource:document.getElementById('txSource')?document.getElementById('txSource').value:'cash'};
     if(!Array.isArray(txs)) txs=[];
-    if(editTxId){
-      const i=txs.findIndex(x=>x.id===editTxId);
+    if(savedEditId){
+      const i=txs.findIndex(x=>x.id===savedEditId);
       if(i>=0) txs[i]=Object.assign({},txs[i],obj);
       else txs.push(Object.assign({},obj,{id:'t'+Date.now()}));
       toast('✓ แก้ไขแล้ว');
