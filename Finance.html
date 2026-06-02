@@ -1901,17 +1901,10 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <select class="fs" id="lnParentCredit" style="background:var(--surface)">
           <option value="">-- ไม่เชื่อม --</option>
         </select>
+        <div style="font-size:11px;color:var(--blue);margin-top:4px">เมื่อเบิกวงเงินจะตัดยอด "ยังกดได้" ของวงเงินนั้นอัตโนมัติ</div>
       </div>
-      <!-- เชื่อมวงเงิน (แสดงเมื่อเลือก "จากวงเงิน") -->
-      <div id="lnParentCreditWrap" style="display:none">
-        <div class="fg" style="background:var(--blue-bg);border:1px solid var(--blue-br);border-radius:var(--rs);padding:10px 14px">
-          <label class="fl" style="color:var(--blue)">🏦 เชื่อมกับวงเงินสินเชื่อ</label>
-          <select class="fs" id="lnParentCredit" style="background:var(--surface)">
-            <option value="">-- ไม่ระบุ --</option>
-          </select>
-          <div style="font-size:11px;color:var(--blue);margin-top:4px">เมื่อเบิกวงเงินจะตัดยอด "ยังกดได้" ของวงเงินนั้นอัตโนมัติ</div>
-        </div>
-      </div>
+      <!-- lnParentCreditWrap ใช้สำหรับ JS show/hide เท่านั้น — ไม่มี select ซ้ำ -->
+      <div id="lnParentCreditWrap" style="display:none"></div>
       <div class="frow">
         <div class="fg"><label class="fl">ยอดต้น (ยืมมาทั้งหมด)</label><input class="fi mono" id="lnPrincipal" type="number" step="0.01" placeholder="0.00" oninput="updateLoanCalc()"/></div>
         <div class="fg"><label class="fl">ยอดคงเหลือปัจจุบัน</label><input class="fi mono" id="lnRemaining" type="number" step="0.01" placeholder="0.00" oninput="updateLoanCalc()"/></div>
@@ -2771,8 +2764,7 @@ function saveLoan(){
   if(!name){ toast('⚠️ กรุณากรอกชื่อ'); return; }
   var isCreditPage=(document.getElementById('lnCtxCredit').style.display!=='none');
   if(isCreditPage && loanType==='credit') loanType='creditline';
-  if(isCreditPage && loanType==='personal') loanType='creditline';
-  if(!isCreditPage) loanType='debt';
+  if(!isCreditPage && loanType!=='family' && loanType!=='other') loanType='personal';
   var g=function(id){ var e=document.getElementById(id); return e?e.value:''; };
   var pf=function(id){ return parseFloat(g(id))||0; };
   var pi=function(id){ return parseInt(g(id))||0; };
