@@ -2380,19 +2380,35 @@ let txs   = JSON.parse(localStorage.getItem('fin_tx')   || 'null');
 
 function migrateLoansType(){
   var changed=0;
+  var validTypes=new Set(['creditline','personal','family','other','debt']);
   (loans||[]).forEach(function(l){
-    if(l.type==='creditline'||l.type==='debt') return;
-    // credit → ถ้ามี creditLimit และไม่มี parentCreditId = creditline
+    if(validTypes.has(l.type)) return;
     if(l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId){
       l.type='creditline'; changed++;
-    } else {
-      // ทุกอย่างอื่น = debt (personal, family, other, credit ที่มี parentCreditId)
-      l.type='debt'; changed++;
+    } else if(l.type==='credit' && l.parentCreditId){
+      l.type='personal'; changed++;
     }
   });
   if(changed>0){
     localStorage.setItem('fin_loans',JSON.stringify(loans));
     console.log('[migrate]',changed,'records updated');
+  }
+}
+function repairLoansType(){
+  // แก้ loan ที่ถูก migrate ผิดเป็น debt ทั้งที่ควรเป็น creditline
+  // ตรวจจาก creditLimit > 0 และไม่มี parentCreditId
+  var repaired=0;
+  (loans||[]).forEach(function(l){
+    if(l.type==='debt' && (l.creditLimit||0)>0 && !l.parentCreditId){
+      l.type='creditline'; repaired++;
+    }
+    if(l.type==='debt' && (l.creditLimit||0)===0 && !l.parentCreditId && !l.principal){
+      // debt ที่ไม่มีข้อมูลอะไร — ปล่อยไว้
+    }
+  });
+  if(repaired>0){
+    localStorage.setItem('fin_loans',JSON.stringify(loans));
+    console.log('[repair]',repaired,'loans restored to creditline');
   }
 }
 let goals = JSON.parse(localStorage.getItem('fin_goals') || '[]');
@@ -2474,6 +2490,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
     cloudPull();
     if(!onbDone) showOnb();
     migrateLoansType();
+    repairLoansType();
     renderAll();
   } else {
     currentUser = null;
@@ -2505,6 +2522,7 @@ async function cloudPull(){
       if(b.theme){ theme = b.theme; applyTheme(); }
       persistLocal();
       migrateLoansType();
+      repairLoansType();
       cloudReady = true;
       renderAll();
       updateAccountUI();
@@ -4335,8 +4353,8 @@ if(sb){
       const ab=document.getElementById('authBackdrop');
       if(ab) ab.classList.add('open');
     }
-    migrateLoansType(); renderAll(); renderCards();
-  }).catch(err=>{ console.warn('getSession error:', err); migrateLoansType(); renderAll(); });
+    migrateLoansType(); repairLoansType(); renderAll(); renderCards();
+  }).catch(err=>{ console.warn('getSession error:', err); migrateLoansType(); repairLoansType(); renderAll(); });
 } else {
   // No supabase - show auth screen
   const ab=document.getElementById('authBackdrop');
