@@ -2531,13 +2531,11 @@ function renderLoans(){
   const badge=document.getElementById('loanTotalBadge');
   if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
-  // filter
-  // filter
   // แสดงเฉพาะรายการหนี้:
-  // - type ไม่ใช่ credit (personal/family/other) → แสดงเสมอ
-  // - type = credit แต่มี parentCreditId → เป็นหนี้ที่เบิกจากวงเงิน → แสดง
-  // - type = credit และไม่มี parentCreditId → เป็น credit line → ซ่อน (แสดงในโซนวงเงินแล้ว)
-  let list = loans.filter(l=> l.type!=='credit' || (l.type==='credit' && l.parentCreditId));
+  // - type ไม่ใช่ credit → แสดงเสมอ
+  // - type = credit + มี parentCreditId → หนี้จากวงเงิน → แสดง
+  // - type = credit + ไม่มี parentCreditId → credit line → ซ่อน
+  let list = loans.filter(l=> l.type!=='credit' || !!l.parentCreditId);
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
 
