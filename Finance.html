@@ -1625,7 +1625,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="zone-divider" style="margin-top:28px">
       <div class="zone-divider-label">📋 บันทึกหนี้</div>
       <div class="zone-divider-line"></div>
-      <button class="btn-add-loan" onclick="openLoanModal(null,'personal')" style="padding:7px 14px;font-size:12px;margin:0">+ บันทึกหนี้</button>
+      <button class="btn-add-loan" onclick="openLoanModal(null,'debt')" style="padding:7px 14px;font-size:12px;margin:0">+ บันทึกหนี้</button>
     </div>
 
     <div class="loans-total-bar" id="loanTotalBar">
@@ -1928,8 +1928,16 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
 
     <div class="frow" style="margin-top:6px">
+      <div class="fg">
+        <label class="fl">📅 วันครบกำหนดชำระ</label>
+        <input class="fi" id="lnDueDate" type="date"/>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">วันสุดท้ายที่ต้องจ่ายบิลนี้</div>
+      </div>
       <div class="fg"><label class="fl">จ่ายผ่าน</label><select class="fs" id="lnSource"></select></div>
-      <div class="fg"><label class="fl">หมายเหตุ</label><input class="fi" id="lnNote" placeholder="รายละเอียดเพิ่มเติม"/></div>
+    </div>
+    <div class="fg" style="margin-top:6px">
+      <label class="fl">หมายเหตุ</label>
+      <input class="fi" id="lnNote" placeholder="รายละเอียดเพิ่มเติม"/>
     </div>
     <div class="interest-hint" id="loanCalcHint" style="display:none"></div>
     <div class="modal-foot">
@@ -2585,7 +2593,7 @@ function renderLoans(){
     const histHtml=history.length?'<div class="loan-history"><div class="loan-history-label">ชำระล่าสุด</div><div class="loan-history-list">'+history.map(p=>'<div class="loan-history-item"><span>'+thDate(p.date)+'</span><span class="loan-history-amt">-฿'+fmt(p.amount)+'</span></div>').join('')+'</div></div>':'';
 
     return '<div class="loan-card type-'+t.cls+(done?' done':'')+'">'+
-      '<div class="loan-head"><div><div class="loan-name">'+esc(l.name)+'</div><div class="loan-source">'+src.icon+' '+esc(src.name)+(l.dueDay?' · ตัดยอด '+l.dueDay:''+(l.payDay?' · ครบกำหนด '+l.payDay:''))+'</div></div>'+
+      '<div class="loan-head"><div><div class="loan-name">'+esc(l.name)+dueBadge+'</div><div class="loan-source">'+src.icon+' '+esc(src.name)+(l.dueDay?' · ตัดยอด '+l.dueDay:''+(l.payDay?' · ครบกำหนด '+l.payDay:''))+'</div></div>'+
       '<span class="loan-type-badge '+(done?'done':t.cls)+'">'+(done?'✅ หมดแล้ว':t.label)+'</span></div>'+
       '<div class="loan-amounts"><div><div class="loan-remain'+(done?' done':'')+'">฿'+fmt(remain)+'</div><div class="loan-original">จากยอดต้น ฿'+fmt(principal)+'</div></div>'+
       '<div style="text-align:right;font-size:12px;color:var(--text3)"><div>ผ่อนไป '+pct+'%</div><div class="mono" style="font-size:11px;margin-top:2px">฿'+fmt(paid)+'</div></div></div>'+
@@ -2610,7 +2618,8 @@ function openLoanModal(id, defaultType){
   var l=id?loans.find(function(x){return x.id===id;}):null;
   var isCreditPage = (defaultType==='credit') ||
                      (id && l && (l.type==='credit') && !l.parentCreditId);
-  var type = l ? l.type : (defaultType||(isCreditPage?'credit':'credit'));
+  // 'debt' = บันทึกหนี้ context, default type = credit (จากวงเงิน)
+  var type = l ? l.type : 'credit';
 
   // show/hide context divs
   var ctxC=document.getElementById('lnCtxCredit');
@@ -2656,6 +2665,7 @@ function openLoanModal(id, defaultType){
   v('lnMonthly',      l?(l.monthly||''):'');
   v('lnInterest',     l?(l.interest||''):'');
   v('lnTotalMonthsD', l?(l.totalMonths||''):'');
+  v('lnDueDate',      l?(l.dueDate||''):'');
   v('lnNote',         l?(l.note||''):'');
 
   document.getElementById('lnDelBtn').style.display=id?'':'none';
@@ -2749,7 +2759,7 @@ function saveLoan(){
   var note=g('lnNote').trim();
   var obj={name:name,type:loanType,principal:principal,remaining:remaining,
     monthly:monthly,interest:interest,creditLimit:creditLimit,used:used,
-    totalMonths:totalMonths,dueDay:dueDay,payDay:payDay,source:source,note:note,
+    totalMonths:totalMonths,dueDay:dueDay,payDay:payDay,dueDate:dueDate,source:source,note:note,
     parentCreditId:parentCreditId||''};
   var msg;
   if(editingLoanId){
