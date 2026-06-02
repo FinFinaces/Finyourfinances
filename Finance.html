@@ -2536,6 +2536,7 @@ function saveAll(){ persistLocal(); scheduleCloudPush(); }
 // ============================================================
 let txType='expense', activeTab='all', activeFilter='all';
 let editTxId=null, editGoalId=null, addToGoalId=null;
+var currentTxDate='';
 let qaType='expense';
 let qaSourceId = 'cash';
 let loanFilter = 'all';
@@ -3577,6 +3578,7 @@ function openTxModal(id){
     document.getElementById('txName').value=t.name;
     document.getElementById('txAmt').value=t.amount;
     document.getElementById('txDate').value=t.date;
+    currentTxDate=t.date;
     document.getElementById('txDue').value=t.due||'';
     statusToSet=t.status;
     document.getElementById('txNote').value=t.note||'';
@@ -3598,12 +3600,13 @@ function openTxModal(id){
     const p=period(); const today=new Date();
     let dd=p.m===today.getMonth()&&p.y===today.getFullYear()?today.getDate():1;
     const ld=new Date(p.y,p.m+1,0).getDate(); dd=Math.min(dd,ld);
-    document.getElementById('txDate').value=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+    var ds=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
+    document.getElementById('txDate').value=ds;
+    currentTxDate=ds;
     document.getElementById('txRecurring').checked=false;
     if(document.getElementById('txSource')) document.getElementById('txSource').value='cash';
   }
   document.getElementById('txBackdrop').classList.add('open');
-  // ตั้ง status หลัง DOM render เสร็จ เพื่อแก้ Safari reflow bug
   setTimeout(function(){
     setTxStatus(statusToSet);
     document.getElementById('txName').focus();
@@ -3642,16 +3645,21 @@ function updateCardBalance(tx, delta){
 }
 function saveTx(){
   const name=document.getElementById('txName').value.trim();
-  const date=document.getElementById('txDate').value;
-  if(!name||!date){ toast('⚠️ กรุณากรอกชื่อและวันที่'); return; }
+  var dateEl=document.getElementById('txDate');
+  var date=dateEl?dateEl.value:'';
+  // Safari iPad fallback — ถ้า date ว่างให้ใช้ค่าที่เก็บไว้ หรือวันนี้
+  if(!date) date=currentTxDate;
+  if(!date){ var t=new Date(); date=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
+  if(!name){ toast('⚠️ กรุณากรอกชื่อรายการ'); return; }
   // อ่านค่าทั้งหมดจาก form ก่อนปิด modal
+  var statusVal=document.getElementById('txStatus').value||'unpaid';
   const obj={
     name,
     amount:parseFloat(document.getElementById('txAmt').value)||0,
     category:document.getElementById('txCat').value,
     date,
-    due:document.getElementById('txDue').value,
-    status:document.getElementById('txStatus').value,
+    due:document.getElementById('txDue').value||date,
+    status:statusVal,
     note:document.getElementById('txNote').value.trim(),
     type:txType,
     isRecurring:document.getElementById('txRecurring').checked,
@@ -3834,7 +3842,7 @@ async function callGemini(){
   var today=new Date().toISOString().slice(0,10);
   var prompt=scanMode==='installment'
     ?'อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:\n{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69}]}'
-    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\n\nกฎสำคัญ:\n1. ยอดเงิน: ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" หรือ "จำนวนเงินที่จ่าย" เท่านั้น — ไม่ต้องแยกรายการย่อย ไม่ต้องใส่ส่วนลด/สิทธิ์/คูปอง — ใส่แค่ยอดสุทธิที่จ่ายจริงรายการเดียว\n2. วันที่: ถ้าเจอปี พ.ศ. (เช่น 2568, 2569) ให้แปลงเป็น ค.ศ. โดยลบ 543 (เช่น 2568 → 2025, 2569 → 2026) แล้วใช้รูปแบบ YYYY-MM-DD\n3. ชื่อร้าน: ใช้ชื่อร้านค้าหรือผู้รับเงิน\n\nรูปแบบ JSON:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\n\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
   try{
     var resp=await fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
       method:'POST',headers:{'Content-Type':'application/json'},
