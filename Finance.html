@@ -2106,11 +2106,10 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="fg"><label class="fl">ไอคอน</label><input class="fi" id="seIcon" placeholder="วาง emoji เช่น 💳" maxlength="4" oninput="updateSourcePreview()"/></div>
     <div class="fg"><label class="fl">สี</label><div class="color-picker" id="seColorPicker"></div></div>
     <div class="fg" id="seLoanLinkWrap" style="display:none">
-      <label class="fl">🔗 เชื่อมกับวงเงินสินเชื่อ</label>
-      <select class="fs" id="seLoanId">
-        <option value="">-- ไม่เชื่อม --</option>
-      </select>
-      <div style="font-size:11px;color:var(--blue);margin-top:4px">เมื่อชำระรายการที่ใช้แหล่งเงินนี้ จะตัดยอด "ใช้ไปแล้ว" ของวงเงินอัตโนมัติ</div>
+      <label class="fl">🔗 เชื่อมกับวงเงิน / บัตรเครดิต</label>
+      <input type="hidden" id="seLoanId" value=""/>
+      <div id="seLoanList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto"></div>
+      <div style="font-size:11px;color:var(--blue);margin-top:4px">เมื่อชำระรายการที่ใช้แหล่งเงินนี้ จะตัดยอดอัตโนมัติ</div>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" id="seDelBtn" onclick="deleteSource()" style="display:none;color:var(--red);border-color:var(--red-br)">🗑 ลบ</button>
@@ -2560,7 +2559,7 @@ let txType='expense', activeTab='all', activeFilter='all';
 let editTxId=null, editGoalId=null, addToGoalId=null;
 var currentTxDate='';
 let qaType='expense';
-let qaSourceId = 'cash';
+let qaSourceId = 'bank';
 let loanFilter = 'all';
 let analysisView = 'trend';
 
@@ -3080,21 +3079,12 @@ function editSource(id){
   document.getElementById('seName').value=s?s.name:'';
   document.getElementById('seIcon').value=s?s.icon:'💳';
   seType=s?s.type:'cash'; seColor=s?s.color:'#3d6b38';
-  // populate loan+card dropdown
-  var lsel=document.getElementById('seLoanId');
-  if(lsel){
-    var creditLines=(loans||[]).filter(function(l){return (l.creditLimit||0)>0&&!l.parentCreditId;});
-    var cards=window.cards||[];
-    var loanOpts=creditLines.map(function(l){
-      return '<option value="loan:'+l.id+'"'+(s&&s.loanId===('loan:'+l.id)?' selected':'')+'>🏦 '+esc(l.name)+'</option>';
-    }).join('');
-    var cardOpts=cards.map(function(c){
-      return '<option value="card:'+c.id+'"'+(s&&s.loanId===('card:'+c.id)?' selected':'')+'>💳 '+esc(c.name)+'</option>';
-    }).join('');
-    lsel.innerHTML='<option value="">-- ไม่เชื่อม --</option>'+
-      (loanOpts?'<optgroup label="วงเงินสินเชื่อ">'+loanOpts+'</optgroup>':'')+
-      (cardOpts?'<optgroup label="บัตรเครดิต">'+cardOpts+'</optgroup>':'');
-  }
+  // set current loanId value
+  var curLoanId=s?s.loanId||'':'';
+  document.getElementById('seLoanId').value=curLoanId;
+  seSetType(seType); renderSeColorPicker();
+  // render loan/card link buttons after seSetType (which shows/hides the wrap)
+  renderSeLoanList(curLoanId);
   seSetType(seType); renderSeColorPicker();
   document.getElementById('seDelBtn').style.display=(isNew||paymentSources.length<=1)?'none':'';
   document.getElementById('sourceEditBackdrop').classList.add('open');
@@ -3104,16 +3094,39 @@ function seSetType(t){
   seType=t;
   document.getElementById('seBtnCash').classList.toggle('on',t==='cash');
   document.getElementById('seBtnCredit').classList.toggle('on',t==='credit');
-  // แสดง loan link เฉพาะ type credit
   var wrap=document.getElementById('seLoanLinkWrap');
   if(wrap) wrap.style.display=t==='credit'?'':'none';
+  if(t==='credit') renderSeLoanList(document.getElementById('seLoanId').value||'');
 }
 function renderSeColorPicker(){
   const wrap=document.getElementById('seColorPicker');
   const palette=COLOR_PALETTE.filter(c=>c!==null);
   wrap.innerHTML=palette.map(c=>'<div class="color-swatch'+(seColor===c?' selected':'')+'" style="background:'+c+'" onclick="seSelectColor(\''+c+'\')"></div>').join('');
 }
-function seSelectColor(c){ seColor=c; renderSeColorPicker(); }
+function renderSeLoanList(selected){
+  var wrap=document.getElementById('seLoanList'); if(!wrap) return;
+  var creditLines=(loans||[]).filter(function(l){return (l.creditLimit||0)>0&&!l.parentCreditId;});
+  var cards=window.cards||[];
+  var items=[{id:'',label:'— ไม่เชื่อม —',icon:'🚫'}];
+  creditLines.forEach(function(l){items.push({id:'loan:'+l.id,label:l.name,icon:'🏦'});});
+  cards.forEach(function(c){items.push({id:'card:'+c.id,label:c.name,icon:'💳'});});
+  wrap.innerHTML=items.map(function(item){
+    var on=item.id===(selected||'');
+    return '<button type="button" onclick="pickLoanLink(\''+item.id+'\')" style="'+
+      'display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--rs);'+
+      'border:1.5px solid '+(on?'var(--accent)':'var(--border)')+';'+
+      'background:'+(on?'var(--accent3)':'var(--surface)')+';'+
+      'font-family:\'Sarabun\',sans-serif;font-size:13px;font-weight:'+(on?'700':'400')+';'+
+      'cursor:pointer;text-align:left;width:100%">'+
+      '<span>'+item.icon+'</span><span>'+esc(item.label)+'</span>'+
+      (on?'<span style="margin-left:auto;color:var(--accent)">✓</span>':'')+
+    '</button>';
+  }).join('');
+}
+function pickLoanLink(id){
+  document.getElementById('seLoanId').value=id;
+  renderSeLoanList(id);
+}
 function updateSourcePreview(){}
 function saveSource(){
   const name=document.getElementById('seName').value.trim();
