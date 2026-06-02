@@ -3623,6 +3623,7 @@ function saveTx(){
   const date=document.getElementById('txDate').value;
   if(!name||!date){ toast('⚠️ กรุณากรอกชื่อและวันที่'); return; }
   closeTxModal();
+  console.log('saveTx: name='+name+' date='+date+' editTxId='+editTxId+' txType='+txType);
   try {
     const obj={name,amount:parseFloat(document.getElementById('txAmt').value)||0,category:document.getElementById('txCat').value,date,due:document.getElementById('txDue').value,status:document.getElementById('txStatus').value,note:document.getElementById('txNote').value.trim(),type:txType,isRecurring:document.getElementById('txRecurring').checked,paymentSource:document.getElementById('txSource')?document.getElementById('txSource').value:'cash'};
     if(!Array.isArray(txs)) txs=[];
@@ -3637,7 +3638,7 @@ function saveTx(){
     }
     saveAll();
     renderAll();
-  } catch(e){ console.error('saveTx',e); toast('⚠️ บันทึกไม่สำเร็จ: '+e.message); renderAll(); }
+  } catch(e){ console.error('saveTx error:', e.name, e.message, e.stack); toast('⚠️ '+e.name+': '+e.message); renderAll(); }
 }
 function deleteTx(id){ if(!confirm('ลบรายการนี้?'))return; txs=txs.filter(t=>t.id!==id); saveAll(); renderAll(); toast('ลบแล้ว'); }
 function toggleStatus(id){ const t=txs.find(x=>x.id===id); t.status={paid:'unpaid',unpaid:'pending',pending:'paid'}[t.status]||'paid'; saveAll(); renderAll(); toast('สถานะ: '+sLabel(t.status)); }
