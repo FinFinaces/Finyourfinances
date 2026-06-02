@@ -2798,7 +2798,8 @@ function updateLoanCalc(){
     parts.push('💰 วงเงินว่าง <b>฿'+fmt(avail)+'</b> จากวงเงิน ฿'+fmt(limit)+' (เบิกไปแล้ว '+usedPct+'%)');
   }
   if(totalMonths>0&&monthly>0){
-    const paidMonths = principal>0&&remain>0 ? Math.round(((principal-remain)/principal)*totalMonths) : 0;
+    const principalVal = parseFloat(document.getElementById('lnPrincipal').value)||parseFloat(document.getElementById('lnPrincipalA').value)||0;
+    const paidMonths = principalVal>0&&remain>0 ? Math.round(((principalVal-remain)/principalVal)*totalMonths) : 0;
     parts.push('📊 ผ่อนไปแล้ว ~'+paidMonths+'/'+totalMonths+' เดือน ('+Math.round((paidMonths/totalMonths)*100)+'%)');
   }
   if(parts.length){ hint.style.display=''; hint.innerHTML=parts.join('<br>'); } else hint.style.display='none';
@@ -3018,6 +3019,7 @@ function confirmDraw(){
   const interest = parseFloat(document.getElementById('drawInterest').value)||0;
   const totalMonthsInput = parseInt((document.getElementById('drawTotalMonths')||{}).value)||0;
   const totalMonths = totalMonthsInput>0 ? totalMonthsInput : (monthly>0?Math.ceil(amt/monthly):0);
+  const label = document.getElementById('drawLoanLabel').value.trim();
   const date = document.getElementById('drawDate').value;
   const note = document.getElementById('drawNote').value.trim();
   const createTx = document.getElementById('drawCreateTx').checked;
@@ -3083,13 +3085,11 @@ function editSource(id){
   document.getElementById('seName').value=s?s.name:'';
   document.getElementById('seIcon').value=s?s.icon:'💳';
   seType=s?s.type:'cash'; seColor=s?s.color:'#3d6b38';
-  // set current loanId value
   var curLoanId=s?s.loanId||'':'';
   document.getElementById('seLoanId').value=curLoanId;
-  seSetType(seType); renderSeColorPicker();
-  // render loan/card link buttons after seSetType (which shows/hides the wrap)
+  seSetType(seType);
+  renderSeColorPicker();
   renderSeLoanList(curLoanId);
-  seSetType(seType); renderSeColorPicker();
   document.getElementById('seDelBtn').style.display=(isNew||paymentSources.length<=1)?'none':'';
   document.getElementById('sourceEditBackdrop').classList.add('open');
   setTimeout(()=>document.getElementById('seName').focus(),100);
@@ -4597,8 +4597,10 @@ function chatAiCancelModal(){
 }
 function chatAiConfirmModal(){
   if(!chatAiPending||!chatAiPending.length) return;
-  var src=''; var qsn=document.getElementById('qaSourceName');
-  if(qsn&&sources&&sources.length){ var found=sources.find(function(s){return s.name===qsn.textContent;}); if(found) src=found.id; }
+  var cnt=chatAiPending.length; // เก็บก่อน reset
+  var src=qaSourceId||'bank';
+  var qsn=document.getElementById('qaSourceName');
+  if(qsn&&paymentSources&&paymentSources.length){ var found=paymentSources.find(function(s){return s.name===qsn.textContent;}); if(found) src=found.id; }
   chatAiPending.forEach(function(item){
     var tx={id:'t'+Date.now()+Math.random().toString(36).slice(2,6),
       type:item.type==='income'?'income':'expense',name:item.name||'รายการ',
@@ -4606,9 +4608,7 @@ function chatAiConfirmModal(){
       date:item.date||todayStr(),due:item.date||todayStr(),
       status:'paid',note:'บันทึกโดย AI',isRecurring:false,paymentSource:src};
     txs.push(tx);
-    if(src&&sources){var s=sources.find(function(x){return x.id===src;});if(s){if(tx.type==='income')s.balance=(s.balance||0)+tx.amount;else s.balance=(s.balance||0)-tx.amount;}}
   });
-  var cnt=chatAiPending.length;
   saveAll(); renderAll();
   closeChatAiPopup();
   toast('✓ บันทึก '+cnt+' รายการโดย AI');
@@ -4748,12 +4748,12 @@ function chatAiCancel(){
 
 function chatAiConfirm(){
   if(!chatAiPending || !chatAiPending.length) return;
-  var defaultSrc = document.getElementById('qaSourceName') ? document.getElementById('qaSourceName').textContent : '';
-  var src = sources && sources.length ? sources[0].id : '';
+  var cnt = chatAiPending.length; // เก็บ count ก่อน reset
+  var src = paymentSources && paymentSources.length ? paymentSources[0].id : '';
   // หา default source จาก qaSourceBtn
   var qsn = document.getElementById('qaSourceName');
-  if(qsn && sources && sources.length){
-    var found = sources.find(function(s){ return s.name===qsn.textContent; });
+  if(qsn && paymentSources && paymentSources.length){
+    var found = paymentSources.find(function(s){ return s.name===qsn.textContent; });
     if(found) src = found.id;
   }
   var today = new Date();
@@ -4773,20 +4773,11 @@ function chatAiConfirm(){
       paymentSource: src
     };
     txs.push(tx);
-    // อัปเดต source balance
-    if(src && sources){
-      var s = sources.find(function(x){ return x.id===src; });
-      if(s){
-        if(tx.type==='income') s.balance=(s.balance||0)+tx.amount;
-        else s.balance=(s.balance||0)-tx.amount;
-      }
-    }
   });
   saveAll();
   renderAll();
-  chatAiCancel();
-  toast('✓ บันทึก ' + chatAiPending.length + ' รายการ' || '✓ บันทึกแล้ว');
-  // confetti-like feedback
+  chatAiCancel(); // reset pending หลังใช้งานแล้ว
+  toast('✓ บันทึก '+cnt+' รายการแล้ว');
   var wrap = document.getElementById('chatAiWrap');
   if(wrap){ wrap.style.borderColor='var(--accent)'; setTimeout(function(){ wrap.style.borderColor=''; },1200); }
 }
