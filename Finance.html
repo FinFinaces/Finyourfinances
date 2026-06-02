@@ -1273,6 +1273,59 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 .debt-record-badge.other { background:var(--bg2); color:var(--text2); border:1px solid var(--border); }
 .debt-record-badge.done { background:var(--green-bg); color:var(--green); border:1px solid var(--green-br); }
 
+
+/* ── Voice AI ── */
+.voice-circle {
+  width:100px; height:100px; border-radius:50%;
+  background:var(--accent); display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.2s; position:relative;
+  box-shadow:0 4px 20px rgba(74,103,65,0.35);
+  border:none; margin:0 auto;
+}
+.voice-circle:active { transform:scale(0.95); }
+.voice-circle.listening {
+  background:var(--red); box-shadow:0 4px 30px rgba(220,50,50,0.5);
+  animation:voicePulse 1s ease-in-out infinite;
+}
+.voice-circle.processing {
+  background:var(--amber,#e6a817); box-shadow:0 4px 20px rgba(230,168,23,0.4);
+}
+@keyframes voicePulse {
+  0%,100%{ box-shadow:0 4px 30px rgba(220,50,50,0.5); transform:scale(1); }
+  50%{ box-shadow:0 4px 50px rgba(220,50,50,0.7); transform:scale(1.05); }
+}
+.voice-ring {
+  position:absolute; inset:-10px; border-radius:50%;
+  border:2px solid rgba(220,50,50,0.4);
+  animation:voiceRing 1.2s ease-out infinite; display:none;
+}
+.voice-circle.listening .voice-ring { display:block; }
+@keyframes voiceRing {
+  0%{ transform:scale(1); opacity:1; }
+  100%{ transform:scale(1.5); opacity:0; }
+}
+.voice-icon { font-size:36px; line-height:1; position:relative; z-index:1; }
+.voice-status {
+  text-align:center; font-size:14px; font-weight:600; color:var(--text);
+  margin:16px 0 8px; min-height:22px;
+}
+.voice-transcript {
+  background:var(--bg2); border-radius:var(--rs); padding:12px 14px;
+  font-size:14px; color:var(--text); min-height:44px; margin-bottom:8px;
+  line-height:1.6; text-align:center; font-style:italic;
+  border:1px solid var(--border);
+}
+.voice-transcript:empty::before { content:"กดปุ่มแล้วพูดได้เลย..."; color:var(--text3); font-style:normal; }
+.voice-or { text-align:center; font-size:11px; color:var(--text3); margin:12px 0 8px; display:flex; align-items:center; gap:8px; }
+.voice-or::before,.voice-or::after { content:""; flex:1; height:1px; background:var(--border); }
+.voice-type-row { display:flex; gap:8px; align-items:flex-end; }
+.voice-type-input {
+  flex:1; background:var(--bg2); border:1px solid var(--border); border-radius:var(--rs);
+  padding:10px 12px; font-size:14px; font-family:'Sarabun',sans-serif; color:var(--text);
+  outline:none; resize:none; min-height:44px;
+}
+.voice-type-input:focus { border-color:var(--accent); }
+
 </style>
 </head>
 <body>
@@ -1386,7 +1439,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <button class="shortcut-action" onclick="openScanModal('receipt')" style="background:var(--blue-bg);color:var(--blue);border-color:var(--blue-br);padding:7px 14px;font-size:12px">
           📷 สแกนใบเสร็จ
         </button>
-        <div class="qa-top-hint" id="qaTopHint">พิมพ์บอก AI</div>
+        <div class="qa-top-hint" id="qaTopHint">🎤 พูดหรือพิมพ์บอก AI</div>
       </div>
     </div>
 
@@ -1411,7 +1464,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <button class="shortcut-btn" id="aiShortcutBtn" onclick="openChatAiPopup()"
       style="margin-top:8px;width:100%;border-left:4px solid var(--accent);background:var(--accent3);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;padding:12px 16px;height:auto;transform:none">
       <span style="font-size:18px">✨</span>
-      <span style="font-size:13px;font-weight:600;color:var(--accent)">พิมพ์บอก AI</span>
+      <span style="font-size:13px;font-weight:600;color:var(--accent)">🎤 พูดบอก AI</span>
       <span style="font-size:11px;color:var(--text2);margin-left:2px">— บอกรายการเป็นภาษาไทย หรือส่งรูปสลิป</span>
     </button>
     <div class="chat-ai-wrap" id="chatAiWrap" style="display:none;margin-top:10px">
@@ -2337,7 +2390,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 //  Cloud sync (single JSON blob per user → table: fin_store)
 // ============================================================
 function bundle(){
-  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:window.cards||[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, orKey:GEMINI_KEY||'', v:1 };
+  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:window.cards||[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, v:1 };
 }
 async function cloudPull(){
   if(!currentUser || !sb) return;
@@ -2353,7 +2406,6 @@ async function cloudPull(){
       if(Array.isArray(b.sources) && b.sources.length) paymentSources = b.sources;
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
-      if(b.orKey){ GEMINI_KEY=b.orKey; localStorage.setItem('fin_or_key',b.orKey); }
       persistLocal();
       cloudReady = true;
       renderAll();
@@ -3242,7 +3294,7 @@ function renderTemplates(){
 function moveShortcut(e,idx,dir){ e.stopPropagation(); e.preventDefault(); const t=idx+dir; if(t<0||t>=shortcuts.length)return; const tmp=shortcuts[idx]; shortcuts[idx]=shortcuts[t]; shortcuts[t]=tmp; saveShortcuts(); renderTemplates(); }
 function addShortcut(){ let idx=shortcuts.indexOf(null); if(idx===-1){ shortcuts.push(null); idx=shortcuts.length-1; } editShortcut(idx); }
 function removeShortcut(e,idx){ e.stopPropagation(); if(!confirm('ลบปุ่มลัด "'+(shortcuts[idx]&&shortcuts[idx].name||'')+'"?'))return; shortcuts.splice(idx,1); saveShortcuts(); renderTemplates(); toast('ลบปุ่มลัดแล้ว'); }
-function toggleEditMode(){ editMode=!editMode; document.getElementById('editModeBtn').classList.toggle('active',editMode); document.getElementById('editModeBtn').innerHTML=editMode?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> เสร็จสิ้น':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> จัดเรียง / ลบ'; document.getElementById('qaTopHint').textContent=editMode?'✏️ โหมดแก้ไข — กด ◀▶ จัดเรียง, กด × เพื่อลบ':'พิมพ์บอก AI'; renderTemplates(); }
+function toggleEditMode(){ editMode=!editMode; document.getElementById('editModeBtn').classList.toggle('active',editMode); document.getElementById('editModeBtn').innerHTML=editMode?'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> เสร็จสิ้น':'<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> จัดเรียง / ลบ'; document.getElementById('qaTopHint').textContent=editMode?'✏️ โหมดแก้ไข — กด ◀▶ จัดเรียง, กด × เพื่อลบ':'🎤 พูดหรือพิมพ์บอก AI'; renderTemplates(); }
 
 // กดปุ่มลัด → เปิด popup ปรับราคา+แหล่งเงินก่อนบันทึก
 function useShortcut(idx){
@@ -3618,80 +3670,31 @@ function processScanFile(file){
 }
 
 async function callGemini(){
-  const loadingTxt = document.getElementById('scanLoadingTxt');
-  if(loadingTxt) loadingTxt.textContent = 'กำลังส่งรูปไปวิเคราะห์...';
-
-  const today = new Date().toISOString().slice(0,10);
-  const prompt = scanMode === 'installment'
-    ? `อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่นนำหน้าหรือตามหลัง รูปแบบ:
-{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69},{"date":"2026-08-05","amount":11326.30}]}`
-    : `อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่นนำหน้าหรือตามหลัง รูปแบบ:
-{"type":"receipt","items":[{"name":"ชื่อร้านหรือรายการ","amount":150.00,"date":"${today}"}],"total":150.00,"merchant":"ชื่อร้าน"}
-ถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์ items ถ้าไม่แน่ใจวันที่ให้ใช้ ${today}`;
-
-  // helper: parse response regardless of format
-  function extractRaw(data){
-    if(data.result && data.result.trim()) return data.result;
-    if(data.choices && data.choices[0]){
-      var c=data.choices[0];
-      if(c.message && c.message.content) return c.message.content;
-      if(c.text) return c.text;
-    }
-    if(data.content) return typeof data.content==='string'?data.content:JSON.stringify(data.content);
-    if(data.text) return data.text;
-    return '';
-  }
-
-  function parseResult(raw){
-    var clean=raw.replace(/```json[\s\S]*?```/g,function(m){return m.replace(/```json|```/g,'').trim();}).replace(/```/g,'').trim();
-    var m=clean.match(/\{[\s\S]*\}/);
-    if(!m) throw new Error('ไม่พบ JSON — AI ตอบ: '+clean.slice(0,150));
-    var parsed=JSON.parse(m[0]);
-    if(!parsed.items||!parsed.items.length) throw new Error('ไม่พบรายการในรูป — AI ตอบ: '+clean.slice(0,150));
-    return parsed;
-  }
-
-  try {
-    // ── Path 1: Supabase proxy ──
-    const PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy';
-    const resp = await fetch(PROXY, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
+  var loadingTxt=document.getElementById('scanLoadingTxt');
+  if(loadingTxt) loadingTxt.textContent='กำลังส่งรูปไปวิเคราะห์...';
+  var today=new Date().toISOString().slice(0,10);
+  var prompt=scanMode==='installment'
+    ?'อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:\n{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69}]}'
+    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":150.00,"date":"'+today+'"}],"total":150.00,"merchant":"ชื่อร้าน"}\nถ้ามีหลายรายการให้ใส่ทุกรายการ ถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+  try{
+    var resp=await fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
+      method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({mime:scanImageMime,image:scanImageBase64,prompt:prompt})
     });
-
-    var raw='';
-    if(resp.ok){
-      const data=await resp.json();
-      console.log('[proxy] response:', JSON.stringify(data).slice(0,400));
-      if(data.error){
-        // proxy returned error — try fallback
-        console.warn('[proxy] error:', data.error, '— trying direct call');
-        raw = await callOpenRouterDirect(prompt);
-      } else {
-        raw = extractRaw(data);
-        if(!raw){
-          console.warn('[proxy] empty raw — trying direct call');
-          raw = await callOpenRouterDirect(prompt);
-        }
-      }
-    } else {
-      const errTxt=await resp.text().catch(()=>'');
-      console.warn('[proxy] HTTP '+resp.status+' — trying direct call');
-      raw = await callOpenRouterDirect(prompt);
-    }
-
-    console.log('[scan] raw result:', raw.slice(0,300));
-    scanParsedData = parseResult(raw);
+    var data=await resp.json();
+    if(data.error) throw new Error(typeof data.error==='object'?data.error.message:data.error);
+    var raw=(data.result||'').replace(/```json[\s\S]*?```/g,function(m){return m.replace(/```json|```/g,'').trim();}).replace(/```/g,'').trim();
+    var jm=raw.match(/\{[\s\S]*\}/);
+    if(!jm) throw new Error('ไม่พบ JSON ในผลลัพธ์');
+    scanParsedData=JSON.parse(jm[0]);
+    if(!scanParsedData.items||!scanParsedData.items.length) throw new Error('ไม่พบรายการในรูป');
     showScanResults();
-
-  } catch(err){
-    console.error('[scan] error:', err);
+  }catch(err){
     document.getElementById('scanStep2').style.display='none';
     document.getElementById('scanStep3').style.display='';
     document.getElementById('scanFooter').style.display='';
-    const errEl=document.getElementById('scanError');
-    if(errEl){ errEl.style.display=''; errEl.textContent='⚠️ '+(err&&err.message?err.message:String(err)); }
+    var errEl=document.getElementById('scanError');
+    if(errEl){errEl.style.display='';errEl.textContent='⚠️ '+(err&&err.message?err.message:String(err));}
     document.getElementById('scanReceiptResult').style.display='none';
     document.getElementById('scanInstallResult').style.display='none';
     document.getElementById('scanSaveBtn').style.display='none';
@@ -3699,33 +3702,7 @@ async function callGemini(){
 }
 
 async function callOpenRouterDirect(prompt){
-  if(!GEMINI_KEY){ if(typeof openScanSettings==='function') openScanSettings(); throw new Error('กรุณาใส่ OpenRouter API Key ก่อน'); }
-  // ลอง free model ก่อน ถ้าไม่ได้ค่อย fallback
-  var models = ['meta-llama/llama-3.2-11b-vision-instruct:free', 'google/gemini-2.0-flash-lite-001'];
-  var lastErr = '';
-  for(var mi=0; mi<models.length; mi++){
-    try{
-      var body={
-        model: models[mi],
-        messages:[{role:'user',content:[
-          {type:'image_url',image_url:{url:'data:'+scanImageMime+';base64,'+scanImageBase64}},
-          {type:'text',text:prompt}
-        ]}],
-        max_tokens:1000
-      };
-      var r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY},
-        body:JSON.stringify(body)
-      });
-      var d=await r.json();
-      if(d.error){ lastErr=d.error.message||JSON.stringify(d.error); continue; }
-      var content=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
-      if(content) return content;
-      lastErr='empty response';
-    }catch(e){ lastErr=e.message; }
-  }
-  throw new Error('OpenRouter: '+lastErr);
+  throw new Error('ระบบสแกนไม่พร้อมใช้งาน — ลองใหม่อีกครั้ง');
 }
 
 function showScanResults(){
@@ -4169,11 +4146,9 @@ function openChatAiPopup(){
   document.getElementById('chatAiResultModal').style.display='none';
   document.getElementById('chatAiResultModal').innerHTML='';
   document.getElementById('chatAiHintModal').textContent='เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"';
-  // iOS Safari ต้องการ delay นานกว่า Chrome
-  setTimeout(function(){
-    var i=document.getElementById('chatAiInputModal');
-    if(i){ i.value=''; i.style.height='auto'; i.removeAttribute('readonly'); i.focus(); i.click(); }
-  }, 300);
+  var inp=document.getElementById('chatAiInputModal');
+  if(inp){inp.value='';inp.style.height='auto';}
+  voiceReset();
 }
 function closeChatAiPopup(){
   document.getElementById('chatAiBackdrop').classList.remove('open');
@@ -4201,6 +4176,11 @@ function chatAiHandleSlipModal(e){
   e.target.value='';
 }
 async function chatAiSendModal(){
+  // reset voice UI
+  var btn2=document.getElementById('voiceCircleBtn');
+  var icon2=document.getElementById('voiceIcon');
+  if(btn2) btn2.className='voice-circle processing';
+  if(icon2) icon2.textContent='⏳';
   var input=document.getElementById('chatAiInputModal');
   var text=(input.value||'').trim(); if(!text) return;
   var btn=document.getElementById('chatAiSendBtnModal');
@@ -4215,28 +4195,13 @@ async function chatAiSendModal(){
 async function callChatProxyModal(payload){
   var btn=document.getElementById('chatAiSendBtnModal');
   try{
-    var raw='';
-    // ── Path 1: proxy ──
-    try{
-      var resp=await fetch(CHAT_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-      if(resp.ok){
-        var data=await resp.json();
-        if(data.error||!data.result){
-          // proxy failed → fallback
-          raw=await callOpenRouterDirectChat(payload);
-        } else {
-          raw=data.result;
-        }
-      } else {
-        raw=await callOpenRouterDirectChat(payload);
-      }
-    }catch(e){
-      raw=await callOpenRouterDirectChat(payload);
-    }
-    raw=raw.replace(/```json|```/g,'').trim();
-    var m=raw.match(/\{[\s\S]*\}/);
-    if(!m) throw new Error('AI ตอบ: '+raw.slice(0,100));
-    var parsed=JSON.parse(m[0]);
+    var resp=await fetch(CHAT_PROXY,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    var data=await resp.json();
+    if(data.error) throw new Error(typeof data.error==='object'?data.error.message:data.error);
+    var raw=(data.result||'').replace(/```json|```/g,'').trim();
+    var jm=raw.match(/\{[\s\S]*\}/);
+    if(!jm) throw new Error('AI ตอบ: '+raw.slice(0,100));
+    var parsed=JSON.parse(jm[0]);
     chatAiPending=parsed.items||[];
     if(!chatAiPending.length) throw new Error('ไม่พบรายการ');
     chatAiShowResultModal(chatAiPending);
@@ -4249,32 +4214,7 @@ async function callChatProxyModal(payload){
 }
 
 async function callOpenRouterDirectChat(payload){
-  if(!GEMINI_KEY){ if(typeof openScanSettings==='function') openScanSettings(); throw new Error('กรุณาใส่ OpenRouter API Key ก่อน'); }
-  var isTextOnly = !payload.image;
-  // text-only → ใช้ free text model, มีรูป → ใช้ vision model
-  var models = isTextOnly
-    ? ['meta-llama/llama-3.3-70b-instruct:free','mistralai/mistral-7b-instruct:free']
-    : ['meta-llama/llama-3.2-11b-vision-instruct:free','google/gemini-2.0-flash-lite-001'];
-  var lastErr = '';
-  for(var mi=0; mi<models.length; mi++){
-    try{
-      var messages=[{role:'user',content:[{type:'text',text:payload.prompt}]}];
-      if(payload.image){
-        messages[0].content.unshift({type:'image_url',image_url:{url:'data:'+(payload.mime||'image/jpeg')+';base64,'+payload.image}});
-      }
-      var r=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+GEMINI_KEY},
-        body:JSON.stringify({model:models[mi],messages:messages,max_tokens:1000})
-      });
-      var d=await r.json();
-      if(d.error){ lastErr=d.error.message||JSON.stringify(d.error); continue; }
-      var content=(d.choices&&d.choices[0]&&d.choices[0].message&&d.choices[0].message.content)||'';
-      if(content) return content;
-      lastErr='empty response';
-    }catch(e){ lastErr=e.message; }
-  }
-  throw new Error('OpenRouter: '+lastErr);
+  throw new Error('ระบบ AI ไม่พร้อมใช้งาน — ลองใหม่อีกครั้ง');
 }
 function chatAiShowThinkingModal(msg){
   var r=document.getElementById('chatAiResultModal');
@@ -4515,6 +4455,121 @@ function updateDueDayHint(){
   var pd=document.getElementById('lnPayDay');
   if(pd && !pd.value) pd.value=due;
 }
+
+// ══════════════════════════════════════════════
+// Voice AI — พูดบอก แปลงเสียง → AI วิเคราะห์
+// ══════════════════════════════════════════════
+var voiceRecognition = null;
+var voiceListening = false;
+
+function voiceInit(){
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition) return null;
+  var r = new SpeechRecognition();
+  r.lang = 'th-TH';
+  r.continuous = false;
+  r.interimResults = true;
+  r.maxAlternatives = 1;
+
+  r.onstart = function(){
+    voiceListening = true;
+    var btn=document.getElementById('voiceCircleBtn');
+    var icon=document.getElementById('voiceIcon');
+    var status=document.getElementById('voiceStatus');
+    if(btn) btn.className='voice-circle listening';
+    if(icon) icon.textContent='⏹';
+    if(status) status.textContent='กำลังฟัง... พูดได้เลย';
+  };
+
+  r.onresult = function(e){
+    var transcript='';
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      transcript+=e.results[i][0].transcript;
+    }
+    var el=document.getElementById('voiceTranscript');
+    if(el) el.textContent=transcript;
+    // ถ้า final result → ใส่ใน input
+    if(e.results[e.results.length-1].isFinal){
+      var input=document.getElementById('chatAiInputModal');
+      if(input) input.value=transcript;
+    }
+  };
+
+  r.onerror = function(e){
+    voiceStop();
+    var status=document.getElementById('voiceStatus');
+    if(status){
+      if(e.error==='not-allowed') status.textContent='❌ ไม่ได้รับอนุญาต mic — ตรวจสอบการตั้งค่า';
+      else if(e.error==='no-speech') status.textContent='ไม่ได้ยินเสียง — ลองใหม่อีกครั้ง';
+      else status.textContent='เกิดข้อผิดพลาด: '+e.error;
+    }
+  };
+
+  r.onend = function(){
+    voiceListening = false;
+    var btn=document.getElementById('voiceCircleBtn');
+    var icon=document.getElementById('voiceIcon');
+    var status=document.getElementById('voiceStatus');
+    if(btn) btn.className='voice-circle processing';
+    if(icon) icon.textContent='⏳';
+    if(status) status.textContent='กำลังวิเคราะห์...';
+    // auto-send ถ้ามีข้อความ
+    var transcript=document.getElementById('voiceTranscript');
+    var txt=transcript?transcript.textContent.trim():'';
+    if(txt){
+      setTimeout(function(){ chatAiSendModal(); },300);
+    } else {
+      if(btn) btn.className='voice-circle';
+      if(icon) icon.textContent='🎤';
+      if(status) status.textContent='กดเพื่อพูด';
+    }
+  };
+
+  return r;
+}
+
+function voiceToggle(){
+  if(voiceListening){
+    voiceStop();
+    return;
+  }
+  if(!voiceRecognition) voiceRecognition = voiceInit();
+  if(!voiceRecognition){
+    // ไม่รองรับ voice → focus textarea แทน
+    var input=document.getElementById('chatAiInputModal');
+    if(input){ input.focus(); input.click(); }
+    var status=document.getElementById('voiceStatus');
+    if(status) status.textContent='เบราว์เซอร์ไม่รองรับเสียง — พิมพ์แทนได้เลย';
+    return;
+  }
+  // reset
+  var el=document.getElementById('voiceTranscript');
+  if(el) el.textContent='';
+  document.getElementById('chatAiResultModal').style.display='none';
+  document.getElementById('chatAiResultModal').innerHTML='';
+  document.getElementById('chatAiHintModal').textContent='กำลังฟัง...';
+  try{ voiceRecognition.start(); }
+  catch(e){ voiceRecognition=voiceInit(); try{voiceRecognition.start();}catch(e2){} }
+}
+
+function voiceStop(){
+  if(voiceRecognition){ try{voiceRecognition.stop();}catch(e){} }
+  voiceListening=false;
+}
+
+function voiceReset(){
+  voiceStop();
+  voiceRecognition=null;
+  var btn=document.getElementById('voiceCircleBtn');
+  var icon=document.getElementById('voiceIcon');
+  var status=document.getElementById('voiceStatus');
+  var transcript=document.getElementById('voiceTranscript');
+  if(btn) btn.className='voice-circle';
+  if(icon) icon.textContent='🎤';
+  if(status) status.textContent='กดเพื่อพูด';
+  if(transcript) transcript.textContent='';
+}
+
 </script>
 
 <!-- ── Scan Modal ── -->
@@ -4669,41 +4724,46 @@ function updateDueDayHint(){
 
 <!-- ── AI Chat Popup Modal ── -->
 <div class="backdrop" id="chatAiBackdrop" onclick="if(event.target===this)closeChatAiPopup()" style="z-index:1100">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:400px">
     <div class="modal-head">
-      <div class="modal-title">
-        <span style="color:var(--accent)">✨</span> พิมพ์บอก AI
-      </div>
+      <div class="modal-title">🎤 พูดบอก AI</div>
       <button class="modal-x" onclick="closeChatAiPopup()">✕</button>
     </div>
-    <div style="padding:0 0 4px">
-      <div class="chat-ai-wrap" id="chatAiWrapModal" style="border:none;border-radius:0;background:transparent;box-shadow:none">
-        <div class="chat-ai-header" style="padding-top:4px">
-          <div class="chat-ai-label">
-            <span class="chat-ai-label-dot"></span>
-            AI วิเคราะห์และบันทึกให้อัตโนมัติ
-          </div>
-          <div class="chat-ai-hint" id="chatAiHintModal">เช่น "กาแฟ 65" หรือ "เงินเดือน 25000"</div>
-        </div>
-        <div class="chat-ai-input-row">
-          <textarea class="chat-ai-input" id="chatAiInputModal" rows="2"
-            placeholder="พิมพ์รายการ เช่น ข้าวเที่ยง 80 น้ำเปล่า 10 หรือรับเงินเดือน 25000..."
-            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-            onkeydown="chatAiKeyModal(event)" oninput="chatAiAutoResize(this)"></textarea>
-          <div class="chat-ai-btn-row">
-            <button class="chat-ai-slip-btn" onclick="chatAiOpenSlipModal()" title="สแกนสลิปโอนเงิน">
-              📷 สลิป
-            </button>
-            <button class="chat-ai-send" id="chatAiSendBtnModal" onclick="chatAiSendModal()" title="ส่ง (Enter)">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
-          </div>
-        </div>
-        <input type="file" id="chatSlipInputModal" accept="image/*" style="display:none" onchange="chatAiHandleSlipModal(event)"/>
-        <div id="chatAiResultModal" style="display:none;margin:0 0 8px"></div>
+    <div style="padding:16px 16px 8px">
+
+      <!-- Voice button -->
+      <button class="voice-circle" id="voiceCircleBtn" onclick="voiceToggle()">
+        <div class="voice-ring"></div>
+        <span class="voice-icon" id="voiceIcon">🎤</span>
+      </button>
+      <div class="voice-status" id="voiceStatus">กดเพื่อพูด</div>
+
+      <!-- Transcript display -->
+      <div class="voice-transcript" id="voiceTranscript"></div>
+
+      <!-- AI hint -->
+      <div class="chat-ai-hint" id="chatAiHintModal" style="text-align:center;margin-bottom:12px">เช่น "กาแฟ 65" หรือ "ข้าวเที่ยง 80 น้ำ 10"</div>
+
+      <!-- Result area -->
+      <div id="chatAiResultModal" style="display:none;margin-bottom:8px"></div>
+
+      <!-- Divider -->
+      <div class="voice-or">หรือพิมพ์เอง</div>
+
+      <!-- Type fallback -->
+      <div class="voice-type-row">
+        <textarea class="voice-type-input" id="chatAiInputModal" rows="1"
+          placeholder="พิมพ์รายการที่นี่..."
+          autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+          onkeydown="chatAiKeyModal(event)" oninput="chatAiAutoResize(this)"></textarea>
+        <button class="chat-ai-send" id="chatAiSendBtnModal" onclick="chatAiSendModal()" style="flex-shrink:0">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
       </div>
-      <div style="padding:8px 14px 4px;font-size:11px;color:var(--text3);border-top:1px solid var(--border)">
-        💡 ตัวอย่าง: "กินข้าว 80 น้ำ 15" · "ซื้อยา 320" · "รับเงินเดือน 25000" · ส่งรูปสลิปโอนเงินได้เลย
+      <input type="file" id="chatSlipInputModal" accept="image/*" style="display:none" onchange="chatAiHandleSlipModal(event)"/>
+
+      <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--text3)">
+        💡 พูดได้หลายรายการพร้อมกัน เช่น "ข้าวเที่ยง 80 น้ำเปล่า 10 กาแฟ 65"
       </div>
     </div>
   </div>
