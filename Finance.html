@@ -2325,18 +2325,18 @@ let txs   = JSON.parse(localStorage.getItem('fin_tx')   || 'null');
 function migrateLoansType(){
   var changed=0;
   (loans||[]).forEach(function(l){
-    if(l.type==='creditline'||l.type==='debt') return; // migrate แล้ว
-    // credit line แท้ = มี creditLimit > 0 และไม่มี parentCreditId และไม่มี principal อื่น
-    var isTrueCreditLine = l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId && (l.principal||0)===( l.creditLimit||0);
-    if(isTrueCreditLine){
+    if(l.type==='creditline'||l.type==='debt') return;
+    // credit → ถ้ามี creditLimit และไม่มี parentCreditId = creditline
+    if(l.type==='credit' && (l.creditLimit||0)>0 && !l.parentCreditId){
       l.type='creditline'; changed++;
     } else {
+      // ทุกอย่างอื่น = debt (personal, family, other, credit ที่มี parentCreditId)
       l.type='debt'; changed++;
     }
   });
   if(changed>0){
     localStorage.setItem('fin_loans',JSON.stringify(loans));
-    console.log('[migrate] Updated',changed,'loan records');
+    console.log('[migrate]',changed,'records updated');
   }
 }
 let goals = JSON.parse(localStorage.getItem('fin_goals') || '[]');
@@ -2568,10 +2568,8 @@ function renderLoans(){
   const badge=document.getElementById('loanTotalBadge');
   if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
-  // โซนบันทึกหนี้ = ทุกอย่างที่ไม่ใช่ credit line
-  // credit line = มี creditLimit > 0 และไม่มี parentCreditId
-  console.log('[loans debug]', loans.map(function(l){return l.name+'|limit:'+l.creditLimit+'|parent:'+l.parentCreditId+'|type:'+l.type;}));
-  let list = loans.filter(l=> !((l.creditLimit||0)>0 && !l.parentCreditId));
+  // โซนบันทึกหนี้ = ทุกอย่างที่ type ไม่ใช่ creditline
+  let list = loans.filter(l=> l.type !== 'creditline');
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
 
@@ -4012,7 +4010,7 @@ function renderCreditLines(){
   var grid=document.getElementById('creditLinesGrid');
   var empty=document.getElementById('creditLinesEmpty');
   if(!grid)return;
-  var lines=(loans||[]).filter(function(l){return (l.creditLimit||0)>0 && !l.parentCreditId;});
+  var lines=(loans||[]).filter(function(l){return l.type==='creditline';});
   if(!lines.length){grid.innerHTML='';if(empty)empty.style.display='';return;}
   if(empty)empty.style.display='none';
 
@@ -4164,6 +4162,11 @@ function openPayCard(idx){
   document.getElementById('payCardName').textContent=c.name;
   document.getElementById('payCardBalance').textContent='฿'+fmt(c.balance||0);
   document.getElementById('payCardAmt').value=c.balance>0?c.balance.toFixed(2):'';
+  var minPay=Math.max(100,Math.round((c.balance||0)*0.1*100)/100);
+  var fullBtn=document.getElementById('payCardFullBtn');
+  var minBtn=document.getElementById('payCardMinBtn');
+  if(fullBtn) fullBtn.onclick=function(){document.getElementById('payCardAmt').value=(c.balance||0).toFixed(2);};
+  if(minBtn) minBtn.onclick=function(){document.getElementById('payCardAmt').value=minPay.toFixed(2);};
   var t=new Date();
   document.getElementById('payCardDate').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
   populateSourceSelect('payCardSource');
