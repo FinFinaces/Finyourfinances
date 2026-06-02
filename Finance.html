@@ -2402,7 +2402,7 @@ async function cloudPull(){
       if(Array.isArray(b.txs))      txs = b.txs;
       if(Array.isArray(b.goals))    goals = b.goals;
       if(Array.isArray(b.loans))    loans = b.loans;
-      if(Array.isArray(b.cards))    { window.cards = b.cards; }
+      if(Array.isArray(b.cards))    { window.cards = b.cards; localStorage.setItem('fin_cards', JSON.stringify(b.cards)); }
       if(Array.isArray(b.sources) && b.sources.length) paymentSources = b.sources;
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
@@ -3120,7 +3120,7 @@ function renderAll(){
   else ab.style.display='none';
 
   renderFreedom(inc,exp,all,unpaidItems,borrowedIn);
-  if(currentPage==='cards') { renderLoans(); renderCreditLines(); }
+  if(currentPage==='cards') { renderCards(); renderLoans(); renderCreditLines(); }
   renderSplit(all);
   renderSourceSummary(all);
   renderInsights(inc,exp,all,borrowedIn);
