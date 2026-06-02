@@ -4188,7 +4188,6 @@ async function chatAiSendModal(){
   document.getElementById('chatAiHintModal').textContent='⏳ กำลังวิเคราะห์...';
   chatAiShowThinkingModal('🤔 กำลังวิเคราะห์ "'+text.slice(0,30)+(text.length>30?'...':'')+'"');
   callChatProxyModal({
-    mime:'text/plain', image:'',
     prompt:'ผู้ใช้พิมพ์: "'+text+'"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr()+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์'
   });
   input.value=''; input.style.height='auto';
@@ -4269,7 +4268,7 @@ function chatAiConfirmModal(){
 function todayStr(){ var t=new Date(); return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
 
 
-const CHAT_PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy';
+const CHAT_PROXY = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/chat-proxy';
 
 let chatAiPending = null; // parsed items waiting for confirm
 
