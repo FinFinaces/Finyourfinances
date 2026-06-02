@@ -2241,7 +2241,11 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
           <button type="button" id="txStatusPending" onclick="setTxStatus('pending')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">⏳ รอ</button>
         </div>
       </div>
-      <div class="fg"><label class="fl">จ่ายผ่าน</label><select class="fs" id="txSource"></select></div>
+      <div class="fg">
+        <label class="fl">จ่ายผ่าน</label>
+        <input type="hidden" id="txSource" value="bank"/>
+        <div id="txSourceList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+      </div>
     </div>
     <div class="fg" style="background:var(--accent3);border:1px solid var(--accent);border-radius:var(--rs);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text);font-weight:500">
@@ -3671,7 +3675,9 @@ function openTxModal(id){
     statusToSet=t.status;
     document.getElementById('txNote').value=t.note||'';
     document.getElementById('txRecurring').checked=t.isRecurring||false;
-    if(document.getElementById('txSource')) document.getElementById('txSource').value=t.paymentSource||'cash';
+    var srcId=t.paymentSource||'bank';
+    document.getElementById('txSource').value=srcId;
+    renderTxSourceList(srcId);
     var catEl=document.getElementById('txCat');
     if(catEl){
       var hasOpt=Array.from(catEl.options).some(function(o){return o.value===t.category;});
@@ -3692,7 +3698,8 @@ function openTxModal(id){
     document.getElementById('txDate').value=ds;
     currentTxDate=ds;
     document.getElementById('txRecurring').checked=false;
-    if(document.getElementById('txSource')) document.getElementById('txSource').value='cash';
+    document.getElementById('txSource').value=qaSourceId||'bank';
+    renderTxSourceList(qaSourceId||'bank');
   }
   document.getElementById('txBackdrop').classList.add('open');
   setTimeout(function(){
@@ -3721,7 +3728,35 @@ function setTxStatus(s){
     btn.style.fontWeight=v===s?'700':'400';
   });
 }
-function populateSourceSelect(elId){ const el=document.getElementById(elId); if(!el)return; const cur=el.value; el.innerHTML=paymentSources.map(s=>'<option value="'+s.id+'">'+s.icon+' '+esc(s.name)+'</option>').join(''); if(cur)el.value=cur; }
+function populateSourceSelect(elId){
+  // legacy select elements (payLoanSource, payCardSource etc) — keep as select
+  if(elId==='txSource'){
+    renderTxSourceList(document.getElementById('txSource').value||qaSourceId);
+    return;
+  }
+  const el=document.getElementById(elId); if(!el)return;
+  const cur=el.value;
+  el.innerHTML=paymentSources.map(s=>'<option value="'+s.id+'">'+s.icon+' '+esc(s.name)+'</option>').join('');
+  if(cur)el.value=cur;
+}
+function renderTxSourceList(selected){
+  var wrap=document.getElementById('txSourceList'); if(!wrap) return;
+  wrap.innerHTML=paymentSources.map(function(s){
+    var on=s.id===selected;
+    return '<button type="button" onclick="pickTxSource(\''+s.id+'\')" style="'+
+      'display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:20px;'+
+      'border:1.5px solid '+(on?'var(--accent)':'var(--border)')+';'+
+      'background:'+(on?'var(--accent3)':'var(--surface)')+';'+
+      'font-family:\'Sarabun\',sans-serif;font-size:13px;font-weight:'+(on?'700':'400')+';'+
+      'cursor:pointer;white-space:nowrap">'+
+      s.icon+' '+esc(s.name)+
+    '</button>';
+  }).join('');
+}
+function pickTxSource(id){
+  document.getElementById('txSource').value=id;
+  renderTxSourceList(id);
+}
 function updateCardBalance(tx, delta){
   // delta = +1 เพิ่ม (ใช้บัตร), -1 ลด (ยกเลิก)
   if(!tx || !tx.paymentSource) return;
