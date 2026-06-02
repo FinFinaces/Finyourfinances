@@ -2009,8 +2009,23 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <div id="drawHint" style="font-size:11px;color:var(--text3);margin-top:4px"></div>
     </div>
     <div style="display:flex;gap:10px">
-      <div class="fg" style="flex:1"><label class="fl">งวด/เดือน (บาท) *</label><input class="fi mono" id="drawMonthly" type="number" step="0.01" placeholder="0.00" oninput="updateDrawHint()"/></div>
-      <div class="fg" style="flex:1"><label class="fl">ดอกเบี้ย % ต่อปี</label><input class="fi mono" id="drawInterest" type="number" step="0.01" placeholder="—"/></div>
+      <div class="fg" style="flex:1">
+        <label class="fl">งวด/เดือน (บาท) *</label>
+        <input class="fi mono" id="drawMonthly" type="number" step="0.01" placeholder="0.00" oninput="updateDrawHint()"/>
+      </div>
+      <div class="fg" style="flex:1"><label class="fl">ดอกเบี้ย % ต่อปี</label><input class="fi mono" id="drawInterest" type="number" step="0.01" placeholder="—" oninput="updateDrawHint()"/></div>
+    </div>
+    <div class="fg">
+      <label class="fl">📅 ระยะเวลาผ่อน (เดือน)</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+        <button type="button" class="months-preset" onclick="setDrawMonths(3)">3</button>
+        <button type="button" class="months-preset" onclick="setDrawMonths(6)">6</button>
+        <button type="button" class="months-preset" onclick="setDrawMonths(10)">10</button>
+        <button type="button" class="months-preset" onclick="setDrawMonths(12)">12</button>
+        <button type="button" class="months-preset" onclick="setDrawMonths(18)">18</button>
+        <button type="button" class="months-preset" onclick="setDrawMonths(24)">24</button>
+      </div>
+      <input class="fi mono" id="drawTotalMonths" type="number" min="1" placeholder="หรือพิมพ์เองได้" oninput="updateDrawMonthly()"/>
     </div>
     <div class="fg" style="background:var(--amber-bg);border:1px solid var(--amber-br);border-radius:var(--rs);padding:10px 12px">
       <div style="font-size:11px;color:var(--amber);font-weight:600;margin-bottom:4px">📋 ชื่อรายการหนี้ใหม่</div>
@@ -2090,6 +2105,13 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="fg"><label class="fl">ไอคอน</label><input class="fi" id="seIcon" placeholder="วาง emoji เช่น 💳" maxlength="4" oninput="updateSourcePreview()"/></div>
     <div class="fg"><label class="fl">สี</label><div class="color-picker" id="seColorPicker"></div></div>
+    <div class="fg" id="seLoanLinkWrap" style="display:none">
+      <label class="fl">🔗 เชื่อมกับวงเงินสินเชื่อ</label>
+      <select class="fs" id="seLoanId">
+        <option value="">-- ไม่เชื่อม --</option>
+      </select>
+      <div style="font-size:11px;color:var(--blue);margin-top:4px">เมื่อชำระรายการที่ใช้แหล่งเงินนี้ จะตัดยอด "ใช้ไปแล้ว" ของวงเงินอัตโนมัติ</div>
+    </div>
     <div class="modal-foot">
       <button class="btn-cancel" id="seDelBtn" onclick="deleteSource()" style="display:none;color:var(--red);border-color:var(--red-br)">🗑 ลบ</button>
       <button class="btn-cancel" onclick="closeSourceEdit()">ยกเลิก</button>
@@ -2945,6 +2967,8 @@ function openDraw(id){
   document.getElementById('drawLoanLabel').value = '';
   document.getElementById('drawNote').value = '';
   document.getElementById('drawHint').textContent = '';
+  var dtm=document.getElementById('drawTotalMonths'); if(dtm) dtm.value='';
+  document.querySelectorAll('#drawBackdrop .months-preset').forEach(function(b){b.classList.remove('on');});
   const today = new Date();
   const dd = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   document.getElementById('drawDate').value = dd;
@@ -2960,20 +2984,37 @@ function updateDrawHint(){
   const l = loans.find(x=>x.id===drawingLoanId); if(!l) return;
   const amt = parseFloat(document.getElementById('drawAmt').value)||0;
   const monthly = parseFloat(document.getElementById('drawMonthly').value)||0;
+  const months = parseInt(document.getElementById('drawTotalMonths').value)||0;
   const avail = Math.max(0,(l.creditLimit||0)-(l.used||0));
   const hint = document.getElementById('drawHint');
   const parts = [];
   if(amt>0 && amt>avail){ hint.style.color='var(--red)'; hint.textContent='⚠️ เกินวงเงินที่เหลืออยู่ ฿'+fmt(avail); return; }
   if(amt>0) parts.push('วงเงินคงเหลือหลังเบิก: ฿'+fmt(avail-amt));
-  if(amt>0 && monthly>0) parts.push('ผ่อนประมาณ '+Math.ceil(amt/monthly)+' เดือน');
+  if(amt>0 && monthly>0) parts.push('ผ่อน '+Math.ceil(amt/monthly)+' เดือน');
+  else if(amt>0 && months>0) parts.push('ผ่อน '+months+' เดือน · งวดละ ฿'+fmt(amt/months));
   hint.style.color='var(--text3)';
   hint.textContent = parts.join(' · ');
+}
+function setDrawMonths(n){
+  var el=document.getElementById('drawTotalMonths'); if(el) el.value=n;
+  // highlight preset
+  document.querySelectorAll('#drawBackdrop .months-preset').forEach(function(b){ b.classList.toggle('on', parseInt(b.textContent)===n); });
+  updateDrawMonthly();
+}
+function updateDrawMonthly(){
+  var amt=parseFloat(document.getElementById('drawAmt').value)||0;
+  var months=parseInt(document.getElementById('drawTotalMonths').value)||0;
+  if(amt>0 && months>0){
+    document.getElementById('drawMonthly').value=(amt/months).toFixed(2);
+  }
+  updateDrawHint();
 }
 function confirmDraw(){
   const amt = parseFloat(document.getElementById('drawAmt').value)||0;
   const monthly = parseFloat(document.getElementById('drawMonthly').value)||0;
   const interest = parseFloat(document.getElementById('drawInterest').value)||0;
-  const label = document.getElementById('drawLoanLabel').value.trim();
+  const totalMonthsInput = parseInt((document.getElementById('drawTotalMonths')||{}).value)||0;
+  const totalMonths = totalMonthsInput>0 ? totalMonthsInput : (monthly>0?Math.ceil(amt/monthly):0);
   const date = document.getElementById('drawDate').value;
   const note = document.getElementById('drawNote').value.trim();
   const createTx = document.getElementById('drawCreateTx').checked;
@@ -3000,7 +3041,7 @@ function confirmDraw(){
     interest: interest,
     creditLimit: 0,
     used: 0,
-    totalMonths: Math.ceil(amt/monthly),
+    totalMonths: totalMonths,
     dueDay: l.dueDay||0,
     source: l.source||'cash',
     note: note || ('เบิกจาก '+l.name),
@@ -3039,12 +3080,26 @@ function editSource(id){
   document.getElementById('seName').value=s?s.name:'';
   document.getElementById('seIcon').value=s?s.icon:'💳';
   seType=s?s.type:'cash'; seColor=s?s.color:'#3d6b38';
+  // populate loan dropdown
+  var lsel=document.getElementById('seLoanId');
+  if(lsel){
+    var creditLines=(loans||[]).filter(function(l){return (l.creditLimit||0)>0&&!l.parentCreditId;});
+    lsel.innerHTML='<option value="">-- ไม่เชื่อม --</option>'+
+      creditLines.map(function(l){return '<option value="'+l.id+'"'+(s&&s.loanId===l.id?' selected':'')+'>'+esc(l.name)+'</option>';}).join('');
+  }
   seSetType(seType); renderSeColorPicker();
   document.getElementById('seDelBtn').style.display=(isNew||paymentSources.length<=1)?'none':'';
   document.getElementById('sourceEditBackdrop').classList.add('open');
   setTimeout(()=>document.getElementById('seName').focus(),100);
 }
-function seSetType(t){ seType=t; document.getElementById('seBtnCash').classList.toggle('on',t==='cash'); document.getElementById('seBtnCredit').classList.toggle('on',t==='credit'); }
+function seSetType(t){
+  seType=t;
+  document.getElementById('seBtnCash').classList.toggle('on',t==='cash');
+  document.getElementById('seBtnCredit').classList.toggle('on',t==='credit');
+  // แสดง loan link เฉพาะ type credit
+  var wrap=document.getElementById('seLoanLinkWrap');
+  if(wrap) wrap.style.display=t==='credit'?'':'none';
+}
 function renderSeColorPicker(){
   const wrap=document.getElementById('seColorPicker');
   const palette=COLOR_PALETTE.filter(c=>c!==null);
@@ -3055,9 +3110,11 @@ function updateSourcePreview(){}
 function saveSource(){
   const name=document.getElementById('seName').value.trim();
   const icon=document.getElementById('seIcon').value.trim()||(seType==='cash'?'💵':'💳');
+  const loanId=(document.getElementById('seLoanId')?document.getElementById('seLoanId').value:'')||'';
   if(!name){ toast('⚠️ กรอกชื่อ'); return; }
-  if(editingSourceId==='new'){ paymentSources.push({id:'src'+Date.now(),name,icon,color:seColor,type:seType}); }
-  else { const i=paymentSources.findIndex(x=>x.id===editingSourceId); if(i!==-1) paymentSources[i]=Object.assign({},paymentSources[i],{name,icon,color:seColor,type:seType}); }
+  const obj={name,icon,color:seColor,type:seType,loanId:loanId};
+  if(editingSourceId==='new'){ paymentSources.push(Object.assign({id:'src'+Date.now()},obj)); }
+  else { const i=paymentSources.findIndex(x=>x.id===editingSourceId); if(i!==-1) paymentSources[i]=Object.assign({},paymentSources[i],obj); }
   saveAll(); closeSourceEdit(); renderSourceList(); toast('✓ บันทึกแหล่งเงินแล้ว');
 }
 function deleteSource(){
@@ -3681,20 +3738,61 @@ function saveTx(){
     if(!Array.isArray(txs)) txs=[];
     if(savedEditId){
       const i=txs.findIndex(x=>x.id===savedEditId);
-      if(i>=0) txs[i]=Object.assign({},txs[i],obj);
-      else txs.push(Object.assign({},obj,{id:'t'+Date.now()}));
+      if(i>=0){
+        const old=txs[i];
+        // คืน used ของ tx เก่าถ้าเคย paid
+        if(old.status==='paid') adjustLoanUsed(old,-1);
+        txs[i]=Object.assign({},old,obj);
+        // บวก used ใหม่ถ้า paid
+        if(obj.status==='paid') adjustLoanUsed(txs[i],+1);
+      } else {
+        txs.push(Object.assign({},obj,{id:'t'+Date.now()}));
+        if(obj.status==='paid') adjustLoanUsed(obj,+1);
+      }
       toast('✓ แก้ไขแล้ว');
     } else {
-      txs.push(Object.assign({},obj,{id:'t'+Date.now()}));
+      const newTx=Object.assign({},obj,{id:'t'+Date.now()});
+      txs.push(newTx);
+      if(obj.status==='paid') adjustLoanUsed(newTx,+1);
       toast('✓ เพิ่มรายการแล้ว');
     }
     saveAll();
     renderAll();
   } catch(e){ console.error('saveTx error:', e.name, e.message, e.stack); toast('⚠️ '+e.name+': '+e.message); renderAll(); }
 }
-function deleteTx(id){ if(!confirm('ลบรายการนี้?'))return; txs=txs.filter(t=>t.id!==id); saveAll(); renderAll(); toast('ลบแล้ว'); }
-function toggleStatus(id){ const t=txs.find(x=>x.id===id); if(!t)return; t.status=t.status==='paid'?'unpaid':'paid'; saveAll(); renderAll(); toast((t.status==='paid'?'✓ ชำระแล้ว':'❌ เปลี่ยนเป็นค้างชำระ')+': '+t.name); }
-function quickPay(id){ const t=txs.find(x=>x.id===id); if(!t)return; t.status='paid'; saveAll(); renderAll(); toast('✓ ชำระแล้ว: '+t.name); }
+function deleteTx(id){
+  if(!confirm('ลบรายการนี้?'))return;
+  const t=txs.find(x=>x.id===id);
+  if(t && t.status==='paid') adjustLoanUsed(t,-1);
+  txs=txs.filter(t=>t.id!==id);
+  saveAll(); renderAll(); toast('ลบแล้ว');
+}
+// ── Loan Used Auto-adjust ──
+// delta = +1 เพิ่ม used (ชำระ → นับว่าใช้วงเงินไป), -1 ลด used (ยกเลิกชำระ)
+function adjustLoanUsed(tx, delta){
+  if(!tx || tx.type!=='expense') return;
+  var src=paymentSources.find(function(s){return s.id===tx.paymentSource;});
+  if(!src || !src.loanId) return;
+  var loan=loans.find(function(l){return l.id===src.loanId;});
+  if(!loan) return;
+  loan.used=Math.max(0,(loan.used||0)+delta*tx.amount);
+}
+function toggleStatus(id){
+  const t=txs.find(x=>x.id===id); if(!t)return;
+  const wasPaid=t.status==='paid';
+  t.status=wasPaid?'unpaid':'paid';
+  if(t.status==='paid') adjustLoanUsed(t,+1);
+  else adjustLoanUsed(t,-1);
+  saveAll(); renderAll();
+  toast((t.status==='paid'?'✓ ชำระแล้ว':'❌ เปลี่ยนเป็นค้างชำระ')+': '+t.name);
+}
+function quickPay(id){
+  const t=txs.find(x=>x.id===id); if(!t)return;
+  if(t.status==='paid') return;
+  t.status='paid';
+  adjustLoanUsed(t,+1);
+  saveAll(); renderAll(); toast('✓ ชำระแล้ว: '+t.name);
+}
 
 function bringRecurringForward(){
   const p=period(); const tgtM=p.m, tgtY=p.y;
@@ -4156,7 +4254,7 @@ function renderCreditLines(){
     var n=(name||'').toLowerCase();
     if(n.indexOf('seasy')>=0||n.indexOf('s easy')>=0) return 'seasy';
     if(n.indexOf('spaylater')>=0||n.indexOf('spay later')>=0) return 'spay';
-    if(n.indexOf('truepay')>=0&&(n.indexOf('extra')>=0||n.indexOf('x')>=0)) return 'truex';
+    if(n.indexOf('truepay')>=0&&n.indexOf('extra')>=0) return 'truex';
     if(n.indexOf('truepay')>=0||n.indexOf('true pay')>=0||n.indexOf('truemoney')>=0) return 'true';
     if(n.indexOf('tiktok')>=0||n.indexOf('tik tok')>=0) return 'tiktok';
     if(n.indexOf('line')>=0) return 'linebk';
