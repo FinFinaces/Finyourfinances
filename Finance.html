@@ -2633,7 +2633,7 @@ function openLoanModal(id, defaultType){
   // populate parent credit dropdown
   var sel=document.getElementById('lnParentCredit');
   if(sel){
-    var creditLines=loans.filter(function(x){return x.type==='credit';});
+    var creditLines=loans.filter(function(x){return x.type==='credit' && (x.creditLimit||0)>0 && !x.parentCreditId;});
     sel.innerHTML='<option value="">-- ไม่ระบุ --</option>'+
       creditLines.map(function(x){return '<option value="'+x.id+'" '+(l&&l.parentCreditId===x.id?'selected':'')+'>'+esc(x.name)+'</option>';}).join('');
   }
@@ -2726,9 +2726,10 @@ function saveLoan(){
   var pf=function(id){ return parseFloat(g(id))||0; };
   var pi=function(id){ return parseInt(g(id))||0; };
   var isCreditType=(loanType==='credit');
-  var principal,remaining,monthly,interest,creditLimit,used,totalMonths,dueDay,payDay,parentCreditId;
+  var principal,remaining,monthly,interest,creditLimit,used,totalMonths,dueDay,payDay,dueDate,parentCreditId;
   dueDay=pi('lnDueDay');
   payDay=pi('lnPayDay');
+  dueDate=g('lnDueDate')||'';
   parentCreditId='';
   if(isCreditPage){
     if(isCreditType){
