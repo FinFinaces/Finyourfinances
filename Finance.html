@@ -575,6 +575,8 @@ body {
 .split-card.fixed .split-bar-fill { background: var(--blue); }
 .split-card.variable .split-bar-fill { background: var(--amber); }
 .split-sub { font-size: 11px; color: var(--text3); margin-top: 6px; }
+.group-header:hover td { background:var(--accent3); }
+.group-header td { user-select:none; }
 .recurring-badge {
   display: inline-block; font-size: 9px; padding: 1px 6px;
   background: var(--accent3); color: var(--accent);
@@ -1935,7 +1937,15 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <input class="fi" id="lnDueDate" type="date"/>
         <div style="font-size:11px;color:var(--text3);margin-top:3px">วันสุดท้ายที่ต้องจ่ายบิลนี้</div>
       </div>
-      <div class="fg"><label class="fl">จ่ายผ่าน</label><select class="fs" id="lnSource"></select></div>
+      <div class="fg">
+        <label class="fl">จ่ายผ่าน</label>
+        <input type="hidden" id="lnSource" value="bank"/>
+        <div id="lnSourceDropdown" onclick="toggleSourceDropdown('lnSource')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px">
+          <span id="lnSourceLabel">🏦 บัญชีธนาคาร</span>
+          <span id="lnSourceArrow" style="font-size:11px;color:var(--text3)">▼</span>
+        </div>
+        <div id="lnSourceList" style="display:none;flex-direction:column;gap:4px;margin-top:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px"></div>
+      </div>
     </div>
     <div class="fg" style="margin-top:6px">
       <label class="fl">หมายเหตุ</label>
@@ -1974,7 +1984,15 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <div id="payHint" style="font-size:11px;color:var(--text3)"></div>
     </div>
     <div class="fg"><label class="fl">วันที่ชำระ</label><input class="fi" id="payLoanDate" type="date"/></div>
-    <div class="fg"><label class="fl">จ่ายผ่าน</label><select class="fs" id="payLoanSource"></select></div>
+    <div class="fg">
+      <label class="fl">จ่ายผ่าน</label>
+      <input type="hidden" id="payLoanSource" value="bank"/>
+      <div id="payLoanSourceDropdown" onclick="toggleSourceDropdown('payLoanSource')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px">
+        <span id="payLoanSourceLabel">🏦 บัญชีธนาคาร</span>
+        <span id="payLoanSourceArrow" style="font-size:11px;color:var(--text3)">▼</span>
+      </div>
+      <div id="payLoanSourceList" style="display:none;flex-direction:column;gap:4px;margin-top:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px"></div>
+    </div>
     <div class="fg" style="background:var(--green-bg);border:1px solid var(--green-br);border-radius:var(--rs);padding:10px 12px">
       <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text);font-weight:500">
         <input type="checkbox" id="payCreateTx" checked style="width:18px;height:18px;accent-color:var(--accent)"/>
@@ -2175,6 +2193,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
           <option value="รายได้เสริม">💡 รายได้เสริม</option>
           <option value="รายได้อื่น">📊 รายได้อื่น</option>
           <option value="เงินยืม/สินเชื่อเข้า">⚠️ เงินยืม/สินเชื่อเข้า</option>
+          <option value="สัตว์เลี้ยง">🐾 สัตว์เลี้ยง</option>
           <option value="อื่นๆ">📋 อื่นๆ</option>
         </select>
       </div>
@@ -2223,6 +2242,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
           <option value="รายได้เสริม">💡 รายได้เสริม</option>
           <option value="รายได้อื่น">📊 รายได้อื่น</option>
           <option value="เงินยืม/สินเชื่อเข้า">⚠️ เงินยืม/สินเชื่อเข้า</option>
+          <option value="สัตว์เลี้ยง">🐾 สัตว์เลี้ยง</option>
           <option value="อื่นๆ">📋 อื่นๆ</option>
         </select>
       </div>
@@ -2244,7 +2264,11 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <div class="fg">
         <label class="fl">จ่ายผ่าน</label>
         <input type="hidden" id="txSource" value="bank"/>
-        <div id="txSourceList" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div id="txSourceDropdown" onclick="toggleTxSourceDropdown()" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px">
+          <span id="txSourceLabel">🏦 บัญชีธนาคาร</span>
+          <span id="txSourceArrow" style="font-size:11px;color:var(--text3)">▼</span>
+        </div>
+        <div id="txSourceList" style="display:none;flex-direction:column;gap:4px;margin-top:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px"></div>
       </div>
     </div>
     <div class="fg" style="background:var(--accent3);border:1px solid var(--accent);border-radius:var(--rs);padding:10px 12px">
@@ -2339,7 +2363,7 @@ const MONTHS_SHORT = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค
 const CAT_EMOJI = {
   'หนี้/สินเชื่อ':'💳','ประกัน':'🛡️','อินเตอร์เน็ต':'📶','ออนไลน์/ช็อปปิ้ง':'🛍️',
   'สาธารณูปโภค':'💡','ออมทรัพย์':'💰','หุ้น/การลงทุน':'📈','อาหาร':'🍜',
-  'เดินทาง':'🚗','เงินเดือน':'💼','รายได้อื่น':'📊','เงินยืม/สินเชื่อเข้า':'⚠️','อื่นๆ':'📋','ปันผล/หุ้น':'📈','กองทุน':'💹','กำไรเทรด':'💰','โบนัส':'🎁','ค่าเช่า/ค่าลิขสิทธิ์':'🏠','ขายของ':'🛍️','รายได้เสริม':'💡'
+  'เดินทาง':'🚗','เงินเดือน':'💼','รายได้อื่น':'📊','เงินยืม/สินเชื่อเข้า':'⚠️','อื่นๆ':'📋','ปันผล/หุ้น':'📈','กองทุน':'💹','กำไรเทรด':'💰','โบนัส':'🎁','ค่าเช่า/ค่าลิขสิทธิ์':'🏠','ขายของ':'🛍️','รายได้เสริม':'💡','สัตว์เลี้ยง':'🐾'
 };
 const CAT_COLORS = ['#4a6741','#9b4a3a','#8a6a2a','#2e5a8a','#6b4a7d','#3d6b38','#c89a3a','#5c7d52','#a85c4a','#7d6a4a'];
 const PRESETS = {
@@ -2742,7 +2766,9 @@ function openLoanModal(id, defaultType){
   document.getElementById('lnDelBtn').style.display=id?'':'none';
   setLoanType(type);
   populateSourceSelect('lnSource');
-  if(l&&l.source) document.getElementById('lnSource').value=l.source;
+  var lnSrcId=(l&&l.source)||'bank';
+  document.getElementById('lnSource').value=lnSrcId;
+  _renderSourceDropdown('lnSource',lnSrcId);
   updateLoanCalc();
   document.getElementById('loanBackdrop').classList.add('open');
   setTimeout(function(){document.getElementById('lnName').focus();},100);
@@ -2905,7 +2931,9 @@ function openPayLoan(id){
   const today=new Date();
   document.getElementById('payLoanDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
   populateSourceSelect('payLoanSource');
-  if(l.source) document.getElementById('payLoanSource').value=l.source;
+  var srcId=l.source||'bank';
+  document.getElementById('payLoanSource').value=srcId;
+  _renderSourceDropdown('payLoanSource',srcId);
   updatePayHint();
   document.getElementById('payLoanBackdrop').classList.add('open');
   setTimeout(()=>{ const a=document.getElementById('payLoanAmt'); if(a) a.focus(); },100);
@@ -3102,6 +3130,7 @@ function seSetType(t){
   if(wrap) wrap.style.display=t==='credit'?'':'none';
   if(t==='credit') renderSeLoanList(document.getElementById('seLoanId').value||'');
 }
+function seSelectColor(c){ seColor=c; renderSeColorPicker(); }
 function renderSeColorPicker(){
   const wrap=document.getElementById('seColorPicker');
   const palette=COLOR_PALETTE.filter(c=>c!==null);
@@ -3276,7 +3305,7 @@ function renderAll(){
   else ab.style.display='none';
 
   renderFreedom(inc,exp,all,unpaidItems,borrowedIn);
-  if(currentPage==='cards') { renderCards(); renderLoans(); renderCreditLines(); }
+  renderCards(); renderLoans(); renderCreditLines();
   renderSplit(all);
   renderSourceSummary(all);
   renderInsights(inc,exp,all,borrowedIn);
@@ -3629,7 +3658,6 @@ function renderTx(){
   const empty=document.getElementById('txEmpty');
   if(!list.length){ tbody.innerHTML=''; empty.innerHTML='ยังไม่มีรายการ — เริ่มบันทึกด้วยช่อง quick add ด้านบน'; empty.style.display=''; return; }
   empty.style.display='none';
-  // เรียงตามวันที่บันทึก ล่าสุดก่อน — tie-break ด้วย id timestamp
   const sorted=list.slice().sort((a,b)=>{
     const dd=new Date(b.date)-new Date(a.date);
     if(dd!==0) return dd;
@@ -3637,7 +3665,49 @@ function renderTx(){
     const tb=parseInt((b.id||'').replace(/\D/g,'').slice(0,13))||0;
     return tb-ta;
   });
-  tbody.innerHTML=sorted.map(rowHtml).join('');
+  // groupBy source
+  var groups={};
+  var groupOrder=[];
+  sorted.forEach(function(t){
+    var sid=t.paymentSource||'cash';
+    if(!groups[sid]){ groups[sid]=[]; groupOrder.push(sid); }
+    groups[sid].push(t);
+  });
+  var html='';
+  groupOrder.forEach(function(sid){
+    var items=groups[sid];
+    var src=getSource(sid);
+    var total=items.reduce(function(s,t){return s+(t.type==='expense'?t.amount:0);},0);
+    var totalInc=items.reduce(function(s,t){return s+(t.type==='income'?t.amount:0);},0);
+    var unpaidCount=items.filter(function(t){return t.status!=='paid';}).length;
+    var isOpen=!groupCollapsed[sid];
+    // group header row
+    html+='<tr class="group-header" onclick="toggleGroup(\''+sid+'\')" style="cursor:pointer;background:var(--surface2,var(--surface));border-top:2px solid var(--border)">'+
+      '<td colspan="4" style="padding:10px 12px">'+
+        '<div style="display:flex;align-items:center;gap:8px">'+
+          '<span style="font-size:18px">'+src.icon+'</span>'+
+          '<span style="font-weight:700;font-size:14px">'+esc(src.name)+'</span>'+
+          (unpaidCount>0?'<span style="font-size:11px;background:var(--red-bg);color:var(--red);border:1px solid var(--red-br);border-radius:10px;padding:2px 8px">ค้าง '+unpaidCount+'</span>':'')+
+          '<span style="font-size:11px;color:var(--text3);margin-left:4px">'+items.length+' รายการ</span>'+
+          '<span style="margin-left:auto;font-size:12px;color:var(--text3)">'+(isOpen?'▲':'▼')+'</span>'+
+        '</div>'+
+      '</td>'+
+      '<td style="text-align:right;padding:10px 12px">'+
+        (total>0?'<div style="font-size:13px;font-weight:700;color:var(--red)">-฿'+fmt(total)+'</div>':'')+
+        (totalInc>0?'<div style="font-size:13px;font-weight:700;color:var(--green)">+฿'+fmt(totalInc)+'</div>':'')+
+      '</td>'+
+      '<td></td>'+
+    '</tr>';
+    if(isOpen){
+      items.forEach(function(t){ html+=rowHtml(t); });
+    }
+  });
+  tbody.innerHTML=html;
+}
+var groupCollapsed={};
+function toggleGroup(sid){
+  groupCollapsed[sid]=!groupCollapsed[sid];
+  renderTx();
 }
 function rowHtml(t){
   const amtTxt=t.amount===0?'<span style="color:var(--text3);font-size:12px">รอยืนยัน</span>':'<div class="amt '+t.type+'">'+(t.type==='income'?'+':'')+'฿'+fmt(t.amount)+'</div>';
@@ -3677,7 +3747,7 @@ function openTxModal(id){
     document.getElementById('txRecurring').checked=t.isRecurring||false;
     var srcId=t.paymentSource||'bank';
     document.getElementById('txSource').value=srcId;
-    renderTxSourceList(srcId);
+    _renderSourceDropdown('txSource',srcId);
     var catEl=document.getElementById('txCat');
     if(catEl){
       var hasOpt=Array.from(catEl.options).some(function(o){return o.value===t.category;});
@@ -3699,9 +3769,12 @@ function openTxModal(id){
     currentTxDate=ds;
     document.getElementById('txRecurring').checked=false;
     document.getElementById('txSource').value=qaSourceId||'bank';
-    renderTxSourceList(qaSourceId||'bank');
+    _renderSourceDropdown('txSource',qaSourceId||'bank');
   }
   document.getElementById('txBackdrop').classList.add('open');
+  // ปิด source dropdown ทุกครั้งที่เปิด modal
+  var sl=document.getElementById('txSourceList'); if(sl) sl.style.display='none';
+  var sa=document.getElementById('txSourceArrow'); if(sa) sa.textContent='▼';
   setTimeout(function(){
     setTxStatus(statusToSet);
     document.getElementById('txName').focus();
@@ -3728,35 +3801,61 @@ function setTxStatus(s){
     btn.style.fontWeight=v===s?'700':'400';
   });
 }
+var _sourceDropdownIds=['txSource','payLoanSource','payCardSource','lnSource'];
 function populateSourceSelect(elId){
-  // legacy select elements (payLoanSource, payCardSource etc) — keep as select
-  if(elId==='txSource'){
-    renderTxSourceList(document.getElementById('txSource').value||qaSourceId);
+  if(_sourceDropdownIds.indexOf(elId)>=0){
+    var cur=document.getElementById(elId)?document.getElementById(elId).value:'bank';
+    _renderSourceDropdown(elId, cur||'bank');
     return;
   }
-  const el=document.getElementById(elId); if(!el)return;
-  const cur=el.value;
+  // legacy plain select fallback
+  var el=document.getElementById(elId); if(!el)return;
+  var curVal=el.value;
   el.innerHTML=paymentSources.map(s=>'<option value="'+s.id+'">'+s.icon+' '+esc(s.name)+'</option>').join('');
-  if(cur)el.value=cur;
+  if(curVal)el.value=curVal;
 }
-function renderTxSourceList(selected){
-  var wrap=document.getElementById('txSourceList'); if(!wrap) return;
-  wrap.innerHTML=paymentSources.map(function(s){
+function _renderSourceDropdown(baseId, selected){
+  var list=document.getElementById(baseId+'List');
+  var lbl=document.getElementById(baseId+'Label');
+  var src=paymentSources.find(function(s){return s.id===selected;})||paymentSources[0];
+  if(lbl&&src) lbl.textContent=src.icon+' '+src.name;
+  if(document.getElementById(baseId)) document.getElementById(baseId).value=selected;
+  if(!list) return;
+  list.innerHTML=paymentSources.map(function(s){
     var on=s.id===selected;
-    return '<button type="button" onclick="pickTxSource(\''+s.id+'\')" style="'+
-      'display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:20px;'+
-      'border:1.5px solid '+(on?'var(--accent)':'var(--border)')+';'+
-      'background:'+(on?'var(--accent3)':'var(--surface)')+';'+
+    return '<button type="button" onclick="pickSource(\''+baseId+'\',\''+s.id+'\')" style="'+
+      'display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--rs);'+
+      'border:1.5px solid '+(on?'var(--accent)':'transparent')+';'+
+      'background:'+(on?'var(--accent3)':'transparent')+';'+
       'font-family:\'Sarabun\',sans-serif;font-size:13px;font-weight:'+(on?'700':'400')+';'+
-      'cursor:pointer;white-space:nowrap">'+
-      s.icon+' '+esc(s.name)+
+      'cursor:pointer;text-align:left;width:100%">'+
+      '<span>'+s.icon+'</span><span>'+esc(s.name)+'</span>'+
+      (on?'<span style="margin-left:auto;color:var(--accent)">✓</span>':'')+
     '</button>';
   }).join('');
 }
-function pickTxSource(id){
-  document.getElementById('txSource').value=id;
-  renderTxSourceList(id);
+function pickSource(baseId, id){
+  document.getElementById(baseId).value=id;
+  _renderSourceDropdown(baseId, id);
+  // ปิด dropdown
+  var list=document.getElementById(baseId+'List');
+  var arrow=document.getElementById(baseId+'Arrow');
+  if(list){ list.style.display='none'; }
+  if(arrow){ arrow.textContent='▼'; }
 }
+function toggleSourceDropdown(baseId){
+  var list=document.getElementById(baseId+'List');
+  var arrow=document.getElementById(baseId+'Arrow');
+  if(!list) return;
+  var isOpen=list.style.display!=='none'&&list.style.display!=='';
+  list.style.display=isOpen?'none':'flex';
+  list.style.flexDirection='column';
+  if(arrow) arrow.textContent=isOpen?'▼':'▲';
+}
+// legacy txSource functions — delegate to universal
+function renderTxSourceList(selected){ _renderSourceDropdown('txSource',selected); }
+function pickTxSource(id){ pickSource('txSource',id); }
+function toggleTxSourceDropdown(){ toggleSourceDropdown('txSource'); }
 function updateCardBalance(tx, delta){
   // delta = +1 เพิ่ม (ใช้บัตร), -1 ลด (ยกเลิก)
   if(!tx || !tx.paymentSource) return;
@@ -4469,6 +4568,7 @@ function openPayCard(idx){
   var t=new Date();
   document.getElementById('payCardDate').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
   populateSourceSelect('payCardSource');
+  _renderSourceDropdown('payCardSource','bank');
   document.getElementById('payCardBackdrop').classList.add('open');
 }
 function closePayCard(){document.getElementById('payCardBackdrop').classList.remove('open');}
@@ -4962,7 +5062,8 @@ function voiceReset(){
             <option value="เดินทาง">🚗 เดินทาง</option>
             <option value="สาธารณูปโภค">💡 สาธารณูปโภค</option>
             <option value="หนี้/สินเชื่อ">💳 หนี้/สินเชื่อ</option>
-            <option value="อื่นๆ">📋 อื่นๆ</option>
+            <option value="สัตว์เลี้ยง">🐾 สัตว์เลี้ยง</option>
+          <option value="อื่นๆ">📋 อื่นๆ</option>
           </select>
         </div>
         <div class="fg">
@@ -5060,7 +5161,15 @@ function voiceReset(){
       <input class="fi mono" id="payCardAmt" type="number" step="0.01" placeholder="0.00"/>
     </div>
     <div class="fg"><label class="fl">วันที่ชำระ</label><input class="fi" id="payCardDate" type="date"/></div>
-    <div class="fg"><label class="fl">จ่ายจาก</label><select class="fs" id="payCardSource"></select></div>
+    <div class="fg">
+      <label class="fl">จ่ายจาก</label>
+      <input type="hidden" id="payCardSource" value="bank"/>
+      <div id="payCardSourceDropdown" onclick="toggleSourceDropdown('payCardSource')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px">
+        <span id="payCardSourceLabel">🏦 บัญชีธนาคาร</span>
+        <span id="payCardSourceArrow" style="font-size:11px;color:var(--text3)">▼</span>
+      </div>
+      <div id="payCardSourceList" style="display:none;flex-direction:column;gap:4px;margin-top:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px"></div>
+    </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="closePayCard()">ยกเลิก</button>
       <button class="btn-ok" onclick="confirmPayCard()">ชำระ ✓</button>
