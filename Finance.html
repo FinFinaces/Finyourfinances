@@ -2588,8 +2588,9 @@ function renderLoans(){
     const paid=Math.max(0,principal-remain);
     const pct=principal>0?Math.min(100,Math.round(paid/principal*100)):0;
     const done=remain<=0;
-    const t=LOAN_TYPES[l.type]||LOAN_TYPES.credit;
+    const t=LOAN_TYPES[l.type]||LOAN_TYPES.personal;
     const src=getSource(l.source||'cash');
+    const dueBadge=l.dueDate&&diffDays(l.dueDate)>=0&&diffDays(l.dueDate)<=7?'<span class="due-badge">ครบ '+diffDays(l.dueDate)+' วัน</span>':'';
     const moLeft=(l.monthly||0)>0&&remain>0?Math.ceil(remain/l.monthly):0;
 
     let creditNote='';
@@ -2654,9 +2655,9 @@ function openLoanModal(id, defaultType){
   editingLoanId=id||null;
   var l=id?loans.find(function(x){return x.id===id;}):null;
   var isCreditPage = (defaultType==='credit') ||
-                     (id && l && (l.type==='credit') && !l.parentCreditId);
-  // debt context → default personal, credit page → default credit
-  var type = l ? l.type : (isCreditPage ? 'credit' : 'personal');
+                     (id && l && (l.type==='creditline' || (l.type==='credit' && (l.creditLimit||0)>0)) && !l.parentCreditId);
+  // debt context → default personal, credit page → default creditline
+  var type = l ? l.type : (isCreditPage ? 'creditline' : 'personal');
 
   // show/hide context divs
   var ctxC=document.getElementById('lnCtxCredit');
@@ -2720,16 +2721,18 @@ function setLoanType(t){
     var b=document.getElementById('lnType'+k);
     if(!b) return;
     var baseKey=k.replace('A','').toLowerCase();
-    b.className='type-btn'+(baseKey===t?' '+baseKey+' on':'');
+    // creditline ให้ highlight ปุ่ม credit ด้วย
+    var isOn = (baseKey===t) || (t==='creditline' && baseKey==='credit');
+    b.className='type-btn'+(isOn?' '+baseKey+' on':'');
   });
-  // credit page: แสดง sub-fields ตาม type
+  // credit page: แสดง sub-fields ตาม type (creditline = วงเงิน, personal = ผ่อนชำระ)
   var clf=document.getElementById('lnCreditLineFields');
   var pf=document.getElementById('lnPersonalFields');
-  if(clf) clf.style.display=(t==='credit')?'':'none';
+  if(clf) clf.style.display=(t==='credit'||t==='creditline')?'':'none';
   if(pf)  pf.style.display=(t==='personal')?'':'none';
   // debt page: แสดง parentCredit dropdown เมื่อ type=credit
   var pcw=document.getElementById('lnParentCreditWrap');
-  if(pcw) pcw.style.display=(t==='credit')?'':'none';
+  if(pcw) pcw.style.display=(t==='credit'||t==='creditline')?'':'none';
 }
 function updateLoanCalc(){
   const remain=parseFloat(document.getElementById('lnRemaining').value)||0;
