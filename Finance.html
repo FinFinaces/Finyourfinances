@@ -2390,7 +2390,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 //  Cloud sync (single JSON blob per user → table: fin_store)
 // ============================================================
 function bundle(){
-  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:window.cards||[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, v:1 };
+  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:Array.isArray(window.cards)?window.cards:[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, v:1 };
 }
 async function cloudPull(){
   if(!currentUser || !sb) return;
@@ -2478,7 +2478,7 @@ function persistLocal(){
   localStorage.setItem('fin_sources', JSON.stringify(paymentSources));
   localStorage.setItem('fin_loans', JSON.stringify(loans));
   localStorage.setItem('fin_shortcuts', JSON.stringify(shortcuts));
-  localStorage.setItem('fin_cards', JSON.stringify(window.cards||[]));
+  var _c=window.cards; if(!Array.isArray(_c)) _c=[]; localStorage.setItem('fin_cards', JSON.stringify(_c));
 }
 function saveAll(){ persistLocal(); scheduleCloudPush(); }
 
@@ -3917,7 +3917,7 @@ function renderCards(){
   var grid=document.getElementById('cardsGrid');
   var empty=document.getElementById('cardsEmpty');
   if(!grid)return;
-  var cards=window.cards;
+  var cards=window.cards||[];
   var tb=cards.reduce(function(s,c){return s+(c.balance||0);},0);
   var tl=cards.reduce(function(s,c){return s+(c.limit||0);},0);
   var el;
@@ -4188,6 +4188,7 @@ async function chatAiSendModal(){
   document.getElementById('chatAiHintModal').textContent='⏳ กำลังวิเคราะห์...';
   chatAiShowThinkingModal('🤔 กำลังวิเคราะห์ "'+text.slice(0,30)+(text.length>30?'...':'')+'"');
   callChatProxyModal({
+    mime:'text/plain', image:'',
     prompt:'ผู้ใช้พิมพ์: "'+text+'"\nแปลงเป็นรายการการเงิน ตอบ JSON เท่านั้น ห้ามมีข้อความอื่น:\n{"items":[{"name":"ชื่อรายการ","amount":65.00,"type":"expense","category":"อาหาร","date":"'+todayStr()+'"}]}\ntype: expense=รายจ่าย, income=รายรับ\ncategory: อาหาร/เครื่องดื่ม/เดินทาง/ช้อปปิ้ง/ความบันเทิง/สุขภาพ/บิล/เงินเดือน/อื่นๆ\nถ้ามีหลายรายการให้ใส่ทุกรายการในอาร์เรย์'
   });
   input.value=''; input.style.height='auto';
