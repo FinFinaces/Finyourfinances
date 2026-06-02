@@ -1833,7 +1833,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <!-- ── context: วงเงินสินเชื่อ ── -->
     <div id="lnCtxCredit" style="display:none">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:4px">
-        <button type="button" class="type-btn" id="lnTypeCreditA" onclick="setLoanType('credit')" style="font-size:12px">🏦 วงเงินสินเชื่อ</button>
+        <button type="button" class="type-btn" id="lnTypeCreditA" onclick="setLoanType('creditline')" style="font-size:12px">🏦 วงเงินสินเชื่อ</button>
         <button type="button" class="type-btn" id="lnTypePersonalA" onclick="setLoanType('personal')" style="font-size:12px">📋 ผ่อนชำระ</button>
       </div>
       <!-- วงเงินสินเชื่อ fields (คล้ายบัตร) -->
@@ -1891,10 +1891,16 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 
     <!-- ── context: บันทึกหนี้ ── -->
     <div id="lnCtxDebt" style="display:none">
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:4px">
-        <button type="button" class="type-btn" id="lnTypeCredit" onclick="setLoanType('credit')" style="font-size:11px">🏦 จากวงเงิน</button>
-        <button type="button" class="type-btn" id="lnTypeFamily" onclick="setLoanType('family')" style="font-size:11px">👨‍👩‍👧 ยืมคน</button>
-        <button type="button" class="type-btn" id="lnTypeOther" onclick="setLoanType('other')" style="font-size:11px">📋 อื่นๆ</button>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:4px">
+        <button type="button" class="type-btn" id="lnTypeFamily" onclick="setLoanType('family')" style="font-size:12px">👨‍👩‍👧 ยืมคน</button>
+        <button type="button" class="type-btn" id="lnTypeOther" onclick="setLoanType('other')" style="font-size:12px">📋 อื่นๆ</button>
+      </div>
+      <!-- เชื่อมวงเงิน optional -->
+      <div class="fg" style="background:var(--blue-bg);border:1px solid var(--blue-br);border-radius:var(--rs);padding:10px 14px;margin-bottom:4px">
+        <label class="fl" style="color:var(--blue)">🏦 เชื่อมกับวงเงินสินเชื่อ (ถ้ามี)</label>
+        <select class="fs" id="lnParentCredit" style="background:var(--surface)">
+          <option value="">-- ไม่เชื่อม --</option>
+        </select>
       </div>
       <!-- เชื่อมวงเงิน (แสดงเมื่อเลือก "จากวงเงิน") -->
       <div id="lnParentCreditWrap" style="display:none">
@@ -2569,8 +2575,8 @@ function renderLoans(){
   const badge=document.getElementById('loanTotalBadge');
   if(badge) badge.textContent = loans.length ? loans.length+' รายการ · หนี้รวม ฿'+fmt(totalRemain) : '';
 
-  // โซนบันทึกหนี้ = ทุกอย่างที่ type ไม่ใช่ creditline
-  let list = loans.filter(l=> l.type !== 'creditline');
+  // โซนบันทึกหนี้ = ทุกอย่างที่ไม่ใช่ creditline
+  let list = (loans||[]).filter(function(l){ return l.type !== 'creditline'; });
   if(loanFilter==='active') list = list.filter(l=>(l.remaining||0)>0);
   else if(loanFilter==='done') list = list.filter(l=>(l.remaining||0)<=0);
 
