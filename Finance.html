@@ -4020,6 +4020,7 @@ function deleteTx(id){
 function adjustLoanUsed(tx, delta){
   if(!tx || tx.type!=='expense') return;
   var src=paymentSources.find(function(s){return s.id===tx.paymentSource;});
+  console.log('[adjust] paymentSource:',tx.paymentSource,'src found:',src?src.name:'NOT FOUND','loanId:',src?src.loanId:'N/A');
   if(!src || !src.loanId) return;
   var linked=src.loanId; // format: "loan:xxx" หรือ "card:xxx"
   if(linked.indexOf('loan:')===0){
