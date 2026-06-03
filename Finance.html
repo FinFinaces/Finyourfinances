@@ -5199,13 +5199,20 @@ function debugSources(){
   var info=paymentSources.map(function(s){
     return s.name+' (id:'+s.id+') → loanId: "'+(s.loanId||'ว่าง')+'"';
   }).join('\n');
-  var cards=(window.cards||[]).map(function(c){
+  var cardsInfo=(window.cards||[]).map(function(c){
     return 'card id: '+c.id+' name: '+c.name+' balance: '+c.balance;
   }).join('\n');
   var lastTxs=(txs||[]).slice(-3).map(function(t){
-    return t.name+' | paymentSource: '+t.paymentSource+' | status: '+t.status;
+    return t.name+' | src: '+t.paymentSource+' | status: '+t.status;
   }).join('\n');
-  alert('=== Sources ===\n'+info+'\n\n=== Cards ===\n'+cards+'\n\n=== Last 3 txs ===\n'+lastTxs+'\n\n_txSourceValue: '+_txSourceValue);
+  // simulate adjustLoanUsed on last paid expense tx
+  var lastExp=(txs||[]).filter(function(t){return t.type==='expense'&&t.status==='paid';}).slice(-1)[0];
+  var simResult='N/A';
+  if(lastExp){
+    var src=paymentSources.find(function(s){return s.id===lastExp.paymentSource;});
+    simResult='tx.paymentSource='+lastExp.paymentSource+' → src='+(src?src.name:'NOT FOUND')+' loanId='+(src?src.loanId:'N/A');
+  }
+  alert('=== Sources ===\n'+info+'\n\n=== Cards ===\n'+cardsInfo+'\n\n=== Last 3 txs ===\n'+lastTxs+'\n\n=== Sim adjust ===\n'+simResult+'\n\n_txSourceValue: '+_txSourceValue);
 }
 
 // ══════════════════════════════════════════════
