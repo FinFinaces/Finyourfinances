@@ -1517,7 +1517,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
             <span class="qsb-chev" style="font-size:10px">▼</span>
           </button>
         </div>
-        <button class="shortcut-action" onclick="openSourceManager()" style="font-size:10px;padding:4px 10px;flex-shrink:0">⚙ จัดการ</button>
+        <button class="shortcut-action" onclick="openSourceManager()" style="font-size:10px;padding:4px 10px;flex-shrink:0">⚙ แหล่งเงิน</button>
+        <button class="shortcut-action" onclick="openCatManager()" style="font-size:10px;padding:4px 10px;flex-shrink:0">🏷️ หมวดหมู่</button>
       </div>
     </div>
   </div>
@@ -4962,10 +4963,73 @@ function chatAiConfirm(){
 
 
 // ── Category Manager ──
-var editingCatName=null;
+var catSelectedEmoji='📋';
+var catCurrentEmojiCat='อาหาร';
+
 function openCatManager(){
+  catSelectedEmoji='📋';
+  catCurrentEmojiCat='อาหาร';
+  // render emoji cats
+  var cats=Object.keys(EMOJI_LIB);
+  var catEl=document.getElementById('catEmojiCats');
+  if(catEl) catEl.innerHTML=cats.map(function(c){
+    return '<span class="emoji-cat'+(c===catCurrentEmojiCat?' on':'')+'" onclick="setCatEmojiCat(\''+c+'\')">'+c+'</span>';
+  }).join('');
+  document.getElementById('catEmojiSearch').value='';
+  document.getElementById('catEmojiCustom').value='';
+  document.getElementById('catEmojiSelected').textContent='📋';
+  renderCatEmojiGrid();
   renderCatList();
   document.getElementById('catBackdrop').classList.add('open');
+}
+function setCatEmojiCat(cat){
+  catCurrentEmojiCat=cat;
+  document.querySelectorAll('#catEmojiCats .emoji-cat').forEach(function(el){
+    el.classList.toggle('on',el.textContent===cat);
+  });
+  document.getElementById('catEmojiSearch').value='';
+  renderCatEmojiGrid();
+}
+function renderCatEmojiGrid(){
+  var search=document.getElementById('catEmojiSearch').value.toLowerCase().trim();
+  var list=[];
+  if(search){
+    var all=[]; Object.values(EMOJI_LIB).forEach(function(arr){arr.forEach(function(e){if(all.indexOf(e)===-1)all.push(e);});});
+    list=all.filter(function(em){return (EMOJI_KEYWORDS[em]||'').toLowerCase().indexOf(search)!==-1;});
+    if(!list.length) list=all.slice(0,40);
+  } else {
+    list=EMOJI_LIB[catCurrentEmojiCat]||[];
+  }
+  var grid=document.getElementById('catEmojiGrid'); if(!grid) return;
+  grid.innerHTML=list.map(function(em){
+    return '<button class="emoji-cell'+(em===catSelectedEmoji?' selected':'')+'" onclick="selectCatEmoji(\''+em+'\')">'+em+'</button>';
+  }).join('');
+}
+function filterCatEmojis(){ renderCatEmojiGrid(); }
+function selectCatEmoji(em){
+  catSelectedEmoji=em;
+  document.getElementById('catEmojiCustom').value='';
+  document.getElementById('catEmojiSelected').textContent=em;
+  document.querySelectorAll('#catEmojiGrid .emoji-cell').forEach(function(el){
+    el.classList.toggle('selected',el.textContent===em);
+  });
+}
+function setCatCustomEmoji(){
+  var v=document.getElementById('catEmojiCustom').value.trim();
+  if(v){ catSelectedEmoji=v; document.getElementById('catEmojiSelected').textContent=v; document.querySelectorAll('#catEmojiGrid .emoji-cell').forEach(function(el){el.classList.remove('selected');}); }
+}
+function addCat(){
+  var name=document.getElementById('catNewName').value.trim();
+  var emoji=catSelectedEmoji||'📋';
+  if(!name){ toast('⚠️ กรอกชื่อหมวดหมู่'); return; }
+  if(CAT_EMOJI[name]){ toast('⚠️ มีหมวดนี้แล้ว'); return; }
+  CAT_EMOJI[name]=emoji;
+  saveCats();
+  document.getElementById('catNewName').value='';
+  catSelectedEmoji='📋';
+  document.getElementById('catEmojiSelected').textContent='📋';
+  renderCatList(); renderCatEmojiGrid();
+  toast('✓ เพิ่มหมวด "'+name+'" แล้ว');
 }
 function closeCatManager(){
   document.getElementById('catBackdrop').classList.remove('open');
@@ -4984,18 +5048,6 @@ function renderCatList(){
       '<button class="goal-btn" onclick="editCat(\''+esc(name)+'\')" title="แก้ไข">✎</button>'+
     '</div>';
   }).join('');
-}
-function addCat(){
-  var name=document.getElementById('catNewName').value.trim();
-  var emoji=document.getElementById('catNewEmoji').value.trim()||'📋';
-  if(!name){ toast('⚠️ กรอกชื่อหมวดหมู่'); return; }
-  if(CAT_EMOJI[name]){ toast('⚠️ มีหมวดนี้แล้ว'); return; }
-  CAT_EMOJI[name]=emoji;
-  saveCats();
-  document.getElementById('catNewName').value='';
-  document.getElementById('catNewEmoji').value='';
-  renderCatList();
-  toast('✓ เพิ่มหมวด "'+name+'" แล้ว');
 }
 function deleteCat(name){
   if(DEFAULT_CATEGORIES.hasOwnProperty(name)){ toast('⚠️ ไม่สามารถลบหมวดเริ่มต้น'); return; }
@@ -5370,19 +5422,33 @@ function voiceReset(){
 
 <!-- ── Category Manager Modal ── -->
 <div class="backdrop" id="catBackdrop" onclick="if(event.target===this)closeCatManager()">
-  <div class="modal" style="max-width:440px">
+  <div class="modal" style="max-width:480px">
     <div class="modal-head">
       <div class="modal-title">🏷️ จัดการหมวดหมู่</div>
       <button class="modal-x" onclick="closeCatManager()">✕</button>
     </div>
     <div style="background:var(--bg2);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--text2);line-height:1.5">
-      💡 เพิ่ม/แก้ไข/ลบหมวดหมู่ได้ตามต้องการ<br>หมวดเริ่มต้นไม่สามารถลบได้
+      💡 เพิ่ม/แก้ไข/ลบหมวดหมู่ได้ตามต้องการ · หมวดเริ่มต้นไม่สามารถลบได้
     </div>
-    <div id="catList" style="display:flex;flex-direction:column;gap:6px;max-height:340px;overflow-y:auto;margin-bottom:12px"></div>
-    <div style="display:flex;gap:8px;padding:10px;background:var(--bg2);border-radius:var(--rs);border:1px solid var(--border)">
-      <input class="fi" id="catNewEmoji" placeholder="emoji" style="width:60px;text-align:center;font-size:18px" maxlength="4"/>
-      <input class="fi" id="catNewName" placeholder="ชื่อหมวดหมู่ใหม่" style="flex:1"/>
-      <button class="btn-ok" onclick="addCat()" style="flex:0 0 auto;padding:8px 14px">+ เพิ่ม</button>
+    <div id="catList" style="display:flex;flex-direction:column;gap:6px;max-height:240px;overflow-y:auto;margin-bottom:14px"></div>
+    <!-- เพิ่มหมวดใหม่ -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px">+ เพิ่มหมวดใหม่</div>
+      <!-- emoji picker -->
+      <div style="margin-bottom:8px">
+        <input class="emoji-search" id="catEmojiSearch" placeholder="🔎 ค้นหา emoji: food, travel, money..." oninput="filterCatEmojis()"/>
+        <div class="emoji-categories" id="catEmojiCats"></div>
+        <div class="emoji-grid" id="catEmojiGrid"></div>
+        <div class="emoji-custom" style="margin-top:6px">
+          <span style="font-size:11px;color:var(--text3)">หรือพิมพ์เอง:</span>
+          <input id="catEmojiCustom" placeholder="วาง emoji" maxlength="4" oninput="setCatCustomEmoji()"/>
+          <div class="emoji-preview" id="catEmojiSelected">📋</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <input class="fi" id="catNewName" placeholder="ชื่อหมวดหมู่" style="flex:1"/>
+        <button class="btn-ok" onclick="addCat()" style="flex:0 0 auto;padding:10px 16px">+ เพิ่ม</button>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn-cancel" onclick="resetCats()" style="color:var(--red);border-color:var(--red-br)">↺ คืนค่าเริ่มต้น</button>
