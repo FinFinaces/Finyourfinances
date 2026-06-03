@@ -3286,14 +3286,14 @@ function openSourcePicker(target){
   const list=document.getElementById('sourcePickList');
   list.innerHTML=paymentSources.map(s=>{
     const on=s.id===cur;
-    return '<div class="source-pick-item'+(on?' on':'')+'" onclick="pickSource(\''+s.id+'\')">'+
+    return '<div class="source-pick-item'+(on?' on':'')+'" onclick="pickSourcePopup(\''+s.id+'\')">'+
       '<div class="source-pick-icon" style="background:'+s.color+'">'+s.icon+'</div>'+
       '<div class="source-pick-info"><div class="source-pick-name">'+esc(s.name)+'</div><div class="source-pick-type">'+(s.type==='credit'?'💳 สินเชื่อ':'💵 เงินสด')+'</div></div>'+
       (on?'<span class="source-pick-check">✓</span>':'')+'</div>';
   }).join('');
   document.getElementById('sourcePickBackdrop').classList.add('open');
 }
-function pickSource(id){
+function pickSourcePopup(id){
   if(sourcePickTarget==='confirm'){ confirmSourceId=id; renderQcSourceInlineList(); }
   else { qaSourceId=id; updateQaSourceBtn(); }
   closeSourcePicker();
