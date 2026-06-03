@@ -2201,7 +2201,12 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <div class="fg"><label class="fl">จำนวน (บาท)</label><input class="fi" id="txAmt" type="number" min="0" step="0.01" placeholder="0.00"/></div>
       <div class="fg">
         <label class="fl">หมวดหมู่</label>
-        <select class="fs" id="txCat"></select>
+        <input type="hidden" id="txCat" value="อาหาร"/>
+        <div id="txCatDropdown" onclick="toggleTxCatDropdown()" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px">
+          <span id="txCatLabel">🍜 อาหาร</span>
+          <span id="txCatArrow" style="font-size:11px;color:var(--text3)">▼</span>
+        </div>
+        <div id="txCatList" style="display:none;flex-direction:column;gap:2px;margin-top:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px"></div>
         <button type="button" onclick="openCatManager()" style="margin-top:4px;font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:0;font-family:'Sarabun',sans-serif">⚙ จัดการหมวดหมู่</button>
       </div>
     </div>
@@ -2333,12 +2338,49 @@ function getCatOptions(){
   }).join('');
 }
 function refreshCatSelects(){
-  ['txCat','scCat'].forEach(function(id){
-    var el=document.getElementById(id); if(!el) return;
-    var cur=el.value;
-    el.innerHTML=getCatOptions();
-    if(cur) el.value=cur;
-  });
+  // scCat ยังเป็น <select> ธรรมดา
+  var sc=document.getElementById('scCat');
+  if(sc){ var cur=sc.value; sc.innerHTML=getCatOptions(); if(cur) sc.value=cur; }
+  // txCat เป็น custom dropdown
+  var cur=document.getElementById('txCat')?document.getElementById('txCat').value:'';
+  _renderTxCatDropdown(cur||Object.keys(CAT_EMOJI)[0]||'อาหาร');
+}
+function _renderTxCatDropdown(selected){
+  var list=document.getElementById('txCatList');
+  var lbl=document.getElementById('txCatLabel');
+  var emoji=CAT_EMOJI[selected]||'📋';
+  if(lbl) lbl.textContent=emoji+' '+selected;
+  if(document.getElementById('txCat')) document.getElementById('txCat').value=selected;
+  if(!list) return;
+  list.innerHTML=Object.entries(CAT_EMOJI).map(function(e){
+    var on=e[0]===selected;
+    return '<button type="button" onclick="pickTxCat(\''+esc(e[0])+'\')" style="'+
+      'display:flex;align-items:center;gap:10px;padding:7px 10px;border-radius:var(--rs);'+
+      'border:1.5px solid '+(on?'var(--accent)':'transparent')+';'+
+      'background:'+(on?'var(--accent3)':'transparent')+';'+
+      'font-family:\'Sarabun\',sans-serif;font-size:13px;font-weight:'+(on?'700':'400')+';'+
+      'cursor:pointer;text-align:left;width:100%">'+
+      '<span>'+e[1]+'</span><span>'+esc(e[0])+'</span>'+
+      (on?'<span style="margin-left:auto;color:var(--accent)">✓</span>':'')+
+    '</button>';
+  }).join('');
+}
+function pickTxCat(cat){
+  document.getElementById('txCat').value=cat;
+  _renderTxCatDropdown(cat);
+  var list=document.getElementById('txCatList');
+  var arrow=document.getElementById('txCatArrow');
+  if(list) list.style.display='none';
+  if(arrow) arrow.textContent='▼';
+}
+function toggleTxCatDropdown(){
+  var list=document.getElementById('txCatList');
+  var arrow=document.getElementById('txCatArrow');
+  if(!list) return;
+  var isOpen=list.style.display!=='none'&&list.style.display!=='';
+  list.style.display=isOpen?'none':'flex';
+  list.style.flexDirection='column';
+  if(arrow) arrow.textContent=isOpen?'▼':'▲';
 }
 const CAT_COLORS = ['#4a6741','#9b4a3a','#8a6a2a','#2e5a8a','#6b4a7d','#3d6b38','#c89a3a','#5c7d52','#a85c4a','#7d6a4a'];
 const PRESETS = {
@@ -3769,16 +3811,8 @@ function openTxModal(id){
     var srcId=t.paymentSource||'bank';
     document.getElementById('txSource').value=srcId;
     _renderSourceDropdown('txSource',srcId);
-    var catEl=document.getElementById('txCat');
-    if(catEl){
-      var hasOpt=Array.from(catEl.options).some(function(o){return o.value===t.category;});
-      if(!hasOpt){
-        var opt=document.createElement('option');
-        opt.value=t.category; opt.textContent=t.category;
-        catEl.appendChild(opt);
-      }
-      catEl.value=t.category;
-    }
+    var catVal=t.category||Object.keys(CAT_EMOJI)[0]||'อาหาร';
+    _renderTxCatDropdown(catVal);
   } else {
     setTxType('expense');
     ['txName','txAmt','txDue','txNote'].forEach(i=>document.getElementById(i).value='');
@@ -3791,11 +3825,14 @@ function openTxModal(id){
     document.getElementById('txRecurring').checked=false;
     document.getElementById('txSource').value=qaSourceId||'bank';
     _renderSourceDropdown('txSource',qaSourceId||'bank');
+    _renderTxCatDropdown('อาหาร');
   }
   document.getElementById('txBackdrop').classList.add('open');
   // ปิด source dropdown ทุกครั้งที่เปิด modal
   var sl=document.getElementById('txSourceList'); if(sl) sl.style.display='none';
   var sa=document.getElementById('txSourceArrow'); if(sa) sa.textContent='▼';
+  var cl=document.getElementById('txCatList'); if(cl) cl.style.display='none';
+  var ca=document.getElementById('txCatArrow'); if(ca) ca.textContent='▼';
   setTimeout(function(){
     setTxStatus(statusToSet);
     document.getElementById('txName').focus();
