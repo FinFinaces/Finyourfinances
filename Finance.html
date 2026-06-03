@@ -1648,8 +1648,6 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div id="loansEmpty" class="empty" style="display:none">ไม่มีรายการ</div>
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
       <button class="btn-add-loan" onclick="openScanModal('installment')" style="flex:0 0 auto;width:auto;padding:12px 16px;border-color:var(--blue-br);color:var(--blue);font-size:12px">📷 นำเข้าตารางผ่อน</button>
-      <input type="file" id="loanJsonInput" accept=".json" style="display:none" onchange="handleImportJSON(event)"/>
-      <button class="btn-add-loan" onclick="document.getElementById('loanJsonInput').click()" style="flex:0 0 auto;width:auto;padding:12px 16px;border-color:var(--green-br);color:var(--green);font-size:12px">📂 นำเข้า JSON</button>
     </div>
 
     <!-- 🎯 Debt Freedom Path -->
@@ -1984,7 +1982,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       </div>
       <div id="payHint" style="font-size:11px;color:var(--text3)"></div>
     </div>
-    <div class="fg"><label class="fl">วันที่ชำระ</label><input class="fi" id="payLoanDate" type="date"/></div>
+    <div class="fg"><label class="fl">วันที่ชำระ</label><div id="payLoanDateWrap" style="display:flex;gap:6px"></div><input type="hidden" id="payLoanDate"/></div>
     <div class="fg">
       <label class="fl">จ่ายผ่าน</label>
       <input type="hidden" id="payLoanSource" value="bank"/>
@@ -2050,7 +2048,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <div style="font-size:11px;color:var(--amber);font-weight:600;margin-bottom:4px">📋 ชื่อรายการหนี้ใหม่</div>
       <input class="fi" id="drawLoanLabel" placeholder="เช่น SEasyCash เบิก ม.ค. 68" style="margin:0"/>
     </div>
-    <div class="fg"><label class="fl">วันที่เบิก</label><input class="fi" id="drawDate" type="date"/></div>
+    <div class="fg"><label class="fl">วันที่เบิก</label><div id="drawDateWrap" style="display:flex;gap:6px"></div><input type="hidden" id="drawDate"/></div>
     <div class="fg"><label class="fl">หมายเหตุ (ไม่บังคับ)</label><input class="fi" id="drawNote" placeholder="เช่น เบิกมาจ่ายค่าน้ำมัน"/></div>
     <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
       <div class="fg" style="background:var(--green-bg);border:1px solid var(--green-br);border-radius:var(--rs);padding:10px 12px;margin:0">
@@ -2124,6 +2122,13 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="fg"><label class="fl">ไอคอน</label><input class="fi" id="seIcon" placeholder="วาง emoji เช่น 💳" maxlength="4" oninput="updateSourcePreview()"/></div>
     <div class="fg"><label class="fl">สี</label><div class="color-picker" id="seColorPicker"></div></div>
+    <div class="fg">
+      <label class="fl">🏷️ หมวดหมู่เริ่มต้น</label>
+      <select class="fs" id="seDefaultCat">
+        <option value="">-- ไม่กำหนด (ใช้ค่าล่าสุด) --</option>
+      </select>
+      <div style="font-size:11px;color:var(--text3);margin-top:3px">เมื่อเลือกแหล่งเงินนี้ จะตั้งหมวดหมู่ให้อัตโนมัติ</div>
+    </div>
     <div class="fg" id="seLoanLinkWrap" style="display:none">
       <label class="fl">🔗 เชื่อมกับวงเงิน / บัตรเครดิต</label>
       <input type="hidden" id="seLoanId" value=""/>
@@ -2211,8 +2216,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       </div>
     </div>
     <div class="frow">
-      <div class="fg"><label class="fl">วันที่บันทึก</label><input class="fi" id="txDate" type="date"/></div>
-      <div class="fg"><label class="fl">กำหนดชำระ</label><input class="fi" id="txDue" type="date"/></div>
+      <div class="fg"><label class="fl">วันที่บันทึก</label><div id="txDateWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDate"/></div>
+      <div class="fg"><label class="fl">กำหนดชำระ</label><div id="txDueWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDue"/></div>
     </div>
     <div class="frow">
       <div class="fg">
@@ -2375,6 +2380,13 @@ function pickTxCat(cat){
   var arrow=document.getElementById('txCatArrow');
   if(list) list.style.display='none';
   if(arrow) arrow.textContent='▼';
+}
+function _autoSetCatFromSource(srcId){
+  // ถ้า source มี defaultCat และ modal กำลังเปิดอยู่ → set หมวดหมู่อัตโนมัติ
+  var src=paymentSources.find(function(s){return s.id===srcId;});
+  if(src&&src.defaultCat&&document.getElementById('txBackdrop').classList.contains('open')){
+    pickTxCat(src.defaultCat);
+  }
 }
 function toggleTxCatDropdown(){
   var list=document.getElementById('txCatList');
@@ -2548,7 +2560,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 //  Cloud sync (single JSON blob per user → table: fin_store)
 // ============================================================
 function bundle(){
-  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:Array.isArray(window.cards)?window.cards:[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, v:1 };
+  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:Array.isArray(window.cards)?window.cards:[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, categories:CAT_EMOJI, v:1 };
 }
 async function cloudPull(){
   if(!currentUser || !sb) return;
@@ -2564,6 +2576,10 @@ async function cloudPull(){
       if(Array.isArray(b.sources) && b.sources.length) paymentSources = b.sources;
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
+      if(b.categories && typeof b.categories==='object'){
+        CAT_EMOJI = Object.assign({}, DEFAULT_CATEGORIES, b.categories);
+        saveCats();
+      }
       persistLocal();
       migrateLoansType();
       repairLoansType();
@@ -2993,7 +3009,8 @@ function openPayLoan(id){
   document.getElementById('payLoanRemain').textContent='฿'+fmt(l.remaining);
   document.getElementById('payLoanAmt').value=l.monthly>0?l.monthly:'';
   const today=new Date();
-  document.getElementById('payLoanDate').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  const todayStr2=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  renderDatePicker('payLoanDateWrap','payLoanDate',todayStr2);
   populateSourceSelect('payLoanSource');
   var srcId=l.source||'bank';
   document.getElementById('payLoanSource').value=srcId;
@@ -3067,7 +3084,7 @@ function openDraw(id){
   document.querySelectorAll('#drawBackdrop .months-preset').forEach(function(b){b.classList.remove('on');});
   const today = new Date();
   const dd = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  document.getElementById('drawDate').value = dd;
+  renderDatePicker('drawDateWrap','drawDate',dd);
   // ตั้งชื่อ default เช่น "SEasyCash เบิก มิ.ย. 69"
   const thMonths=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
   document.getElementById('drawLoanLabel').value = l.name+' เบิก '+thMonths[today.getMonth()]+' '+(today.getFullYear()+543);
@@ -3179,6 +3196,14 @@ function editSource(id){
   seType=s?s.type:'cash'; seColor=s?s.color:'#3d6b38';
   var curLoanId=s?s.loanId||'':'';
   document.getElementById('seLoanId').value=curLoanId;
+  // populate default category
+  var dcEl=document.getElementById('seDefaultCat');
+  if(dcEl){
+    dcEl.innerHTML='<option value="">-- ไม่กำหนด --</option>'+
+      Object.entries(CAT_EMOJI).map(function(e){
+        return '<option value="'+esc(e[0])+'"'+(s&&s.defaultCat===e[0]?' selected':'')+'>'+e[1]+' '+esc(e[0])+'</option>';
+      }).join('');
+  }
   seSetType(seType);
   renderSeColorPicker();
   renderSeLoanList(curLoanId);
@@ -3229,8 +3254,9 @@ function saveSource(){
   const name=document.getElementById('seName').value.trim();
   const icon=document.getElementById('seIcon').value.trim()||(seType==='cash'?'💵':'💳');
   const loanId=(document.getElementById('seLoanId')?document.getElementById('seLoanId').value:'')||'';
+  const defaultCat=(document.getElementById('seDefaultCat')?document.getElementById('seDefaultCat').value:'')||'';
   if(!name){ toast('⚠️ กรอกชื่อ'); return; }
-  const obj={name,icon,color:seColor,type:seType,loanId:loanId};
+  const obj={name,icon,color:seColor,type:seType,loanId:loanId,defaultCat:defaultCat};
   if(editingSourceId==='new'){ paymentSources.push(Object.assign({id:'src'+Date.now()},obj)); }
   else { const i=paymentSources.findIndex(x=>x.id===editingSourceId); if(i!==-1) paymentSources[i]=Object.assign({},paymentSources[i],obj); }
   saveAll(); closeSourceEdit(); renderSourceList(); toast('✓ บันทึกแหล่งเงินแล้ว');
@@ -3805,9 +3831,9 @@ function openTxModal(id){
     setTxType(t.type);
     document.getElementById('txName').value=t.name;
     document.getElementById('txAmt').value=t.amount;
-    document.getElementById('txDate').value=t.date;
+    renderDatePicker('txDateWrap','txDate',t.date);
     currentTxDate=t.date;
-    document.getElementById('txDue').value=t.due||'';
+    renderDatePicker('txDueWrap','txDue',t.due||t.date);
     statusToSet=t.status;
     document.getElementById('txNote').value=t.note||'';
     document.getElementById('txRecurring').checked=t.isRecurring||false;
@@ -3823,7 +3849,8 @@ function openTxModal(id){
     let dd=p.m===today.getMonth()&&p.y===today.getFullYear()?today.getDate():1;
     const ld=new Date(p.y,p.m+1,0).getDate(); dd=Math.min(dd,ld);
     var ds=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(dd).padStart(2,'0');
-    document.getElementById('txDate').value=ds;
+    renderDatePicker('txDateWrap','txDate',ds);
+    renderDatePicker('txDueWrap','txDue',ds);
     currentTxDate=ds;
     document.getElementById('txRecurring').checked=false;
     document.getElementById('txSource').value=qaSourceId||'bank';
@@ -3903,6 +3930,7 @@ function pickSource(baseId, id){
   var arrow=document.getElementById(baseId+'Arrow');
   if(list){ list.style.display='none'; }
   if(arrow){ arrow.textContent='▼'; }
+  if(baseId==='txSource') _autoSetCatFromSource(id);
 }
 function toggleSourceDropdown(baseId){
   var list=document.getElementById(baseId+'List');
@@ -3930,7 +3958,6 @@ function saveTx(){
   const name=document.getElementById('txName').value.trim();
   var dateEl=document.getElementById('txDate');
   var date=dateEl?dateEl.value:'';
-  // Safari iPad fallback — ถ้า date ว่างให้ใช้ค่าที่เก็บไว้ หรือวันนี้
   if(!date) date=currentTxDate;
   if(!date){ var t=new Date(); date=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
   if(!name){ toast('⚠️ กรุณากรอกชื่อรายการ'); return; }
@@ -4675,7 +4702,8 @@ function openPayCard(idx){
   if(fullBtn) fullBtn.onclick=function(){document.getElementById('payCardAmt').value=(c.balance||0).toFixed(2);};
   if(minBtn) minBtn.onclick=function(){document.getElementById('payCardAmt').value=minPay.toFixed(2);};
   var t=new Date();
-  document.getElementById('payCardDate').value=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  var todayStr3=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0');
+  renderDatePicker('payCardDateWrap','payCardDate',todayStr3);
   populateSourceSelect('payCardSource');
   _renderSourceDropdown('payCardSource','bank');
   document.getElementById('payCardBackdrop').classList.add('open');
@@ -5002,7 +5030,34 @@ function chatAiConfirm(){
 }
 
 
-// ── Category Manager ──
+// ── Date Picker (Safari-safe 3 dropdowns) ──
+function renderDatePicker(wrapId, hiddenId, dateStr){
+  var wrap=document.getElementById(wrapId); if(!wrap) return;
+  var d=dateStr?new Date(dateStr):new Date();
+  var y=d.getFullYear(), m=d.getMonth()+1, day=d.getDate();
+  var days=''; for(var i=1;i<=31;i++) days+='<option value="'+i+'"'+(i===day?' selected':'')+'>'+i+'</option>';
+  var months=MONTHS_SHORT.map(function(n,i){return '<option value="'+(i+1)+'"'+((i+1)===m?' selected':'')+'>'+n+'</option>';}).join('');
+  var years=''; for(var yr=y+2;yr>=2020;yr--) years+='<option value="'+yr+'"'+(yr===y?' selected':'')+'>'+yr+(+yr>=2500?'':' ('+(yr+543)+')')+'</option>';
+  wrap.innerHTML=
+    '<select class="fs" style="flex:1;min-width:50px" onchange="syncDatePicker(\''+wrapId+'\',\''+hiddenId+'\')">'+days+'</select>'+
+    '<select class="fs" style="flex:2" onchange="syncDatePicker(\''+wrapId+'\',\''+hiddenId+'\')">'+months+'</select>'+
+    '<select class="fs" style="flex:2" onchange="syncDatePicker(\''+wrapId+'\',\''+hiddenId+'\')">'+years+'</select>';
+  syncDatePicker(wrapId, hiddenId);
+}
+function syncDatePicker(wrapId, hiddenId){
+  var wrap=document.getElementById(wrapId); if(!wrap) return;
+  var sels=wrap.querySelectorAll('select');
+  if(sels.length<3) return;
+  var day=parseInt(sels[0].value)||1;
+  var mon=parseInt(sels[1].value)||1;
+  var yr=parseInt(sels[2].value)||new Date().getFullYear();
+  var val=yr+'-'+String(mon).padStart(2,'0')+'-'+String(day).padStart(2,'0');
+  var h=document.getElementById(hiddenId); if(h) h.value=val;
+  if(hiddenId==='txDate') currentTxDate=val;
+}
+function getDatePickerVal(hiddenId){
+  var h=document.getElementById(hiddenId); return h?h.value:'';
+}
 var catSelectedEmoji='📋';
 var catCurrentEmojiCat='อาหาร';
 
@@ -5396,7 +5451,7 @@ function voiceReset(){
       </div>
       <input class="fi mono" id="payCardAmt" type="number" step="0.01" placeholder="0.00"/>
     </div>
-    <div class="fg"><label class="fl">วันที่ชำระ</label><input class="fi" id="payCardDate" type="date"/></div>
+    <div class="fg"><label class="fl">วันที่ชำระ</label><div id="payCardDateWrap" style="display:flex;gap:6px"></div><input type="hidden" id="payCardDate"/></div>
     <div class="fg">
       <label class="fl">จ่ายจาก</label>
       <input type="hidden" id="payCardSource" value="bank"/>
