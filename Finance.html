@@ -2353,6 +2353,7 @@ function refreshCatSelects(){
 }
 var _txCatValue='อาหาร';
 var _txSourceValue='bank';
+var _txStatusValue='unpaid';
 function _renderTxCatDropdown(selected){
   _txCatValue=selected; // เก็บใน JS variable ไม่พึ่ง DOM
   var lbl=document.getElementById('txCatLabel');
@@ -3877,6 +3878,7 @@ function closeTxModal(){ document.getElementById('txBackdrop').classList.remove(
 function closeTxIfBg(e){ if(e.target===e.currentTarget) closeTxModal(); }
 function setTxType(t){ txType=t; document.getElementById('btnExp').classList.toggle('on',t==='expense'); document.getElementById('btnInc').classList.toggle('on',t==='income'); }
 function setTxStatus(s){
+  _txStatusValue=s;
   document.getElementById('txStatus').value=s;
   var styles={
     paid:{border:'1.5px solid var(--green-br)',background:'var(--green-bg)',color:'var(--green)'},
@@ -3968,7 +3970,12 @@ function saveTx(){
   if(!date){ var t=new Date(); date=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
   if(!name){ toast('⚠️ กรุณากรอกชื่อรายการ'); return; }
   // อ่านค่าทั้งหมดจาก form ก่อนปิด modal
-  var statusVal=document.getElementById('txStatus').value||'unpaid';
+  var statusVal=document.getElementById('txStatus').value||_txStatusValue||'unpaid';
+  var sourceVal=(document.getElementById('txSource')?document.getElementById('txSource').value:'')||_txSourceValue||'cash';
+  // ถ้า hidden input เป็น bank/cash แต่ _txSourceValue เป็นอื่น → ใช้ _txSourceValue (Safari reset hidden input)
+  if((sourceVal==='bank'||sourceVal==='cash') && _txSourceValue && _txSourceValue!=='bank' && _txSourceValue!=='cash'){
+    sourceVal=_txSourceValue;
+  }
   const savedEditId = editTxId;
   const obj={
     name,
@@ -3980,7 +3987,7 @@ function saveTx(){
     note:document.getElementById('txNote').value.trim(),
     type:txType,
     isRecurring:document.getElementById('txRecurring').checked,
-    paymentSource:_txSourceValue||document.getElementById('txSource').value||'cash'
+    paymentSource:sourceVal
   };
   closeTxModal();
   try {
