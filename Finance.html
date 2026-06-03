@@ -5193,12 +5193,15 @@ function updateDueDayHint(){
 }
 function debugSources(){
   var info=paymentSources.map(function(s){
-    return s.name+' → loanId: "'+(s.loanId||'ว่าง')+'"';
+    return s.name+' (id:'+s.id+') → loanId: "'+(s.loanId||'ว่าง')+'"';
   }).join('\n');
   var cards=(window.cards||[]).map(function(c){
     return 'card id: '+c.id+' name: '+c.name+' balance: '+c.balance;
   }).join('\n');
-  alert('=== Sources ===\n'+info+'\n\n=== Cards ===\n'+cards);
+  var lastTxs=(txs||[]).slice(-3).map(function(t){
+    return t.name+' | paymentSource: '+t.paymentSource+' | status: '+t.status;
+  }).join('\n');
+  alert('=== Sources ===\n'+info+'\n\n=== Cards ===\n'+cards+'\n\n=== Last 3 txs ===\n'+lastTxs+'\n\n_txSourceValue: '+_txSourceValue);
 }
 
 // ══════════════════════════════════════════════
