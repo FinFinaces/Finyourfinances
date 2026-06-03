@@ -3970,12 +3970,8 @@ function saveTx(){
   if(!date){ var t=new Date(); date=t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0'); }
   if(!name){ toast('⚠️ กรุณากรอกชื่อรายการ'); return; }
   // อ่านค่าทั้งหมดจาก form ก่อนปิด modal
-  var statusVal=document.getElementById('txStatus').value||_txStatusValue||'unpaid';
-  var sourceVal=(document.getElementById('txSource')?document.getElementById('txSource').value:'')||_txSourceValue||'cash';
-  // ถ้า hidden input เป็น bank/cash แต่ _txSourceValue เป็นอื่น → ใช้ _txSourceValue (Safari reset hidden input)
-  if((sourceVal==='bank'||sourceVal==='cash') && _txSourceValue && _txSourceValue!=='bank' && _txSourceValue!=='cash'){
-    sourceVal=_txSourceValue;
-  }
+  var statusVal=_txStatusValue||document.getElementById('txStatus').value||'unpaid';
+  var sourceVal=_txSourceValue||'bank';
   const savedEditId = editTxId;
   const obj={
     name,
