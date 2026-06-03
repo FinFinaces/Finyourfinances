@@ -3195,6 +3195,7 @@ function editSource(id){
   document.getElementById('seIcon').value=s?s.icon:'💳';
   seType=s?s.type:'cash'; seColor=s?s.color:'#3d6b38';
   var curLoanId=s?s.loanId||'':'';
+  _seLoanIdValue=curLoanId;
   document.getElementById('seLoanId').value=curLoanId;
   // populate default category
   var dcEl=document.getElementById('seDefaultCat');
@@ -3245,15 +3246,17 @@ function renderSeLoanList(selected){
     '</button>';
   }).join('');
 }
+function updateSourcePreview(){}
+var _seLoanIdValue='';
 function pickLoanLink(id){
+  _seLoanIdValue=id;
   document.getElementById('seLoanId').value=id;
   renderSeLoanList(id);
 }
-function updateSourcePreview(){}
 function saveSource(){
   const name=document.getElementById('seName').value.trim();
   const icon=document.getElementById('seIcon').value.trim()||(seType==='cash'?'💵':'💳');
-  const loanId=(document.getElementById('seLoanId')?document.getElementById('seLoanId').value:'')||'';
+  const loanId=_seLoanIdValue||(document.getElementById('seLoanId')?document.getElementById('seLoanId').value:'')||'';
   const defaultCat=(document.getElementById('seDefaultCat')?document.getElementById('seDefaultCat').value:'')||'';
   if(!name){ toast('⚠️ กรอกชื่อ'); return; }
   const obj={name,icon,color:seColor,type:seType,loanId:loanId,defaultCat:defaultCat};
