@@ -2345,12 +2345,14 @@ function refreshCatSelects(){
   var cur=document.getElementById('txCat')?document.getElementById('txCat').value:'';
   _renderTxCatDropdown(cur||Object.keys(CAT_EMOJI)[0]||'อาหาร');
 }
+var _txCatValue='อาหาร';
 function _renderTxCatDropdown(selected){
-  var list=document.getElementById('txCatList');
+  _txCatValue=selected; // เก็บใน JS variable ไม่พึ่ง DOM
   var lbl=document.getElementById('txCatLabel');
   var emoji=CAT_EMOJI[selected]||'📋';
   if(lbl) lbl.textContent=emoji+' '+selected;
   if(document.getElementById('txCat')) document.getElementById('txCat').value=selected;
+  var list=document.getElementById('txCatList');
   if(!list) return;
   list.innerHTML=Object.entries(CAT_EMOJI).map(function(e){
     var on=e[0]===selected;
@@ -2366,7 +2368,8 @@ function _renderTxCatDropdown(selected){
   }).join('');
 }
 function pickTxCat(cat){
-  document.getElementById('txCat').value=cat;
+  _txCatValue=cat;
+  if(document.getElementById('txCat')) document.getElementById('txCat').value=cat;
   _renderTxCatDropdown(cat);
   var list=document.getElementById('txCatList');
   var arrow=document.getElementById('txCatArrow');
@@ -3937,7 +3940,7 @@ function saveTx(){
   const obj={
     name,
     amount:parseFloat(document.getElementById('txAmt').value)||0,
-    category:document.getElementById('txCat').value,
+    category:_txCatValue||document.getElementById('txCat').value||'อื่นๆ',
     date,
     due:document.getElementById('txDue').value||date,
     status:statusVal,
