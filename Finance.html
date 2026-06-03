@@ -2354,6 +2354,7 @@ function refreshCatSelects(){
 var _txCatValue='อาหาร';
 var _txSourceValue='bank';
 var _txStatusValue='unpaid';
+var _scanSourceValue='cash';
 function _renderTxCatDropdown(selected){
   _txCatValue=selected; // เก็บใน JS variable ไม่พึ่ง DOM
   var lbl=document.getElementById('txCatLabel');
@@ -3916,6 +3917,7 @@ function _renderSourceDropdown(baseId, selected){
   if(lbl&&src) lbl.textContent=src.icon+' '+src.name;
   if(document.getElementById(baseId)) document.getElementById(baseId).value=selected;
   if(baseId==='txSource') _txSourceValue=selected;
+  if(baseId==='scanSource') _scanSourceValue=selected;
   if(!list) return;
   list.innerHTML=paymentSources.map(function(s){
     var on=s.id===selected;
@@ -3939,6 +3941,7 @@ function pickSource(baseId, id){
   if(list){ list.style.display='none'; }
   if(arrow){ arrow.textContent='▼'; }
   if(baseId==='txSource'){ _txSourceValue=id; _autoSetCatFromSource(id); }
+  if(baseId==='scanSource'){ _scanSourceValue=id; }
 }
 function toggleSourceDropdown(baseId){
   var list=document.getElementById(baseId+'List');
@@ -4155,7 +4158,7 @@ function openScanModal(mode){
   scanMode = mode || 'receipt';
   document.getElementById('scanModalTitle').textContent = mode==='installment' ? '📷 นำเข้าตารางผ่อน' : '📷 สแกนใบเสร็จ';
   scanReset();
-  populateSourceSelect('scanSource');
+  _renderSourceDropdown('scanSource', qaSourceId||'cash');
   // populate loan select
   const ls = document.getElementById('scanLoanSelect');
   if(ls){
@@ -4312,7 +4315,7 @@ function scanConfirmSave(){
   } else {
     const items = (scanParsedData && scanParsedData.items) || [];
     const cat = (document.getElementById('scanCat') ? document.getElementById('scanCat').value : '') || 'อื่นๆ';
-    const src = (document.getElementById('scanSource') ? document.getElementById('scanSource').value : '') || 'cash';
+    const src = _scanSourceValue || (document.getElementById('scanSource') ? document.getElementById('scanSource').value : '') || 'cash';
     let added = 0;
     items.forEach((item,i)=>{
       if(!(document.getElementById('scanCheck'+i) && document.getElementById('scanCheck'+i).checked)) return;
@@ -5388,7 +5391,12 @@ function voiceReset(){
         </div>
         <div class="fg">
           <label class="fl">จ่ายผ่าน</label>
-          <select class="fs" id="scanSource"></select>
+          <input type="hidden" id="scanSource" value="cash"/>
+          <div id="scanSourceDropdown" onclick="toggleSourceDropdown('scanSource')" style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:'Sarabun',sans-serif;font-size:14px">
+            <span id="scanSourceLabel">💵 เงินสด</span>
+            <span id="scanSourceArrow" style="font-size:11px;color:var(--text3)">▼</span>
+          </div>
+          <div id="scanSourceList" style="display:none;flex-direction:column;gap:2px;margin-top:6px;max-height:200px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px"></div>
         </div>
       </div>
 
