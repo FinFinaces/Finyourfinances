@@ -1519,6 +1519,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         </div>
         <button class="shortcut-action" onclick="openSourceManager()" style="font-size:10px;padding:4px 10px;flex-shrink:0">⚙ แหล่งเงิน</button>
         <button class="shortcut-action" onclick="openCatManager()" style="font-size:10px;padding:4px 10px;flex-shrink:0">🏷️ หมวดหมู่</button>
+        <button class="shortcut-action" onclick="debugSources()" style="font-size:10px;padding:4px 10px;flex-shrink:0;background:var(--amber-bg);color:var(--amber);border-color:var(--amber-br)">🔍 debug</button>
       </div>
     </div>
   </div>
@@ -2351,6 +2352,7 @@ function refreshCatSelects(){
   _renderTxCatDropdown(cur||Object.keys(CAT_EMOJI)[0]||'อาหาร');
 }
 var _txCatValue='อาหาร';
+var _txSourceValue='bank';
 function _renderTxCatDropdown(selected){
   _txCatValue=selected; // เก็บใน JS variable ไม่พึ่ง DOM
   var lbl=document.getElementById('txCatLabel');
@@ -3911,6 +3913,7 @@ function _renderSourceDropdown(baseId, selected){
   var src=paymentSources.find(function(s){return s.id===selected;})||paymentSources[0];
   if(lbl&&src) lbl.textContent=src.icon+' '+src.name;
   if(document.getElementById(baseId)) document.getElementById(baseId).value=selected;
+  if(baseId==='txSource') _txSourceValue=selected;
   if(!list) return;
   list.innerHTML=paymentSources.map(function(s){
     var on=s.id===selected;
@@ -3933,7 +3936,7 @@ function pickSource(baseId, id){
   var arrow=document.getElementById(baseId+'Arrow');
   if(list){ list.style.display='none'; }
   if(arrow){ arrow.textContent='▼'; }
-  if(baseId==='txSource') _autoSetCatFromSource(id);
+  if(baseId==='txSource'){ _txSourceValue=id; _autoSetCatFromSource(id); }
 }
 function toggleSourceDropdown(baseId){
   var list=document.getElementById(baseId+'List');
@@ -3977,7 +3980,7 @@ function saveTx(){
     note:document.getElementById('txNote').value.trim(),
     type:txType,
     isRecurring:document.getElementById('txRecurring').checked,
-    paymentSource:document.getElementById('txSource')?document.getElementById('txSource').value:'cash'
+    paymentSource:_txSourceValue||document.getElementById('txSource').value||'cash'
   };
   closeTxModal();
   try {
@@ -5187,6 +5190,15 @@ function updateDueDayHint(){
   hint.textContent='📅 ปกติครบกำหนดประมาณวันที่ '+due;
   var pd=document.getElementById('lnPayDay');
   if(pd && !pd.value) pd.value=due;
+}
+function debugSources(){
+  var info=paymentSources.map(function(s){
+    return s.name+' → loanId: "'+(s.loanId||'ว่าง')+'"';
+  }).join('\n');
+  var cards=(window.cards||[]).map(function(c){
+    return 'card id: '+c.id+' name: '+c.name+' balance: '+c.balance;
+  }).join('\n');
+  alert('=== Sources ===\n'+info+'\n\n=== Cards ===\n'+cards);
 }
 
 // ══════════════════════════════════════════════
