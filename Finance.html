@@ -2355,6 +2355,7 @@ var _txCatValue='อาหาร';
 var _txSourceValue='bank';
 var _txStatusValue='unpaid';
 var _scanSourceValue='cash';
+var _chatAiSourceValue='bank';
 function _renderTxCatDropdown(selected){
   _txCatValue=selected; // เก็บใน JS variable ไม่พึ่ง DOM
   var lbl=document.getElementById('txCatLabel');
@@ -3920,6 +3921,7 @@ function _renderSourceDropdown(baseId, selected){
   if(document.getElementById(baseId)) document.getElementById(baseId).value=selected;
   if(baseId==='txSource') _txSourceValue=selected;
   if(baseId==='scanSource') _scanSourceValue=selected;
+  if(baseId==='chatAiSource') _chatAiSourceValue=selected;
   if(!list) return;
   list.innerHTML=paymentSources.map(function(s){
     var on=s.id===selected;
@@ -3944,6 +3946,7 @@ function pickSource(baseId, id){
   if(arrow){ arrow.textContent='▼'; }
   if(baseId==='txSource'){ _txSourceValue=id; _autoSetCatFromSource(id); }
   if(baseId==='scanSource'){ _scanSourceValue=id; }
+  if(baseId==='chatAiSource'){ _chatAiSourceValue=id; }
 }
 function toggleSourceDropdown(baseId){
   var list=document.getElementById(baseId+'List');
@@ -4835,18 +4838,23 @@ function chatAiShowResultModal(items){
       '<span class="chat-result-name">'+esc(item.name||'')+'</span>'+
       '<span class="chat-result-amt '+cls+'">'+(isInc?'+':'-')+'฿'+fmt(item.amount||0)+'</span></div>';
   }).join('');
-  var sourceOpts=paymentSources.map(function(s){
-    return '<option value="'+s.id+'"'+(s.id===(qaSourceId||'bank')?' selected':'')+'>'+s.icon+' '+esc(s.name)+'</option>';
-  }).join('');
+  var defaultSrc=qaSourceId||'bank';
+  _chatAiSourceValue=defaultSrc;
   r.innerHTML=rows+
     '<div style="padding:8px 0 4px;display:flex;align-items:center;gap:8px">'+
       '<span style="font-size:12px;color:var(--text3)">จ่ายผ่าน:</span>'+
-      '<select id="chatAiSource" class="fs" style="flex:1;font-size:13px">'+sourceOpts+'</select>'+
+      '<input type="hidden" id="chatAiSource" value="'+defaultSrc+'"/>'+
+      '<div id="chatAiSourceDropdown" onclick="toggleSourceDropdown(\'chatAiSource\')" style="flex:1;display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:\'Sarabun\',sans-serif;font-size:13px">'+
+        '<span id="chatAiSourceLabel"></span>'+
+        '<span id="chatAiSourceArrow" style="font-size:11px;color:var(--text3)">▼</span>'+
+      '</div>'+
+      '<div id="chatAiSourceList" style="display:none;flex-direction:column;gap:2px;max-height:180px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px;position:absolute;z-index:999;width:280px"></div>'+
     '</div>'+
     '<div class="chat-result-actions">'+
     '<button class="chat-cancel-btn" onclick="chatAiCancelModal()">ยกเลิก</button>'+
     '<button class="chat-confirm-btn" onclick="chatAiConfirmModal()">✓ บันทึก '+items.length+' รายการ</button>'+
     '</div>';
+  _renderSourceDropdown('chatAiSource', defaultSrc);
 }
 function chatAiShowErrorModal(msg){
   var r=document.getElementById('chatAiResultModal');
@@ -4864,9 +4872,7 @@ function chatAiConfirmModal(){
   if(!chatAiPending||!chatAiPending.length) return;
   var cnt=chatAiPending.length;
   // อ่าน source จาก dropdown ใน popup ก่อน ถ้าไม่มีใช้ qaSourceId
-  var popupSrc=document.getElementById('chatAiSource');
-  var src=popupSrc?popupSrc.value:qaSourceId||'bank';
-  if(!src) src='bank';
+  var src=_chatAiSourceValue||qaSourceId||'bank';
   chatAiPending.forEach(function(item){
     var tx={id:'t'+Date.now()+Math.random().toString(36).slice(2,6),
       type:item.type==='income'?'income':'expense',name:item.name||'รายการ',
