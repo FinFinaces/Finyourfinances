@@ -3701,9 +3701,8 @@ function qaSubmit(){
   const newQaTx={id:'t'+Date.now(),type:qaType,name,amount:amt,category:cat,date:dateStr,due:dateStr,status:'paid',note:'',isRecurring:false,paymentSource:qaSourceId};
   txs.push(newQaTx);
   if(qaType==='expense'){
-    var _src=paymentSources.find(function(s){return s.id===qaSourceId;});
-    toast('debug: src='+qaSourceId+' loanId='+(_src?_src.loanId||'ว่าง':'NOT FOUND'));
     adjustLoanUsed(newQaTx,+1);
+    localStorage.setItem('fin_cards', JSON.stringify(window.cards||[]));
   }
   saveAll();
   document.getElementById('qaName').value='';
@@ -4017,7 +4016,7 @@ function saveTx(){
     } else {
       const newTx=Object.assign({},obj,{id:'t'+Date.now()});
       txs.push(newTx);
-      if(obj.status==='paid') adjustLoanUsed(newTx,+1);
+      if(obj.status==='paid'){ adjustLoanUsed(newTx,+1); localStorage.setItem('fin_cards',JSON.stringify(window.cards||[])); }
       toast('✓ เพิ่มรายการแล้ว');
     }
     saveAll();
@@ -4342,6 +4341,7 @@ function scanConfirmSave(){
       });
       var lastTx=txs[txs.length-1];
       adjustLoanUsed(lastTx,+1);
+      localStorage.setItem('fin_cards',JSON.stringify(window.cards||[]));
       added++;
     });
     saveAll(); closeScanModal(); renderAll();
@@ -4886,6 +4886,7 @@ function chatAiConfirmModal(){
     txs.push(tx);
     if(tx.status==='paid') adjustLoanUsed(tx,+1);
   });
+  localStorage.setItem('fin_cards',JSON.stringify(window.cards||[]));
   saveAll(); renderAll();
   closeChatAiPopup();
   toast('✓ บันทึก '+cnt+' รายการโดย AI');
