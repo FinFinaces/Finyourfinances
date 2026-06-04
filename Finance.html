@@ -3610,7 +3610,9 @@ function doQuickConfirmSave(){
   let dateStr;
   if(p.m===today.getMonth()&&p.y===today.getFullYear()){ dateStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0'); }
   else { const ld=new Date(p.y,p.m+1,0).getDate(); dateStr=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(Math.min(today.getDate(),ld)).padStart(2,'0'); }
-  txs.push({id:'t'+Date.now(),type:s.type,name:s.name,amount:amt,category:s.category,date:dateStr,due:dateStr,status:'paid',note:'',isRecurring:false,paymentSource:confirmSourceId});
+  var qcTx={id:'t'+Date.now(),type:s.type,name:s.name,amount:amt,category:s.category,date:dateStr,due:dateStr,status:'paid',note:'',isRecurring:false,paymentSource:confirmSourceId};
+  txs.push(qcTx);
+  if(s.type==='expense'){ adjustLoanUsed(qcTx,+1); localStorage.setItem('fin_cards',JSON.stringify(window.cards||[])); }
   saveAll();
   const flash=document.getElementById('flash'+pendingShortcutIdx);
   if(flash){ flash.classList.remove('flash'); void flash.offsetWidth; flash.classList.add('flash'); }
@@ -4034,8 +4036,16 @@ function deleteTx(id){
 function adjustLoanUsed(tx, delta){
   if(!tx || tx.type!=='expense') return;
   var src=paymentSources.find(function(s){return s.id===tx.paymentSource;});
-  if(!src || !src.loanId) return;
-  var linked=src.loanId;
+  if(!src) return;
+  var linked=src.loanId||'';
+  // fallback: source เป็น credit แต่ยังไม่ได้ลิงก์ loanId — หา card ที่ชื่อตรงกัน
+  if(!linked && src.type==='credit'){
+    var matchCard=(window.cards||[]).find(function(c){
+      return c.name.toLowerCase()===src.name.toLowerCase();
+    });
+    if(matchCard) linked='card:'+matchCard.id;
+  }
+  if(!linked) return;
   if(linked.indexOf('loan:')===0){
     var loanId=linked.slice(5);
     var loan=loans.find(function(l){return l.id===loanId;});
@@ -4043,7 +4053,6 @@ function adjustLoanUsed(tx, delta){
   } else if(linked.indexOf('card:')===0){
     var cardId=linked.slice(5);
     var card=(window.cards||[]).find(function(c){return c.id===cardId;});
-    toast('💳 '+(card?'พบ '+card.name+' balance='+card.balance:'ไม่พบ card id='+cardId)+' delta='+delta+' amt='+tx.amount);
     if(card) card.balance=Math.max(0,(card.balance||0)+delta*tx.amount);
   }
 }
