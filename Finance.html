@@ -3697,7 +3697,9 @@ function qaSubmit(){
   let dateStr;
   if(p.m===today.getMonth()&&p.y===today.getFullYear()){ dateStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0'); }
   else { const ld=new Date(p.y,p.m+1,0).getDate(); dateStr=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(Math.min(today.getDate(),ld)).padStart(2,'0'); }
-  txs.push({id:'t'+Date.now(),type:qaType,name,amount:amt,category:cat,date:dateStr,due:dateStr,status:'paid',note:'',isRecurring:false,paymentSource:qaSourceId});
+  const newQaTx={id:'t'+Date.now(),type:qaType,name,amount:amt,category:cat,date:dateStr,due:dateStr,status:'paid',note:'',isRecurring:false,paymentSource:qaSourceId};
+  txs.push(newQaTx);
+  if(qaType==='expense') adjustLoanUsed(newQaTx,+1);
   saveAll();
   document.getElementById('qaName').value='';
   document.getElementById('qaAmt').value='';
