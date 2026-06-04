@@ -3010,6 +3010,18 @@ function deleteLoan(id){
   saveAll(); closeLoanModal(); renderLoans(); renderCreditLines();
   toast('ลบแล้ว');
 }
+function deleteDrawEntry(loanId, idx){
+  var l=loans.find(function(x){return x.id===loanId;});
+  if(!l||!l.drawHistory) return;
+  var d=l.drawHistory[idx];
+  if(!d) return;
+  if(!confirm('ลบรายการเบิก ฿'+fmt(d.amount)+' ('+thDate(d.date)+') ?')) return;
+  // คืน used
+  l.used=Math.max(0,(l.used||0)-d.amount);
+  l.drawHistory.splice(idx,1);
+  saveAll(); renderCreditLines();
+  toast('ลบรายการเบิกแล้ว');
+}
 function setLoanMonths(n){
   document.getElementById('lnTotalMonths').value = n;
   highlightMonthsPreset();
@@ -4606,10 +4618,15 @@ function renderCreditLines(){
     // draw history (last 2)
     var draws=(l.drawHistory||[]).slice(-2).reverse();
     var drawHtml=draws.length?
-      draws.map(function(d){
-        return '<div class="cl-child-row">'+
-          '<span>'+thDate(d.date)+(d.note?' · '+esc(d.note):'')+'</span>'+
+      draws.map(function(d,di){
+        var realIdx=(l.drawHistory||[]).length-1-di;
+        var btnId='ddbtn-'+l.id+'-'+realIdx;
+        return '<div class="cl-child-row" style="gap:6px">'+
+          '<span style="flex:1">'+thDate(d.date)+(d.note?' · '+esc(d.note):'')+'</span>'+
           '<span class="mono" style="color:var(--amber);font-size:12px">+฿'+fmt(d.amount)+'</span>'+
+          '<button id="'+btnId+'" data-lid="'+l.id+'" data-idx="'+realIdx+'" style="'+
+            'background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;'+
+            'padding:0 2px;line-height:1;flex-shrink:0" title="ลบรายการเบิกนี้">✕</button>'+
         '</div>';
       }).join(''):'';
     var histHtml=(linked.length||draws.length)?
@@ -4705,6 +4722,12 @@ function renderCreditLines(){
       histHtml+
     '</div>';
   }).join('');
+  // event delegation สำหรับปุ่มลบ drawHistory
+  grid.querySelectorAll('button[data-lid]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      deleteDrawEntry(btn.getAttribute('data-lid'), parseInt(btn.getAttribute('data-idx')));
+    });
+  });
 }
 
 
