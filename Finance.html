@@ -4026,9 +4026,8 @@ function deleteTx(id){
 function adjustLoanUsed(tx, delta){
   if(!tx || tx.type!=='expense') return;
   var src=paymentSources.find(function(s){return s.id===tx.paymentSource;});
-  console.log('[adjust] paymentSource:',tx.paymentSource,'src found:',src?src.name:'NOT FOUND','loanId:',src?src.loanId:'N/A');
   if(!src || !src.loanId) return;
-  var linked=src.loanId; // format: "loan:xxx" หรือ "card:xxx"
+  var linked=src.loanId;
   if(linked.indexOf('loan:')===0){
     var loanId=linked.slice(5);
     var loan=loans.find(function(l){return l.id===loanId;});
@@ -4451,17 +4450,8 @@ if(!window.cards) window.cards = JSON.parse(localStorage.getItem('fin_cards') ||
 var editCardId=null, payingCardId=null;
 
 function getCardBalance(cardId){
-  // คำนวณจาก txs โดยตรง — รวมรายจ่าย paid ที่ใช้ source ที่เชื่อมกับบัตรนี้
-  var srcIds=paymentSources.filter(function(s){
-    return s.loanId==='card:'+cardId;
-  }).map(function(s){return s.id;});
-  if(!srcIds.length) return (window.cards||[]).find(function(c){return c.id===cardId;})?((window.cards||[]).find(function(c){return c.id===cardId;}).balance||0):0;
-  return (txs||[]).reduce(function(sum,t){
-    if(t.type==='expense' && t.status==='paid' && srcIds.indexOf(t.paymentSource)!==-1){
-      return sum+((t.amount)||0);
-    }
-    return sum;
-  },0);
+  var card=(window.cards||[]).find(function(c){return c.id===cardId;});
+  return card?(card.balance||0):0;
 }
 function renderCards(){
   var grid=document.getElementById('cardsGrid');
