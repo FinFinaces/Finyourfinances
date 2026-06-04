@@ -3079,14 +3079,23 @@ function updatePayHint(){
   const amt=parseFloat(document.getElementById('payLoanAmt').value)||0;
   const hint=document.getElementById('payHint'); if(!hint) return;
   if(amt>0&&l.remaining>0){
-    const after=Math.max(0,l.remaining-amt);
+    // คำนวณ remaining หลังชำระโดยหักดอกเบี้ยก่อน
+    var rHint=(l.interest||0)/100/12;
+    var principalRed;
+    if(rHint>0){
+      var intThisPeriod=l.remaining*rHint;
+      principalRed=Math.max(0,amt-intThisPeriod);
+    } else {
+      principalRed=amt;
+    }
+    const after=Math.max(0,l.remaining-principalRed);
     if(after<=0){ hint.style.color='var(--green)'; hint.textContent='🎉 ชำระครั้งนี้จะปลดหนี้รายการนี้ได้เลย!'; }
     else {
       var mo=0;
       if(l.monthly>0){
-        var r=(l.interest||0)/100/12;
-        if(r>0 && l.monthly>after*r){
-          mo=Math.ceil(-Math.log(1-(r*after/l.monthly))/Math.log(1+r));
+        var r2=(l.interest||0)/100/12;
+        if(r2>0 && l.monthly>after*r2){
+          mo=Math.ceil(-Math.log(1-(r2*after/l.monthly))/Math.log(1+r2));
         } else {
           mo=Math.ceil(after/l.monthly);
         }
@@ -3105,14 +3114,23 @@ function doPayLoan(){
   if(!date){ toast('⚠️ กรอกวันที่'); return; }
   const l=loans.find(x=>x.id===payingLoanId);
   const before=l.remaining;
-  l.remaining=Math.max(0,l.remaining-amt);
+  // คำนวณเงินต้นที่ลดจริง โดยหักดอกเบี้ยงวดนั้นออกก่อน (ถ้ามีดอกเบี้ย)
+  var principalReduction;
+  var r=(l.interest||0)/100/12;
+  if(r>0 && before>0){
+    var interestThisPeriod=before*r;
+    principalReduction=Math.max(0,amt-interestThisPeriod);
+  } else {
+    principalReduction=amt;
+  }
+  l.remaining=Math.max(0,before-principalReduction);
   if(!l.payments) l.payments=[];
   l.payments.push({date,amount:amt,before,after:l.remaining});
   // ถ้า loan นี้เบิกจากวงเงิน ให้ลด used ของวงเงินต้นด้วย
   if(l.parentCreditId){
     const parent=loans.find(x=>x.id===l.parentCreditId);
     if(parent && (parent.used||0)>0){
-      const reduce=Math.min(amt, parent.used);
+      const reduce=Math.min(principalReduction, parent.used);
       parent.used=Math.max(0,(parent.used||0)-reduce);
     }
   }
