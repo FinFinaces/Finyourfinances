@@ -4415,8 +4415,78 @@ function handleScanDrop(e){
   if(file && file.type.startsWith('image/')) processScanFile(file);
 }
 function handleScanFile(e){
-  const file = e.target.files[0];
-  if(file) processScanFile(file);
+  var files = Array.prototype.slice.call(e.target.files);
+  if(!files.length) return;
+  if(files.length === 1){
+    processScanFile(files[0]);
+  } else {
+    processScanMultiple(files);
+  }
+}
+
+
+// ── Multi-scan: อ่านหลายรูปพร้อมกัน ──
+var multiScanQueue = [];
+var multiScanResults = []; // [{name, amount, date}]
+var multiScanTotal = 0;
+var multiScanDone = 0;
+
+function processScanMultiple(files){
+  multiScanQueue = Array.prototype.slice.call(files);
+  multiScanResults = [];
+  multiScanTotal = multiScanQueue.length;
+  multiScanDone = 0;
+  scanMode = 'receipt';
+  // แสดง step2 (loading)
+  document.getElementById('scanStep1').style.display = 'none';
+  document.getElementById('scanStep2').style.display = '';
+  document.getElementById('scanStep3').style.display = 'none';
+  document.getElementById('scanFooter').style.display = 'none';
+  var loadingTxt = document.getElementById('scanLoadingTxt');
+  if(loadingTxt) loadingTxt.textContent = 'กำลังอ่านรูปที่ 1 จาก '+multiScanTotal+'...';
+  processNextScan();
+}
+
+function processNextScan(){
+  if(multiScanDone >= multiScanTotal){
+    // อ่านครบแล้ว → รวม results แล้วแสดง
+    scanParsedData = {type:'receipt', items: multiScanResults, total: multiScanResults.reduce(function(s,x){return s+x.amount;},0)};
+    showScanResults();
+    return;
+  }
+  var file = multiScanQueue[multiScanDone];
+  var loadingTxt = document.getElementById('scanLoadingTxt');
+  if(loadingTxt) loadingTxt.textContent = 'กำลังอ่านรูปที่ '+(multiScanDone+1)+' จาก '+multiScanTotal+'...';
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var base64 = ev.target.result.split(',')[1];
+    var mime = file.type || 'image/jpeg';
+    var today = new Date().toISOString().slice(0,10);
+    var prompt = 'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+    fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({mime:mime, image:base64, prompt:prompt})
+    }).then(function(r){return r.json();}).then(function(data){
+      if(!data.error){
+        var raw=(data.result||'').replace(/```json[\s\S]*?```/g,function(m){return m.replace(/```json|```/g,'').trim();}).replace(/```/g,'').trim();
+        var jm=raw.match(/\{[\s\S]*\}/);
+        if(jm){
+          try{
+            var parsed = JSON.parse(jm[0]);
+            if(parsed.items && parsed.items.length){
+              parsed.items.forEach(function(item){ multiScanResults.push(item); });
+            }
+          }catch(e){}
+        }
+      }
+      multiScanDone++;
+      processNextScan();
+    }).catch(function(){
+      multiScanDone++;
+      processNextScan();
+    });
+  };
+  reader.readAsDataURL(file);
 }
 
 function processScanFile(file){
@@ -5604,7 +5674,7 @@ function voiceReset(){
         <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">แตะเพื่อเลือกรูป</div>
         <div style="font-size:12px;color:var(--text3)">รองรับ JPG, PNG, screenshot ทุกแบบ</div>
       </div>
-      <input type="file" id="scanFileInput" accept="image/*" style="display:none" onchange="handleScanFile(event)"/>
+      <input type="file" id="scanFileInput" accept="image/*" multiple style="display:none" onchange="handleScanFile(event)"/>
       <div style="margin-top:14px;padding:12px 14px;background:var(--blue-bg);border:1px solid var(--blue-br);border-radius:var(--rs);font-size:12px;color:var(--blue);line-height:1.7">
         📋 <b>ถ่ายรูปอะไรได้บ้าง</b><br>
         ใบเสร็จร้านค้า · สลิปโอนเงิน · หน้าจอ Shopee/Lazada · ตารางงวดผ่อน
