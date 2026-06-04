@@ -3700,7 +3700,11 @@ function qaSubmit(){
   else { const ld=new Date(p.y,p.m+1,0).getDate(); dateStr=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(Math.min(today.getDate(),ld)).padStart(2,'0'); }
   const newQaTx={id:'t'+Date.now(),type:qaType,name,amount:amt,category:cat,date:dateStr,due:dateStr,status:'paid',note:'',isRecurring:false,paymentSource:qaSourceId};
   txs.push(newQaTx);
-  if(qaType==='expense') adjustLoanUsed(newQaTx,+1);
+  if(qaType==='expense'){
+    var _src=paymentSources.find(function(s){return s.id===qaSourceId;});
+    toast('debug: src='+qaSourceId+' loanId='+(_src?_src.loanId||'ว่าง':'NOT FOUND'));
+    adjustLoanUsed(newQaTx,+1);
+  }
   saveAll();
   document.getElementById('qaName').value='';
   document.getElementById('qaAmt').value='';
