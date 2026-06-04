@@ -2738,7 +2738,17 @@ function renderLoans(){
     const t=LOAN_TYPES[l.type]||LOAN_TYPES.personal;
     const src=getSource(l.source||'cash');
     const dueBadge=l.dueDate&&diffDays(l.dueDate)>=0&&diffDays(l.dueDate)<=7?'<span class="due-badge">ครบ '+diffDays(l.dueDate)+' วัน</span>':'';
-    const moLeft=(l.monthly||0)>0&&remain>0?Math.ceil(remain/l.monthly):0;
+    // คำนวณงวดที่เหลือโดยบวกดอกเบี้ยด้วย (ถ้ามี)
+    var moLeft=0;
+    if((l.monthly||0)>0&&remain>0){
+      var r=(l.interest||0)/100/12;
+      if(r>0&&l.monthly>remain*r){
+        // สูตร: n = -ln(1 - r*PV/PMT) / ln(1+r)
+        moLeft=Math.ceil(-Math.log(1-(r*remain/l.monthly))/Math.log(1+r));
+      } else {
+        moLeft=Math.ceil(remain/l.monthly);
+      }
+    }
 
     let creditNote='';
     if(l.creditLimit>0){
@@ -2902,9 +2912,16 @@ function updateLoanCalc(){
   const totalMonths = parseInt(document.getElementById('lnTotalMonths').value)||0;
   let parts=[];
   if(remain>0&&monthly>0){
-    const months=Math.ceil(remain/monthly);
-    let t='📅 ผ่อน ฿'+fmt(monthly)+'/เดือน จะหมดใน '+months+' เดือน (~'+(months/12).toFixed(1)+' ปี)';
-    if(interest>0){ const tot=remain*(interest/100/12)*months; t+=' · ดอกเบี้ยรวม ~฿'+fmt(tot); }
+    var r2=interest/100/12;
+    var months2;
+    if(r2>0&&monthly>remain*r2){
+      months2=Math.ceil(-Math.log(1-(r2*remain/monthly))/Math.log(1+r2));
+    } else {
+      months2=Math.ceil(remain/monthly);
+    }
+    var tot2=months2*monthly-remain;
+    let t='📅 ผ่อน ฿'+fmt(monthly)+'/เดือน จะหมดใน '+months2+' เดือน (~'+(months2/12).toFixed(1)+' ปี)';
+    if(interest>0&&tot2>0){ t+=' · ดอกเบี้ยรวม ~฿'+fmt(tot2); }
     parts.push(t);
   }
   if(limit>0){
