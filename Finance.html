@@ -3079,16 +3079,20 @@ function updatePayHint(){
   const amt=parseFloat(document.getElementById('payLoanAmt').value)||0;
   const hint=document.getElementById('payHint'); if(!hint) return;
   if(amt>0&&l.remaining>0){
-    // คำนวณ remaining หลังชำระโดยหักดอกเบี้ยก่อน
-    var rHint=(l.interest||0)/100/12;
-    var principalRed;
-    if(rHint>0){
-      var intThisPeriod=l.remaining*rHint;
-      principalRed=Math.max(0,amt-intThisPeriod);
+    // คำนวณ remaining หลังชำระ
+    var principalRed2;
+    if(amt>=l.remaining){
+      principalRed2=l.remaining;
     } else {
-      principalRed=amt;
+      var rHint=(l.interest||0)/100/12;
+      if(rHint>0){
+        var intThisPeriod=l.remaining*rHint;
+        principalRed2=Math.max(0,amt-intThisPeriod);
+      } else {
+        principalRed2=amt;
+      }
     }
-    const after=Math.max(0,l.remaining-principalRed);
+    const after=Math.max(0,l.remaining-principalRed2);
     if(after<=0){ hint.style.color='var(--green)'; hint.textContent='🎉 ชำระครั้งนี้จะปลดหนี้รายการนี้ได้เลย!'; }
     else {
       var mo=0;
@@ -3114,14 +3118,19 @@ function doPayLoan(){
   if(!date){ toast('⚠️ กรอกวันที่'); return; }
   const l=loans.find(x=>x.id===payingLoanId);
   const before=l.remaining;
-  // คำนวณเงินต้นที่ลดจริง โดยหักดอกเบี้ยงวดนั้นออกก่อน (ถ้ามีดอกเบี้ย)
   var principalReduction;
-  var r=(l.interest||0)/100/12;
-  if(r>0 && before>0){
-    var interestThisPeriod=before*r;
-    principalReduction=Math.max(0,amt-interestThisPeriod);
+  // ถ้าจ่ายเกิน remaining → ปลดหนี้เลย
+  if(amt>=before){
+    principalReduction=before;
   } else {
-    principalReduction=amt;
+    // หักดอกเบี้ยงวดนั้นออกก่อน แล้วส่วนที่เหลือลดเงินต้น
+    var r=(l.interest||0)/100/12;
+    if(r>0){
+      var interestThisPeriod=before*r;
+      principalReduction=Math.max(0,amt-interestThisPeriod);
+    } else {
+      principalReduction=amt;
+    }
   }
   l.remaining=Math.max(0,before-principalReduction);
   if(!l.payments) l.payments=[];
