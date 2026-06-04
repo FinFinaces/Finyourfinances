@@ -2578,7 +2578,14 @@ async function cloudPull(){
       if(Array.isArray(b.goals))    goals = b.goals;
       if(Array.isArray(b.loans))    loans = b.loans;
       if(Array.isArray(b.cards))    { window.cards = b.cards; localStorage.setItem('fin_cards', JSON.stringify(b.cards)); }
-      if(Array.isArray(b.sources) && b.sources.length) paymentSources = b.sources;
+      if(Array.isArray(b.sources) && b.sources.length) {
+        paymentSources = b.sources;
+        // ถ้า qaSourceId ที่เลือกไว้ไม่มีใน sources ใหม่ให้ reset เป็นอันแรก
+        if(!paymentSources.find(function(s){return s.id===qaSourceId;})){
+          qaSourceId = paymentSources[0].id;
+        }
+        updateQaSourceBtn();
+      }
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
       if(b.categories && typeof b.categories==='object'){
@@ -2670,7 +2677,7 @@ let txType='expense', activeTab='all', activeFilter='all';
 let editTxId=null, editGoalId=null, addToGoalId=null;
 var currentTxDate='';
 let qaType='expense';
-let qaSourceId = 'bank';
+let qaSourceId = (paymentSources && paymentSources.length) ? paymentSources[0].id : 'bank';
 let loanFilter = 'all';
 let analysisView = 'trend';
 
