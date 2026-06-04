@@ -3081,7 +3081,19 @@ function updatePayHint(){
   if(amt>0&&l.remaining>0){
     const after=Math.max(0,l.remaining-amt);
     if(after<=0){ hint.style.color='var(--green)'; hint.textContent='🎉 ชำระครั้งนี้จะปลดหนี้รายการนี้ได้เลย!'; }
-    else { const mo=l.monthly>0?Math.ceil(after/l.monthly):0; hint.style.color='var(--text3)'; hint.textContent='คงเหลือหลังชำระ ฿'+fmt(after)+(mo>0?' · อีก '+mo+' งวดจะหมด':''); }
+    else {
+      var mo=0;
+      if(l.monthly>0){
+        var r=(l.interest||0)/100/12;
+        if(r>0 && l.monthly>after*r){
+          mo=Math.ceil(-Math.log(1-(r*after/l.monthly))/Math.log(1+r));
+        } else {
+          mo=Math.ceil(after/l.monthly);
+        }
+      }
+      hint.style.color='var(--text3)';
+      hint.textContent='คงเหลือหลังชำระ ฿'+fmt(after)+(mo>0?' · อีก '+mo+' งวดจะหมด':'');
+    }
   } else hint.textContent='';
 }
 function doPayLoan(){
