@@ -4333,6 +4333,8 @@ function scanConfirmSave(){
         isRecurring:false,
         paymentSource: src
       });
+      var lastTx=txs[txs.length-1];
+      adjustLoanUsed(lastTx,+1);
       added++;
     });
     saveAll(); closeScanModal(); renderAll();
