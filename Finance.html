@@ -2994,7 +2994,18 @@ function deleteLoan(id){
   const targetId=id||editingLoanId;
   if(!targetId) return;
   const l=loans.find(x=>x.id===targetId);
+  if(!l) return;
   if(!confirm('ลบสินเชื่อ "'+l.name+'"?')) return;
+  // ถ้าเบิกจากวงเงิน → คืน used และลบ drawHistory ที่ตรงกันออกจาก parent
+  if(l.parentCreditId){
+    var parent=loans.find(function(x){return x.id===l.parentCreditId;});
+    if(parent){
+      parent.used=Math.max(0,(parent.used||0)-(l.principal||0));
+      parent.drawHistory=(parent.drawHistory||[]).filter(function(d){
+        return d.loanLabel!==l.name;
+      });
+    }
+  }
   loans=loans.filter(x=>x.id!==targetId);
   saveAll(); closeLoanModal(); renderLoans(); renderCreditLines();
   toast('ลบแล้ว');
