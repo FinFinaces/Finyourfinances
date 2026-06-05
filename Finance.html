@@ -829,6 +829,102 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 .fab:active { transform: scale(0.95); }
 .backdrop { display: none; position: fixed; inset: 0; background: rgba(44,42,39,0.55); backdrop-filter: blur(6px); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
 [data-theme="dark"] .backdrop { background: rgba(0,0,0,0.7); }
+[data-theme="ocean"] {
+  --bg:        #0d1b2a;
+  --bg2:       #112233;
+  --surface:   #1a2e42;
+  --surface2:  #1f3650;
+  --border:    #2a4560;
+  --text:      #e0eaf5;
+  --text2:     #a8c0d8;
+  --text3:     #6890b0;
+  --accent:    #3a9bd5;
+  --accent2:   #5ab0e8;
+  --accent3:   #1a3a55;
+  --red:       #e05a6a;
+  --green:     #3abf8a;
+  --green-bg:  #0d2a1e;
+  --green-br:  #1a4a35;
+  --amber:     #f5a623;
+  --rs:        12px;
+}
+[data-theme="forest"] {
+  --bg:        #0f1a0f;
+  --bg2:       #141f14;
+  --surface:   #1a2b1a;
+  --surface2:  #1f3320;
+  --border:    #2a4030;
+  --text:      #dff0df;
+  --text2:     #9abf9a;
+  --text3:     #6a906a;
+  --accent:    #5abf5a;
+  --accent2:   #70d070;
+  --accent3:   #1a3020;
+  --red:       #e06060;
+  --green:     #5abf5a;
+  --green-bg:  #0d1f0d;
+  --green-br:  #1a3520;
+  --amber:     #d4a843;
+  --rs:        12px;
+}
+[data-theme="sakura"] {
+  --bg:        #fff5f7;
+  --bg2:       #ffeef2;
+  --surface:   #fff8fa;
+  --surface2:  #ffe8ee;
+  --border:    #f5c0ce;
+  --text:      #3a2028;
+  --text2:     #8a5060;
+  --text3:     #b07888;
+  --accent:    #e05878;
+  --accent2:   #f07090;
+  --accent3:   #ffe0e8;
+  --red:       #d04050;
+  --green:     #5a9060;
+  --green-bg:  #eefaf0;
+  --green-br:  #b0d8b8;
+  --amber:     #d4883a;
+  --rs:        12px;
+}
+[data-theme="midnight"] {
+  --bg:        #0d0a1a;
+  --bg2:       #120f22;
+  --surface:   #1a1530;
+  --surface2:  #1f1a38;
+  --border:    #2e2850;
+  --text:      #e8e0f8;
+  --text2:     #a898d8;
+  --text3:     #7868a8;
+  --accent:    #8060e0;
+  --accent2:   #9878f0;
+  --accent3:   #2a2050;
+  --red:       #e05888;
+  --green:     #50c080;
+  --green-bg:  #0d1a18;
+  --green-br:  #1a3830;
+  --amber:     #f0a030;
+  --rs:        12px;
+}
+[data-theme="warm"] {
+  --bg:        #1a1008;
+  --bg2:       #221508;
+  --surface:   #2a1c0a;
+  --surface2:  #33210c;
+  --border:    #4a3018;
+  --text:      #f5e8d0;
+  --text2:     #c8a878;
+  --text3:     #987848;
+  --accent:    #e08030;
+  --accent2:   #f09848;
+  --accent3:   #3a2010;
+  --red:       #e05050;
+  --green:     #70b060;
+  --green-bg:  #101a08;
+  --green-br:  #283818;
+  --amber:     #e09830;
+  --rs:        12px;
+}
+
 .backdrop.open { display: flex; }
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 28px; width: 520px; max-width: 100%; box-shadow: var(--shadow-lg); animation: up 0.25s cubic-bezier(0.4,0,0.2,1); max-height: 90vh; overflow-y: auto; }
 @keyframes up { from { transform: translateY(20px) scale(0.96); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
@@ -1378,8 +1474,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <select id="selMonth" onchange="renderAll()"></select>
         <select id="selYear" onchange="renderAll()"></select>
       </div>
-      <button class="icon-btn" onclick="toggleTheme()" title="สลับธีมมืด/สว่าง" id="themeBtn">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <button class="icon-btn" onclick="openThemePicker()" title="เลือกธีม" id="themeBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
       </button>
       <button class="icon-btn" id="syncBtn" onclick="openAccountModal()" title="บัญชี / ซิงค์ข้อมูล">
         <svg class="sync-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -1686,19 +1782,39 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="subtabs" id="analysisTabs">
       <button class="subtab active" data-anatab="trend" onclick="setAnalysisView('trend')">แนวโน้ม 6 เดือน</button>
       <button class="subtab" data-anatab="cat" onclick="setAnalysisView('cat')">รายจ่ายตามหมวด</button>
+      <button class="subtab" data-anatab="yearly" onclick="setAnalysisView('yearly')">สรุปรายปี</button>
     </div>
     <div class="charts-grid">
       <div class="chart-card" id="chartTrend">
-        <div class="chart-head"><div><div class="chart-title">รายรับ vs รายจ่าย</div><div class="chart-sub">6 เดือนล่าสุด</div></div></div>
+        <div class="chart-head">
+          <div><div class="chart-title">รายรับ vs รายจ่าย</div><div class="chart-sub" id="trendSub">6 เดือนล่าสุด</div></div>
+          <div style="display:flex;gap:6px">
+            <button id="trendBtn6" onclick="setTrendMonths(6)" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Sarabun',sans-serif">6 ด.</button>
+            <button id="trendBtn12" onclick="setTrendMonths(12)" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-family:'Sarabun',sans-serif">12 ด.</button>
+          </div>
+        </div>
         <div class="bars" id="barsBox"></div>
+        <div id="trendTooltip" style="display:none;background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12px;margin:8px 0;line-height:1.8"></div>
         <div class="bar-legend">
           <span><span class="bar-legend-dot" style="background:var(--accent)"></span>รายรับ</span>
           <span><span class="bar-legend-dot" style="background:var(--red);opacity:0.85"></span>รายจ่าย</span>
+          <span><span class="bar-legend-dot" style="background:#f5a623"></span>คงเหลือ</span>
         </div>
+        <div id="trendSummary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px"></div>
       </div>
       <div class="chart-card" id="chartCat" style="display:none">
         <div class="chart-head"><div><div class="chart-title">รายจ่ายตามหมวด</div><div class="chart-sub">เดือนนี้</div></div></div>
         <div class="donut-wrap" id="donutWrap"></div>
+      </div>
+      <div class="chart-card" id="chartYearly" style="display:none">
+        <div class="chart-head">
+          <div><div class="chart-title">สรุปรายปี</div><div class="chart-sub" id="yearlySub"></div></div>
+          <div style="display:flex;gap:6px">
+            <button id="yearlyBtnYear" onclick="setYearlyView('year')" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer;font-family:'Sarabun',sans-serif">รายปี</button>
+            <button id="yearlyBtnQ" onclick="setYearlyView('quarter')" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1.5px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;font-family:'Sarabun',sans-serif">ไตรมาส</button>
+          </div>
+        </div>
+        <div id="yearlyContent"></div>
       </div>
     </div>
 
@@ -2034,6 +2150,18 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <button class="btn-cancel" onclick="closePayCL()">ยกเลิก</button>
       <button class="btn-ok" onclick="doPayCL()">ตัดชำระ ✓</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Theme Picker Modal ── -->
+<div class="backdrop" id="themePickerBackdrop" onclick="if(event.target===this)closeThemePicker()">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <div class="modal-title">🎨 เลือกธีม</div>
+      <button class="modal-x" onclick="closeThemePicker()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px" id="themeGrid"></div>
+    <button class="btn-cancel" onclick="closeThemePicker()">ปิด</button>
   </div>
 </div>
 
@@ -3552,6 +3680,41 @@ function diffDays(s){ const t=new Date();t.setHours(0,0,0,0);const d=new Date(s)
 function sLabel(s){ return {paid:'ชำระแล้ว',unpaid:'ค้างชำระ',pending:'รอดำเนินการ'}[s]||s; }
 function monthItems(mo,yr){ const p=(mo===undefined)?period():{m:mo,y:yr}; return (txs||[]).filter(t=>{ const d=new Date(t.date); return d.getMonth()===p.m&&d.getFullYear()===p.y; }); }
 
+
+// ── Theme Picker ──
+var THEMES = [
+  {id:'light',    name:'☀️ สว่าง',    bg:'#f5f2ed', accent:'#4a6741'},
+  {id:'dark',     name:'🌙 มืด',      bg:'#1a1816', accent:'#7da872'},
+  {id:'ocean',    name:'🌊 Ocean',    bg:'#0d1b2a', accent:'#3a9bd5'},
+  {id:'forest',   name:'🌿 Forest',   bg:'#0f1a0f', accent:'#5abf5a'},
+  {id:'sakura',   name:'🌸 Sakura',   bg:'#fff5f7', accent:'#e05878'},
+  {id:'midnight', name:'🌃 Midnight', bg:'#0d0a1a', accent:'#8060e0'},
+  {id:'warm',     name:'🔥 Warm',     bg:'#1a1008', accent:'#e08030'},
+];
+function openThemePicker(){
+  var grid = document.getElementById('themeGrid');
+  grid.innerHTML = THEMES.map(function(t){
+    var active = theme === t.id;
+    return '<button onclick="setTheme(\'' + t.id + '\')" style="'+
+      'background:'+t.bg+';border:2.5px solid '+(active?t.accent:'transparent')+';'+
+      'border-radius:12px;padding:12px 8px;cursor:pointer;display:flex;flex-direction:column;'+
+      'align-items:center;gap:6px;transition:border-color 0.2s">'+
+      '<div style="width:32px;height:32px;border-radius:50%;background:'+t.accent+'"></div>'+
+      '<div style="font-size:12px;font-weight:'+(active?'700':'500')+';color:'+t.accent+';font-family:Sarabun,sans-serif">'+t.name+'</div>'+
+      (active?'<div style="font-size:10px;color:'+t.accent+'">✓ ใช้อยู่</div>':'')+
+    '</button>';
+  }).join('');
+  document.getElementById('themePickerBackdrop').classList.add('open');
+}
+function closeThemePicker(){ document.getElementById('themePickerBackdrop').classList.remove('open'); }
+function setTheme(t){
+  theme = t;
+  applyTheme();
+  saveAll();
+  closeThemePicker();
+  toast('🎨 เปลี่ยนธีมแล้ว');
+}
+
 function applyTheme(){
   document.documentElement.setAttribute('data-theme',theme);
   const tb=document.getElementById('themeBtn');
@@ -3566,9 +3729,11 @@ function finishOnb(){ localStorage.setItem('fin_onb','1'); document.getElementBy
 
 function setAnalysisView(v){
   analysisView=v;
-  document.querySelectorAll('#analysisTabs .subtab').forEach(t=>t.classList.toggle('active',t.dataset.anatab===v));
-  document.getElementById('chartTrend').style.display = v==='trend'?'':'none';
-  document.getElementById('chartCat').style.display   = v==='cat'?'':'none';
+  document.querySelectorAll('#analysisTabs .subtab').forEach(function(t){t.classList.toggle('active',t.dataset.anatab===v);});
+  document.getElementById('chartTrend').style.display  = v==='trend'?'':'none';
+  document.getElementById('chartCat').style.display    = v==='cat'?'':'none';
+  document.getElementById('chartYearly').style.display = v==='yearly'?'':'none';
+  if(v==='yearly') renderYearly();
 }
 
 // ── Render all ──
@@ -3721,12 +3886,200 @@ function renderInsights(inc,exp,all,borrowedIn){
   box.innerHTML=items.slice(0,4).map(i=>'<div class="insight '+i.type+'"><div class="insight-icon">'+i.icon+'</div><div class="insight-body"><div class="insight-title">'+esc(i.title)+'</div><div class="insight-text">'+i.text+'</div></div></div>').join('');
 }
 
+var trendMonths = 6;
+function setTrendMonths(n){
+  trendMonths = n;
+  document.getElementById('trendBtn6').style.background = n===6?'var(--accent)':'transparent';
+  document.getElementById('trendBtn6').style.color = n===6?'#fff':'var(--text3)';
+  document.getElementById('trendBtn6').style.borderColor = n===6?'var(--accent)':'var(--border)';
+  document.getElementById('trendBtn12').style.background = n===12?'var(--accent)':'transparent';
+  document.getElementById('trendBtn12').style.color = n===12?'#fff':'var(--text3)';
+  document.getElementById('trendBtn12').style.borderColor = n===12?'var(--accent)':'var(--border)';
+  document.getElementById('trendSub').textContent = n+' เดือนล่าสุด';
+  renderBars();
+}
 function renderBars(){
-  const {m,y}=period();
-  const data=[];
-  for(let i=5;i>=0;i--){ const dm=(m-i+12)%12,dy=m-i<0?y-1:y; const items=monthItems(dm,dy); data.push({m:dm,y:dy,inc:items.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),exp:items.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),current:i===0}); }
-  const max=Math.max.apply(null,[1].concat(data.map(d=>Math.max(d.inc,d.exp))));
-  document.getElementById('barsBox').innerHTML=data.map(d=>'<div class="bar-col '+(d.current?'current':'')+'"><div class="bar-stack"><div class="bar-seg inc" style="height:'+(d.inc/max*100)+'%" title="รายรับ ฿'+fmt(d.inc)+'"></div><div class="bar-seg exp" style="height:'+(d.exp/max*100)+'%" title="รายจ่าย ฿'+fmt(d.exp)+'"></div></div><div class="bar-label">'+MONTHS_SHORT[d.m]+'</div></div>').join('');
+  var mp=period(), m=mp.m, y=mp.y;
+  var n=trendMonths||6;
+  var data=[];
+  for(var i=n-1;i>=0;i--){
+    var dm=(m-i%12+120)%12;
+    var dy=y-Math.floor((i-(m))/ -12|0);
+    // คำนวณปีให้ถูก
+    var d2=new Date(y,m-i,1);
+    dm=d2.getMonth(); dy=d2.getFullYear();
+    var items=monthItems(dm,dy);
+    var inc=items.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
+    var exp=items.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0);
+    data.push({m:dm,y:dy,inc:inc,exp:exp,bal:inc-exp,current:i===0});
+  }
+  var max=Math.max.apply(null,[1].concat(data.map(function(d){return Math.max(d.inc,d.exp);})));
+  // render bars
+  document.getElementById('barsBox').innerHTML=data.map(function(d,idx){
+    var tooltip='<b>'+MONTHS_SHORT[d.m]+' '+d.y+'</b><br>รายรับ: ฿'+fmt(d.inc)+'<br>รายจ่าย: ฿'+fmt(d.exp)+'<br>คงเหลือ: '+(d.bal>=0?'<span style="color:var(--green)">+':'<span style="color:var(--red)">')+' ฿'+fmt(Math.abs(d.bal))+'</span>';
+    var balDot=d.bal>=0?'<div style="width:6px;height:6px;border-radius:50%;background:var(--green);margin:0 auto 2px"></div>':'<div style="width:6px;height:6px;border-radius:50%;background:var(--red);margin:0 auto 2px"></div>';
+    return '<div class="bar-col '+(d.current?'current':'')+'" onclick="showTrendTooltip('+idx+')" data-idx="'+idx+'" style="cursor:pointer">'+
+      balDot+
+      '<div class="bar-stack">'+
+        '<div class="bar-seg inc" style="height:'+(d.inc/max*100)+'%"></div>'+
+        '<div class="bar-seg exp" style="height:'+(d.exp/max*100)+'%"></div>'+
+      '</div>'+
+      '<div class="bar-label">'+MONTHS_SHORT[d.m]+'</div>'+
+    '</div>';
+  }).join('');
+  // เก็บ data ไว้ให้ tooltip ใช้
+  window._trendData = data;
+  // summary
+  var totInc=data.reduce(function(s,d){return s+d.inc;},0);
+  var totExp=data.reduce(function(s,d){return s+d.exp;},0);
+  var totBal=totInc-totExp;
+  var avgExp=totExp/data.length;
+  document.getElementById('trendSummary').innerHTML=
+    '<div style="background:var(--bg2);border-radius:8px;padding:8px 10px;text-align:center">'+
+      '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">รายรับรวม</div>'+
+      '<div style="font-size:13px;font-weight:700;color:var(--accent)">฿'+fmtShort(totInc)+'</div>'+
+    '</div>'+
+    '<div style="background:var(--bg2);border-radius:8px;padding:8px 10px;text-align:center">'+
+      '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">รายจ่ายรวม</div>'+
+      '<div style="font-size:13px;font-weight:700;color:var(--red)">฿'+fmtShort(totExp)+'</div>'+
+    '</div>'+
+    '<div style="background:var(--bg2);border-radius:8px;padding:8px 10px;text-align:center">'+
+      '<div style="font-size:10px;color:var(--text3);margin-bottom:2px">คงเหลือสุทธิ</div>'+
+      '<div style="font-size:13px;font-weight:700;color:'+(totBal>=0?'var(--green)':'var(--red)')+'">'+
+        (totBal>=0?'+':'')+' ฿'+fmtShort(Math.abs(totBal))+'</div>'+
+    '</div>';
+  document.getElementById('trendTooltip').style.display='none';
+}
+function showTrendTooltip(idx){
+  var data=window._trendData||[];
+  var d=data[idx]; if(!d) return;
+  var tip=document.getElementById('trendTooltip');
+  tip.style.display='';
+  tip.innerHTML=
+    '<b>'+MONTHS_SHORT[d.m]+' '+d.y+'</b><br>'+
+    '🟢 รายรับ: <b>฿'+fmt(d.inc)+'</b><br>'+
+    '🔴 รายจ่าย: <b>฿'+fmt(d.exp)+'</b><br>'+
+    (d.bal>=0?'💚':'❤️')+' คงเหลือ: <b style="color:'+(d.bal>=0?'var(--green)':'var(--red)')+'">'+
+    (d.bal>=0?'+':'')+' ฿'+fmt(Math.abs(d.bal))+'</b>';
+}
+
+
+// ── Yearly / Quarterly Summary ──
+var yearlyView = 'year';
+function setYearlyView(v){
+  yearlyView = v;
+  var btnY = document.getElementById('yearlyBtnYear');
+  var btnQ = document.getElementById('yearlyBtnQ');
+  if(btnY){
+    btnY.style.background = v==='year'?'var(--accent)':'transparent';
+    btnY.style.color = v==='year'?'#fff':'var(--text3)';
+    btnY.style.borderColor = v==='year'?'var(--accent)':'var(--border)';
+  }
+  if(btnQ){
+    btnQ.style.background = v==='quarter'?'var(--accent)':'transparent';
+    btnQ.style.color = v==='quarter'?'#fff':'var(--text3)';
+    btnQ.style.borderColor = v==='quarter'?'var(--accent)':'var(--border)';
+  }
+  renderYearly();
+}
+
+function renderYearly(){
+  var wrap = document.getElementById('yearlyContent');
+  if(!wrap) return;
+  var sub = document.getElementById('yearlySub');
+
+  if(yearlyView === 'year'){
+    // หาปีที่มีข้อมูล
+    var years = {};
+    txs.forEach(function(t){
+      if(!t.date) return;
+      var y = t.date.slice(0,4);
+      if(!years[y]) years[y] = {inc:0, exp:0};
+      if(t.type==='income') years[y].inc += t.amount;
+      else if(t.type==='expense') years[y].exp += t.amount;
+    });
+    var yList = Object.keys(years).sort().reverse();
+    if(sub) sub.textContent = yList.length + ' ปีที่บันทึก';
+    if(!yList.length){ wrap.innerHTML='<div style="color:var(--text3);text-align:center;padding:24px">ยังไม่มีข้อมูล</div>'; return; }
+    wrap.innerHTML = yList.map(function(y){
+      var d = years[y];
+      var bal = d.inc - d.exp;
+      var maxVal = Math.max(d.inc, d.exp, 1);
+      return '<div style="margin-bottom:16px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<div style="font-size:14px;font-weight:700;color:var(--text)">'+y+'</div>'+
+          '<div style="font-size:12px;font-weight:600;color:'+(bal>=0?'var(--green)':'var(--red)')+'">'+
+            (bal>=0?'+':'')+' ฿'+fmt(Math.abs(bal))+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px">'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+            '<div style="font-size:11px;color:var(--text3);width:40px">รายรับ</div>'+
+            '<div style="flex:1;height:10px;background:var(--bg2);border-radius:5px;overflow:hidden">'+
+              '<div style="height:100%;width:'+(d.inc/maxVal*100)+'%;background:var(--accent);border-radius:5px"></div>'+
+            '</div>'+
+            '<div style="font-size:11px;color:var(--accent);font-weight:600;width:72px;text-align:right">฿'+fmtShort(d.inc)+'</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+            '<div style="font-size:11px;color:var(--text3);width:40px">รายจ่าย</div>'+
+            '<div style="flex:1;height:10px;background:var(--bg2);border-radius:5px;overflow:hidden">'+
+              '<div style="height:100%;width:'+(d.exp/maxVal*100)+'%;background:var(--red);border-radius:5px;opacity:0.85"></div>'+
+            '</div>'+
+            '<div style="font-size:11px;color:var(--red);font-weight:600;width:72px;text-align:right">฿'+fmtShort(d.exp)+'</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('<hr style="border:none;border-top:1px solid var(--border);margin:4px 0">');
+
+  } else {
+    // ไตรมาส — ปีปัจจุบัน
+    var now = new Date();
+    var curY = now.getFullYear();
+    if(sub) sub.textContent = 'ปี '+curY;
+    var quarters = [
+      {label:'Q1 (ม.ค.–มี.ค.)', months:[0,1,2]},
+      {label:'Q2 (เม.ย.–มิ.ย.)', months:[3,4,5]},
+      {label:'Q3 (ก.ค.–ก.ย.)', months:[6,7,8]},
+      {label:'Q4 (ต.ค.–ธ.ค.)', months:[9,10,11]}
+    ];
+    var qData = quarters.map(function(q){
+      var inc=0, exp=0;
+      q.months.forEach(function(mo){
+        var items = monthItems(mo, curY);
+        inc += items.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
+        exp += items.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0);
+      });
+      return {label:q.label, inc:inc, exp:exp, bal:inc-exp};
+    });
+    var maxVal = Math.max.apply(null, [1].concat(qData.map(function(d){return Math.max(d.inc,d.exp);})));
+    wrap.innerHTML = qData.map(function(d){
+      var hasData = d.inc>0||d.exp>0;
+      return '<div style="margin-bottom:16px;opacity:'+(hasData?1:0.4)+';">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<div style="font-size:13px;font-weight:600;color:var(--text)">'+d.label+'</div>'+
+          '<div style="font-size:12px;font-weight:600;color:'+(d.bal>=0?'var(--green)':'var(--red)')+'">'+
+            (hasData?(d.bal>=0?'+':'')+' ฿'+fmt(Math.abs(d.bal)):'—')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;flex-direction:column;gap:4px">'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+            '<div style="font-size:11px;color:var(--text3);width:40px">รายรับ</div>'+
+            '<div style="flex:1;height:10px;background:var(--bg2);border-radius:5px;overflow:hidden">'+
+              '<div style="height:100%;width:'+(d.inc/maxVal*100)+'%;background:var(--accent);border-radius:5px"></div>'+
+            '</div>'+
+            '<div style="font-size:11px;color:var(--accent);font-weight:600;width:72px;text-align:right">'+
+              (d.inc>0?'฿'+fmtShort(d.inc):'—')+'</div>'+
+          '</div>'+
+          '<div style="display:flex;align-items:center;gap:8px">'+
+            '<div style="font-size:11px;color:var(--text3);width:40px">รายจ่าย</div>'+
+            '<div style="flex:1;height:10px;background:var(--bg2);border-radius:5px;overflow:hidden">'+
+              '<div style="height:100%;width:'+(d.exp/maxVal*100)+'%;background:var(--red);border-radius:5px;opacity:0.85"></div>'+
+            '</div>'+
+            '<div style="font-size:11px;color:var(--red);font-weight:600;width:72px;text-align:right">'+
+              (d.exp>0?'฿'+fmtShort(d.exp):'—')+'</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('<hr style="border:none;border-top:1px solid var(--border);margin:4px 0">');
+  }
 }
 
 function renderDonut(all){
