@@ -842,10 +842,14 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   --accent2:   #5ab0e8;
   --accent3:   #1a3a55;
   --red:       #e05a6a;
+  --red-bg:    #2a1520;
+  --red-br:    #4a2535;
   --green:     #3abf8a;
   --green-bg:  #0d2a1e;
   --green-br:  #1a4a35;
   --amber:     #f5a623;
+  --amber-bg:  #2a2010;
+  --amber-br:  #4a3820;
   --rs:        12px;
 }
 [data-theme="forest"] {
@@ -861,10 +865,14 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   --accent2:   #70d070;
   --accent3:   #1a3020;
   --red:       #e06060;
+  --red-bg:    #2a1515;
+  --red-br:    #4a2828;
   --green:     #5abf5a;
   --green-bg:  #0d1f0d;
   --green-br:  #1a3520;
   --amber:     #d4a843;
+  --amber-bg:  #2a2010;
+  --amber-br:  #4a3818;
   --rs:        12px;
 }
 [data-theme="sakura"] {
@@ -880,10 +888,14 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   --accent2:   #f07090;
   --accent3:   #ffe0e8;
   --red:       #d04050;
+  --red-bg:    #ffeaea;
+  --red-br:    #f5b0b8;
   --green:     #5a9060;
   --green-bg:  #eefaf0;
   --green-br:  #b0d8b8;
   --amber:     #d4883a;
+  --amber-bg:  #fff5e8;
+  --amber-br:  #f5d0a0;
   --rs:        12px;
 }
 [data-theme="midnight"] {
@@ -899,10 +911,14 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   --accent2:   #9878f0;
   --accent3:   #2a2050;
   --red:       #e05888;
+  --red-bg:    #2a1025;
+  --red-br:    #4a2040;
   --green:     #50c080;
   --green-bg:  #0d1a18;
   --green-br:  #1a3830;
   --amber:     #f0a030;
+  --amber-bg:  #251a08;
+  --amber-br:  #453015;
   --rs:        12px;
 }
 [data-theme="warm"] {
@@ -918,10 +934,14 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   --accent2:   #f09848;
   --accent3:   #3a2010;
   --red:       #e05050;
+  --red-bg:    #2a1010;
+  --red-br:    #4a2020;
   --green:     #70b060;
   --green-bg:  #101a08;
   --green-br:  #283818;
   --amber:     #e09830;
+  --amber-bg:  #2a1e08;
+  --amber-br:  #4a3510;
   --rs:        12px;
 }
 
@@ -1474,6 +1494,9 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <select id="selMonth" onchange="renderAll()"></select>
         <select id="selYear" onchange="renderAll()"></select>
       </div>
+      <button class="icon-btn" onclick="toggleSound()" title="เปิด/ปิดเสียง" id="soundBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+      </button>
       <button class="icon-btn" onclick="openThemePicker()" title="เลือกธีม" id="themeBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/></svg>
       </button>
@@ -3304,6 +3327,7 @@ function doPayLoan(){
   if(createTx){
     txs.push({id:'t'+Date.now(),type:'expense',name:'💳 ผ่อน '+l.name,amount:amt,category:'หนี้/สินเชื่อ',date:date,due:date,status:'paid',note:'ยอดคงเหลือ ฿'+fmt(l.remaining),isRecurring:true,paymentSource:src});
   }
+  if(l.remaining<=0) playFx('debt'); else playFx('save');
   saveAll(); closePayLoan(); renderLoans(); renderCreditLines(); renderAll();
   const srcObj=getSource(src);
   if(l.remaining<=0) toast('🎉 ปลดหนี้ "'+l.name+'" แล้ว!');
@@ -3392,6 +3416,7 @@ function doPayCL(){
     count++;
   });
   if(count===0){ toast('⚠️ กรอกยอดชำระอย่างน้อย 1 รายการ'); return; }
+  playFx('save');
   saveAll(); closePayCL(); renderLoans(); renderCreditLines(); renderAll();
   toast('✓ ตัดชำระ '+count+' รายการแล้ว');
 }
@@ -3514,6 +3539,7 @@ function confirmDraw(){
       category:'สินเชื่อ/วงเงิน', date, due:date, status:'paid',
       note: note||('เบิกจาก '+l.name), isRecurring:false, paymentSource:'cash'});
   }
+  playFx('income');
   saveAll(); closeDraw(); renderLoans(); renderCreditLines(); renderAll();
   toast('✓ เบิก ฿'+fmt(amt)+' · สร้างรายการหนี้ "'+label+'" แล้ว');
 }
@@ -3679,6 +3705,72 @@ function diffDays(s){ const t=new Date();t.setHours(0,0,0,0);const d=new Date(s)
 function sLabel(s){ return {paid:'ชำระแล้ว',unpaid:'ค้างชำระ',pending:'รอดำเนินการ'}[s]||s; }
 function monthItems(mo,yr){ const p=(mo===undefined)?period():{m:mo,y:yr}; return (txs||[]).filter(t=>{ const d=new Date(t.date); return d.getMonth()===p.m&&d.getFullYear()===p.y; }); }
 
+
+
+// ── Audio Feedback ──
+var audioCtx = null;
+var soundEnabled = localStorage.getItem('fin_sound') !== 'off';
+
+function getAudioCtx(){
+  if(!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+function _beep(freq,dur,vol,type,delay,fade){
+  if(!soundEnabled) return;
+  try{
+    var c=getAudioCtx();
+    var o=c.createOscillator();
+    var g=c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.type=type||'sine';
+    o.frequency.value=freq;
+    var t=c.currentTime+(delay||0);
+    g.gain.setValueAtTime(vol*0.4,t);
+    if(fade) g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+    o.start(t); o.stop(t+dur);
+  }catch(e){}
+}
+function playFx(type){
+  if(!soundEnabled) return;
+  if(type==='save'){
+    _beep(880,0.08,0.3,'sine',0,true);
+    _beep(1320,0.12,0.2,'sine',0.06,true);
+  } else if(type==='income'){
+    _beep(660,0.07,0.25,'sine',0,true);
+    _beep(880,0.07,0.25,'sine',0.07,true);
+    _beep(1100,0.15,0.3,'sine',0.13,true);
+  } else if(type==='expense'){
+    _beep(440,0.08,0.25,'triangle',0,true);
+    _beep(330,0.15,0.2,'triangle',0.08,true);
+  } else if(type==='warn'){
+    _beep(220,0.12,0.35,'sawtooth',0,true);
+    _beep(180,0.18,0.3,'sawtooth',0.1,true);
+  } else if(type==='debt'){
+    [523,659,784,1047].forEach(function(f,i){ _beep(f,0.15,0.25,'sine',i*0.1,true); });
+    _beep(1047,0.4,0.3,'sine',0.42,true);
+  } else if(type==='goal'){
+    _beep(784,0.1,0.25,'sine',0,true);
+    _beep(988,0.1,0.25,'sine',0.09,true);
+    _beep(1175,0.25,0.3,'sine',0.18,true);
+  } else if(type==='scan'){
+    _beep(1047,0.06,0.2,'sine',0,true);
+    _beep(1319,0.06,0.2,'sine',0.07,true);
+    _beep(1047,0.06,0.2,'sine',0.14,true);
+    _beep(1319,0.15,0.25,'sine',0.21,true);
+  }
+}
+function toggleSound(){
+  soundEnabled=!soundEnabled;
+  localStorage.setItem('fin_sound',soundEnabled?'on':'off');
+  if(soundEnabled) playFx('save');
+  toast(soundEnabled?'🔊 เปิดเสียงแล้ว':'🔇 ปิดเสียงแล้ว');
+  updateSoundBtn();
+}
+function updateSoundBtn(){
+  var btn=document.getElementById('soundBtn');
+  if(btn) btn.style.opacity=soundEnabled?'1':'0.4';
+}
 
 // ── Theme Picker ──
 var THEMES = [
@@ -4177,7 +4269,7 @@ function doQuickConfirmSave(){
   else { const ld=new Date(p.y,p.m+1,0).getDate(); dateStr=p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(Math.min(today.getDate(),ld)).padStart(2,'0'); }
   var qcTx={id:'t'+Date.now(),type:s.type,name:s.name,amount:amt,category:s.category,date:dateStr,due:dateStr,status:'paid',note:'',isRecurring:false,paymentSource:confirmSourceId};
   txs.push(qcTx);
-  if(s.type==='expense'){ adjustLoanUsed(qcTx,+1); localStorage.setItem('fin_cards',JSON.stringify(window.cards||[])); }
+  if(s.type==='expense'){ adjustLoanUsed(qcTx,+1); localStorage.setItem('fin_cards',JSON.stringify(window.cards||[])); playFx('expense'); } else { playFx('income'); }
   saveAll();
   const flash=document.getElementById('flash'+pendingShortcutIdx);
   if(flash){ flash.classList.remove('flash'); void flash.offsetWidth; flash.classList.add('flash'); }
@@ -4270,6 +4362,9 @@ function qaSubmit(){
   if(qaType==='expense'){
     adjustLoanUsed(newQaTx,+1);
     localStorage.setItem('fin_cards', JSON.stringify(window.cards||[]));
+    playFx('expense');
+  } else {
+    playFx('income');
   }
   saveAll();
   document.getElementById('qaName').value='';
@@ -4989,6 +5084,7 @@ function scanConfirmSave(){
       localStorage.setItem('fin_cards',JSON.stringify(window.cards||[]));
       added++;
     });
+    playFx('scan');
     saveAll(); closeScanModal(); renderAll();
     toast('✓ บันทึก '+added+' รายการจากใบเสร็จ');
   }
@@ -5071,6 +5167,7 @@ function pickQcSource(id){
 
 // ── Boot ──
 applyTheme();
+updateSoundBtn();
 initSel();
 if(!txs) seed();
 updateQaSourceBtn();
