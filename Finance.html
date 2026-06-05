@@ -1758,8 +1758,8 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
 
     <div class="subtabs" id="loanTabs">
-      <button class="subtab active" data-loantab="all" onclick="setLoanFilter('all')">ทั้งหมด</button>
-      <button class="subtab" data-loantab="active" onclick="setLoanFilter('active')">กำลังผ่อน</button>
+      <button class="subtab" data-loantab="all" onclick="setLoanFilter('all')">ทั้งหมด</button>
+      <button class="subtab active" data-loantab="active" onclick="setLoanFilter('active')">กำลังผ่อน</button>
       <button class="subtab" data-loantab="done" onclick="setLoanFilter('done')">หมดแล้ว</button>
     </div>
 
@@ -2859,7 +2859,7 @@ let editTxId=null, editGoalId=null, addToGoalId=null;
 var currentTxDate='';
 let qaType='expense';
 let qaSourceId = (paymentSources && paymentSources.length) ? paymentSources[0].id : 'bank';
-let loanFilter = 'all';
+let loanFilter = 'active';
 let analysisView = 'trend';
 
 // ── Loans ──
@@ -3327,7 +3327,7 @@ function doPayLoan(){
   if(createTx){
     txs.push({id:'t'+Date.now(),type:'expense',name:'💳 ผ่อน '+l.name,amount:amt,category:'หนี้/สินเชื่อ',date:date,due:date,status:'paid',note:'ยอดคงเหลือ ฿'+fmt(l.remaining),isRecurring:true,paymentSource:src});
   }
-  if(l.remaining<=0) playFx('debt'); else playFx('save');
+  if(l.remaining<=0){ playFx('debt'); loanFilter='done'; } else playFx('save');
   saveAll(); closePayLoan(); renderLoans(); renderCreditLines(); renderAll();
   const srcObj=getSource(src);
   if(l.remaining<=0) toast('🎉 ปลดหนี้ "'+l.name+'" แล้ว!');
@@ -3416,7 +3416,9 @@ function doPayCL(){
     count++;
   });
   if(count===0){ toast('⚠️ กรอกยอดชำระอย่างน้อย 1 รายการ'); return; }
-  playFx('save');
+  // ถ้ามีรายการปลดหนี้ เล่นเสียงฉลองและ switch tab
+  var allDone=loans.filter(function(x){return x.parentCreditId===payingCLId;}).every(function(x){return (x.remaining||0)<=0;});
+  if(allDone && loans.filter(function(x){return x.parentCreditId===payingCLId;}).length>0){ playFx('debt'); loanFilter='done'; } else playFx('save');
   saveAll(); closePayCL(); renderLoans(); renderCreditLines(); renderAll();
   toast('✓ ตัดชำระ '+count+' รายการแล้ว');
 }
