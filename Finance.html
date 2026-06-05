@@ -3120,6 +3120,11 @@ function setLoanType(t){
       parentBox.style.background='var(--blue-bg)';
     }
   }
+  // ซ่อน override field สำหรับ family/other (ไม่มีธนาคาร)
+  var overrideWrap=document.getElementById('lnOverrideWrap');
+  if(overrideWrap){
+    overrideWrap.style.display=(t==='family'||t==='other')?'none':'';
+  }
 }
 function updateLoanCalc(){
   const remain=parseFloat(document.getElementById('lnRemaining').value)||0;
@@ -3223,11 +3228,30 @@ function saveLoan(){
       parent.used=totalDrawn;
     }
   }
+  // ถ้า family type และเป็นรายการใหม่ → สร้าง tx รายรับอัตโนมัติ
+  if(!editingLoanId && obj.type==='family' && obj.principal>0){
+    var today=new Date();
+    var dateStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+    txs.push({
+      id:'t'+Date.now()+'_borrow',
+      type:'income',
+      name:'💸 ยืม '+name,
+      amount:obj.principal,
+      category:'ยืม/รับเงิน',
+      date:dateStr, due:dateStr,
+      status:'paid',
+      note:'บันทึกอัตโนมัติจากการยืมเงิน',
+      isRecurring:false,
+      paymentSource:'bank'
+    });
+    msg+=' · บันทึกรายรับแล้ว';
+  }
   closeLoanModal();
   try {
     saveAll();
     renderLoans(); renderCreditLines(); renderAll();
   } catch(e){ console.error('saveLoan',e); toast('⚠️ บันทึกไม่สำเร็จ: '+e.message); try{renderLoans();renderCreditLines();renderAll();}catch(e2){} }
+  playFx('income');
   toast(msg+(obj.parentCreditId?' [link:'+obj.parentCreditId.slice(-4)+']':''));
 }
 function deleteLoan(id){
@@ -3368,6 +3392,21 @@ function doPayLoan(){
   }
   if(createTx){
     txs.push({id:'t'+Date.now(),type:'expense',name:'💳 ผ่อน '+l.name,amount:amt,category:'หนี้/สินเชื่อ',date:date,due:date,status:'paid',note:'ยอดคงเหลือ ฿'+fmt(l.remaining),isRecurring:true,paymentSource:src});
+  }
+  // ถ้า family type → สร้าง tx รายจ่ายอัตโนมัติ
+  if(l.type==='family' && !createTx){
+    txs.push({
+      id:'t'+Date.now()+'_repay',
+      type:'expense',
+      name:'💸 คืน '+l.name,
+      amount:amt,
+      category:'ยืม/รับเงิน',
+      date:date, due:date,
+      status:'paid',
+      note:'คืนเงินที่ยืม',
+      isRecurring:false,
+      paymentSource:src
+    });
   }
   // ล้าง override หลังตัดชำระแล้ว ให้ใช้ calcRemaining จาก payment history ต่อไป
   if(l.remainingOverride!==null && l.remainingOverride!==undefined){
