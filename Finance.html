@@ -2050,6 +2050,11 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <div class="frow">
         <div class="fg"><label class="fl">ยอดต้น (ยืมมาทั้งหมด)</label><input class="fi mono" id="lnPrincipal" type="number" step="0.01" placeholder="0.00" oninput="updateLoanCalc()"/></div>
         <div class="fg"><label class="fl">ยอดคงเหลือปัจจุบัน</label><input class="fi mono" id="lnRemaining" type="number" step="0.01" placeholder="0.00" oninput="updateLoanCalc()"/></div>
+        <div class="fg" id="lnOverrideWrap" style="background:var(--amber-bg);border:1px solid var(--amber-br);border-radius:var(--rs);padding:10px 12px">
+          <label class="fl" style="color:var(--amber)">🏦 ยอดคงเหลือจริงจากธนาคาร (ถ้าต่างจากระบบ)</label>
+          <input class="fi mono" id="lnRemainingOverride" type="number" step="0.01" placeholder="เว้นว่างถ้าไม่ต้องการ override"/>
+          <div style="font-size:11px;color:var(--text3);margin-top:4px">ใส่ยอดนี้เพื่อให้ระบบใช้ยอดจากธนาคารแทนการคำนวณ</div>
+        </div>
       </div>
       <div class="frow">
         <div class="fg"><label class="fl">ผ่อนต่อเดือน (งวด)</label><input class="fi mono" id="lnMonthly" type="number" step="0.01" placeholder="0.00" oninput="updateLoanCalc()"/></div>
@@ -2877,6 +2882,10 @@ const LOAN_TYPES = {
 // คำนวณ remaining จาก payment history จริงๆ (ลดต้นลดดอก)
 function calcRemaining(l){
   var principal = l.principal || 0;
+  // ถ้ามี remainingOverride → ใช้ค่านั้นเลย ไม่คำนวณจาก history
+  if(l.remainingOverride !== undefined && l.remainingOverride !== null && l.remainingOverride !== ''){
+    return parseFloat(l.remainingOverride) || 0;
+  }
   var r = (l.interest||0)/100/12;
   var payments = (l.payments||[]).slice().sort(function(a,b){
     return (a.date||'') < (b.date||'') ? -1 : 1;
@@ -3067,6 +3076,7 @@ function openLoanModal(id, defaultType){
   // debt context
   v('lnPrincipal',    l?(l.principal||''):'');
   v('lnRemaining',    l?(l.remaining||''):'');
+  v('lnRemainingOverride', l&&l.remainingOverride!==undefined?l.remainingOverride:'');
   v('lnMonthly',      l?(l.monthly||''):'');
   v('lnInterest',     l?(l.interest||''):'');
   v('lnTotalMonthsD', l?(l.totalMonths||''):'');
@@ -3181,6 +3191,8 @@ function saveLoan(){
   } else {
     // หนี้
     principal=pf('lnPrincipal'); var rem=pf('lnRemaining'); remaining=rem>0?rem:principal;
+    var overrideVal=document.getElementById('lnRemainingOverride');
+    var overrideNum=overrideVal&&overrideVal.value!==''?parseFloat(overrideVal.value):undefined;
     monthly=pf('lnMonthly'); interest=pf('lnInterest');
     totalMonths=pi('lnTotalMonthsD'); creditLimit=0; used=0;
     // อ่าน parentCreditId เสมอ ไม่ว่าจะเป็น type ใด
@@ -3191,7 +3203,8 @@ function saveLoan(){
   var obj={name:name,type:loanType,principal:principal,remaining:remaining,
     monthly:monthly,interest:interest,creditLimit:creditLimit,used:used,
     totalMonths:totalMonths,dueDay:dueDay,payDay:payDay,dueDate:dueDate,source:source,note:note,
-    parentCreditId:parentCreditId||''};
+    parentCreditId:parentCreditId||'',
+    remainingOverride:overrideNum!==undefined?overrideNum:null};
   var msg;
   if(editingLoanId){
     var si=loans.findIndex(function(x){return x.id===editingLoanId;});
@@ -3355,6 +3368,10 @@ function doPayLoan(){
   }
   if(createTx){
     txs.push({id:'t'+Date.now(),type:'expense',name:'💳 ผ่อน '+l.name,amount:amt,category:'หนี้/สินเชื่อ',date:date,due:date,status:'paid',note:'ยอดคงเหลือ ฿'+fmt(l.remaining),isRecurring:true,paymentSource:src});
+  }
+  // ล้าง override หลังตัดชำระแล้ว ให้ใช้ calcRemaining จาก payment history ต่อไป
+  if(l.remainingOverride!==null && l.remainingOverride!==undefined){
+    l.remainingOverride=null;
   }
   if(l.remaining<=0){ playFx('debt'); loanFilter='done'; } else playFx('save');
   saveAll(); closePayLoan(); renderLoans(); renderCreditLines(); renderAll();
