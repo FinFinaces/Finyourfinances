@@ -2873,6 +2873,32 @@ const LOAN_TYPES = {
   other:{label:'📋 อื่นๆ',cls:'other'}
 };
 
+
+// คำนวณ remaining จาก payment history จริงๆ (ลดต้นลดดอก)
+function calcRemaining(l){
+  var principal = l.principal || 0;
+  var r = (l.interest||0)/100/12;
+  var payments = (l.payments||[]).slice().sort(function(a,b){
+    return (a.date||'') < (b.date||'') ? -1 : 1;
+  });
+  if(!payments.length) return l.remaining !== undefined ? l.remaining : principal;
+  var bal = principal;
+  payments.forEach(function(p){
+    if(bal <= 0) return;
+    var amt = p.amount || 0;
+    if(amt >= bal){
+      bal = 0;
+    } else if(r > 0){
+      var interest = bal * r;
+      var principalRed = Math.max(0, amt - interest);
+      bal = Math.max(0, bal - principalRed);
+    } else {
+      bal = Math.max(0, bal - amt);
+    }
+  });
+  return bal;
+}
+
 function setLoanFilter(f){
   loanFilter = f;
   document.querySelectorAll('#loanTabs .subtab').forEach(t=>t.classList.toggle('active', t.dataset.loantab===f));
@@ -2912,7 +2938,10 @@ function renderLoans(){
   if(emptyEl) emptyEl.style.display='none';
 
   grid.innerHTML = list.map(l=>{
-    const remain=l.remaining||0, principal=l.principal||0;
+    const principal=l.principal||0;
+    const remain=calcRemaining(l);
+    // sync กลับเข้า object ด้วย เพื่อให้ฟีเจอร์อื่นใช้ค่าถูกต้อง
+    l.remaining = remain;
     const paid=Math.max(0,principal-remain);
     const pct=principal>0?Math.min(100,Math.round(paid/principal*100)):0;
     const done=remain<=0;
