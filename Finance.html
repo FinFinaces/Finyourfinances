@@ -3120,11 +3120,11 @@ function setLoanType(t){
       parentBox.style.background='var(--blue-bg)';
     }
   }
-  // ซ่อน override field สำหรับ family/other (ไม่มีธนาคาร)
+  // ซ่อน override และ parentCredit สำหรับ family/other
   var overrideWrap=document.getElementById('lnOverrideWrap');
-  if(overrideWrap){
-    overrideWrap.style.display=(t==='family'||t==='other')?'none':'';
-  }
+  if(overrideWrap) overrideWrap.style.display=(t==='family'||t==='other')?'none':'';
+  var parentCreditBox=document.getElementById('lnParentCreditBox');
+  if(parentCreditBox) parentCreditBox.style.display=(t==='family'||t==='other')?'none':'';
 }
 function updateLoanCalc(){
   const remain=parseFloat(document.getElementById('lnRemaining').value)||0;
