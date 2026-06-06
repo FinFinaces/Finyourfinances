@@ -793,25 +793,22 @@ body {
 </head>
 <body>
 
-<!-- ══════════════════════════════════════
-     CONFIG SCREEN
-══════════════════════════════════════ -->
-<div id="configScreen">
-  <div class="config-box">
-    <div class="config-title">⚙ FIN V2</div>
-    <div class="config-sub">ตั้งค่า Supabase ก่อนใช้งาน</div>
-    <div class="config-field">
-      <label class="config-label">Supabase URL</label>
-      <input class="config-input" id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co" autocomplete="off"/>
-    </div>
-    <div class="config-field">
-      <label class="config-label">Supabase Anon Key</label>
-      <input class="config-input" id="cfgKey" type="password" placeholder="eyJhbGci..." autocomplete="off"/>
-    </div>
-    <button class="config-btn" onclick="saveConfig()">▶ เริ่มใช้งาน</button>
-    <p class="config-note">Key เก็บใน localStorage เครื่องนี้เท่านั้น<br>ไม่ส่งไปไหน ✓</p>
-  </div>
-</div>
+// ============================================================
+//  Supabase config
+// ============================================================
+const SUPABASE_URL = 'https://tedzucgqmitfmddxqvge.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_mHb79SXYxFxRo9tAJelFMw_Nyuc-XeO';
+let sb;
+try {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+} catch(e) {
+  console.warn('Supabase init failed:', e);
+  sb = null;
+}
+let currentUser = null;
+let cloudReady = false;
+let pushTimer = null;
+let lastSyncTime = localStorage.getItem('fin_sync_last') || '';
 
 <!-- ══════════════════════════════════════
      AUTH SCREEN
