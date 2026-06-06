@@ -1035,8 +1035,6 @@ body{background:var(--bg);color:var(--text);font-family:'Sarabun',sans-serif;fon
      JAVASCRIPT
 ═════════════════════════════════════════ -->
 <script>
-'use strict';
-
 /* ── SUPABASE ── */
 const SUPABASE_URL='https://tedzucgqmitfmddxqvge.supabase.co';
 const SUPABASE_KEY='sb_publishable_mHb79SXYxFxRo9tAJelFMw_Nyuc-XeO';
@@ -1083,6 +1081,8 @@ var logFilter='all',logType='expense',logSrcIdx=0;
 var txModalType='expense',txModalStatus='paid',txSrcSelected='cash';
 var editTxId=null,editCardId=null,editLoanId=null,payLoanId=null;
 var battleTxId=null;
+var loanModalType='personal';
+var drawingLoanId=null;
 var qcIdx=null,qcSrcId='cash';
 var aiPending=null;
 var groupCollapsed={};
@@ -1688,7 +1688,6 @@ function deleteLoanDirect(id){if(!confirm('ลบ?'))return;loans=loans.filter(f
 
 
 /* ── CARD MODAL ── */
-var editCardId=null;
 function openCardModal(id){
   editCardId=id||null;
   var card=id?(window.cards||[]).find(function(c){return c.id===id;}):null;
@@ -1716,7 +1715,6 @@ function deleteCard(){
 }
 
 /* ── LOAN MODAL — creditline + personal ── */
-var editLoanId=null,loanModalType='personal';
 function openLoanModal(id,defaultType){
   editLoanId=id||null;
   var l=id?loans.find(function(x){return x.id===id;}):null;
@@ -1774,7 +1772,6 @@ function deleteLoanDirect(id){
 }
 
 /* ── DRAW CREDIT LINE ── */
-var drawingLoanId=null;
 function openDraw(id){
   drawingLoanId=id;
   var l=loans.find(function(x){return x.id===id;});if(!l)return;
@@ -2145,14 +2142,15 @@ document.addEventListener('keydown',function(e){
 });
 
 /* ── INIT ── */
-initSel();
-renderAll();
-
-if(sb){
-  sb.auth.getSession().then(function(r){
-    if(!r.data||!r.data.session)document.getElementById('authScreen').classList.add('show');
-  });
-}
+document.addEventListener('DOMContentLoaded',function(){
+  initSel();
+  renderAll();
+  if(sb){
+    sb.auth.getSession().then(function(r){
+      if(!r.data||!r.data.session)document.getElementById('authScreen').classList.add('show');
+    });
+  }
+});
 </script>
 <!-- ══ MODAL: DRAW CREDIT LINE ══ -->
 <div class="backdrop" id="drawBackdrop" onclick="if(event.target===this)closeDraw()">
