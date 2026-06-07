@@ -1054,190 +1054,399 @@ function drawStarfield(){
    GALAXY MAP CANVAS
 ══════════════════════════════════════ */
 var planets=[]; /* {x,y,r,cat,total,items,color,angle} */
-var shipX=0,shipY=0,shipTargetX=0,shipTargetY=0,shipAnim=0;
+/* ══════════════════════════════════════
+   GALAXY MAP — Pan + Zoom (full map)
+══════════════════════════════════════ */
+var shipX=0,shipY=0,shipTargetX=0,shipTargetY=0;
 var galaxyAnimFrame=null;
+
+/* Camera state */
+var camX=0,camY=0,camZoom=1;
+var camTargetX=0,camTargetY=0,camTargetZoom=1;
+var WORLD_SIZE=2000; /* virtual world size */
+
+/* Touch/drag state */
+var isDragging=false,dragStartX=0,dragStartY=0,camStartX=0,camStartY=0;
+var lastTouchDist=0,pinching=false;
+var dragMoved=false;
+
+/* ZOOM CONTROLS */
+function zoomIn(){camTargetZoom=Math.min(3,camTargetZoom*1.35);}
+function zoomOut(){camTargetZoom=Math.max(0.3,camTargetZoom/1.35);}
+function zoomReset(){
+  camTargetZoom=1;camTargetX=0;camTargetY=0;
+  shipX=0;shipY=0; /* reset ship to recalc */
+}
+
+/* World→screen transform */
+function worldToScreen(wx,wy,W,H){
+  return{
+    x:(wx-camX)*camZoom+W/2,
+    y:(wy-camY)*camZoom+H/2
+  };
+}
+/* Screen→world */
+function screenToWorld(sx,sy,W,H){
+  return{
+    x:(sx-W/2)/camZoom+camX,
+    y:(sy-H/2)/camZoom+camY
+  };
+}
 
 function buildPlanets(){
   var all=monthItems();
   var expenses=all.filter(function(t){return t.type==='expense';});
-  /* Group by category */
   var groups={};
   expenses.forEach(function(t){
-    var c=t.category||'อื่นๆ';
-    if(!groups[c])groups[c]=[];
-    groups[c].push(t);
+    var cat=t.category||'อื่นๆ';
+    if(!groups[cat])groups[cat]=[];
+    groups[cat].push(t);
   });
   var cats=Object.keys(groups);
-  var c=document.getElementById('galaxyCanvas');
-  var W=c.width,H=c.height;
-  var cx=W/2,cy=H/2;
   var maxTotal=0;
-  var totals=cats.map(function(cat){var t=groups[cat].reduce(function(s,i){return s+i.amount;},0);if(t>maxTotal)maxTotal=t;return t;});
-  /* Income star: big gold star at center */
-  var totalInc=all.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
-  planets=[];
-  /* Place planets in orbit */
-  /* Limit to 8 planets max - merge small ones into 'อื่นๆ' */
-  var sortedCats=cats.sort(function(a,b){return groups[b].reduce(function(s,t){return s+t.amount;},0)-groups[a].reduce(function(s,t){return s+t.amount;},0);});
-  var maxPlanets=8;
+  var totals=cats.map(function(cat){
+    var t=groups[cat].reduce(function(s,i){return s+i.amount;},0);
+    if(t>maxTotal)maxTotal=t;return t;
+  });
+  /* Sort by total desc, limit to 10 */
+  var sortedCats=cats.slice().sort(function(a,b){
+    return groups[b].reduce(function(s,t){return s+t.amount;},0)-
+           groups[a].reduce(function(s,t){return s+t.amount;},0);
+  });
+  var maxPlanets=10;
   if(sortedCats.length>maxPlanets){
     var other=sortedCats.slice(maxPlanets-1);
-    var otherItems=[];other.forEach(function(c){otherItems=otherItems.concat(groups[c]);});
-    if(otherItems.length){sortedCats=sortedCats.slice(0,maxPlanets-1);sortedCats.push('อื่นๆ(รวม)');groups['อื่นๆ(รวม)']=otherItems;totals=sortedCats.map(function(c){return groups[c].reduce(function(s,t){return s+t.amount;},0);});}
+    var otherItems=[];
+    other.forEach(function(cat){otherItems=otherItems.concat(groups[cat]);});
+    sortedCats=sortedCats.slice(0,maxPlanets-1);
+    if(otherItems.length){sortedCats.push('อื่นๆ(รวม)');groups['อื่นๆ(รวม)']=otherItems;}
+    totals=sortedCats.map(function(cat){return groups[cat].reduce(function(s,t){return s+t.amount;},0);});
   }
   cats=sortedCats;
-  /* Safe orbit bounds */
-  var safeW=Math.min(W,H);
-  var minDist=safeW*0.18,maxDist=safeW*0.35;
+  planets=[];
+  /* 3 orbit rings: inner 220, mid 380, outer 560 */
+  var orbitRings=[220,380,560];
   cats.forEach(function(cat,i){
-    var angle=(i/cats.length)*Math.PI*2 - Math.PI/2;
-    /* Alternate orbit distances */
-    var distRatio=minDist+(i%3)*(maxDist-minDist)/2;
+    var ring=orbitRings[i%orbitRings.length];
+    /* Evenly spread within same ring */
+    var sameRing=cats.filter(function(c,j){return j%orbitRings.length===i%orbitRings.length;});
+    var posInRing=sameRing.indexOf(cat);
+    var angle=(posInRing/sameRing.length)*Math.PI*2 - Math.PI/2;
     var total=totals[i];
-    var r=Math.max(20,Math.min(46,20+(total/Math.max(maxTotal,1))*34));
-    planets.push({x:cx,y:cy,r:r,cat:cat,total:total,items:groups[cat],color:PLANET_COLORS[i%PLANET_COLORS.length],angle:angle,dist:distRatio,orbitOffset:0,curX:cx,curY:cy});
+    var r=Math.max(24,Math.min(56,24+(total/Math.max(maxTotal,1))*42));
+    planets.push({
+      wx:Math.cos(angle)*ring, wy:Math.sin(angle)*ring,
+      r:r,cat:cat,total:total,items:groups[cat],
+      color:PLANET_COLORS[i%PLANET_COLORS.length],
+      angle:angle,dist:ring,
+      curSX:0,curSY:0 /* screen coords, updated each frame */
+    });
   });
-  /* Ship starts near income star (center) */
-  if(shipX===0&&shipY===0){shipX=cx;shipY=cy+60;shipTargetX=shipX;shipTargetY=shipY;}
+  /* Ship world pos */
+  if(shipX===0&&shipY===0){shipX=0;shipY=100;shipTargetX=0;shipTargetY=100;}
 }
 
 function drawGalaxy(){
   var c=document.getElementById('galaxyCanvas');if(!c)return;
   var wrap=document.getElementById('galaxyWrap');
   c.width=wrap.offsetWidth;c.height=wrap.offsetHeight;
+  /* Center camera on world origin */
+  if(camX===0&&camY===0&&camZoom===1){camTargetX=0;camTargetY=0;camTargetZoom=1;}
   buildPlanets();
   if(galaxyAnimFrame)cancelAnimationFrame(galaxyAnimFrame);
   animateGalaxy();
+  setupGalaxyInput();
 }
 
 function animateGalaxy(){
-  var c=document.getElementById('galaxyCanvas');if(!c){return;}
-  var ctx=c.getContext('2d');
-  var W=c.width,H=c.height,cx=W/2,cy=H/2;
+  var cv=document.getElementById('galaxyCanvas');if(!cv){return;}
+  var ctx=cv.getContext('2d');
+  var W=cv.width,H=cv.height;
   ctx.clearRect(0,0,W,H);
+
+  /* Smooth camera */
+  camX+=(camTargetX-camX)*0.1;
+  camY+=(camTargetY-camY)*0.1;
+  camZoom+=(camTargetZoom-camZoom)*0.12;
 
   var all=monthItems();
   var inc=all.filter(function(t){return t.type==='income';}).reduce(function(s,t){return s+t.amount;},0);
   var exp=all.filter(function(t){return t.type==='expense';}).reduce(function(s,t){return s+t.amount;},0);
+  var tSec=Date.now()/1000;
 
-  var t=Date.now()/1000;
+  /* ── Draw world space ── */
+  ctx.save();
+  /* Apply camera transform: translate to center, scale, then offset by cam */
+  ctx.translate(W/2,H/2);
+  ctx.scale(camZoom,camZoom);
+  ctx.translate(-camX,-camY);
 
-  /* Orbit rings */
-  planets.forEach(function(p){
-    ctx.beginPath();ctx.arc(cx,cy,p.dist,0,Math.PI*2);
-    ctx.strokeStyle='rgba(0,229,255,.05)';ctx.lineWidth=1;ctx.stroke();
-  });
-
-  /* Income sun at center */
-  var sunR=Math.max(24,Math.min(50,20+(inc/Math.max(exp,1))*20));
-  var sunGrad=ctx.createRadialGradient(cx,cy,0,cx,cy,sunR*2);
-  sunGrad.addColorStop(0,'rgba(255,215,0,.9)');
-  sunGrad.addColorStop(0.4,'rgba(255,180,0,.4)');
-  sunGrad.addColorStop(1,'rgba(255,215,0,0)');
-  ctx.beginPath();ctx.arc(cx,cy,sunR*2,0,Math.PI*2);ctx.fillStyle=sunGrad;ctx.fill();
-  ctx.beginPath();ctx.arc(cx,cy,sunR,0,Math.PI*2);
-  ctx.fillStyle='rgba(255,200,0,.95)';ctx.fill();
-  ctx.font='bold '+(sunR*.8)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  ctx.fillText('💰',cx,cy);
-
-  /* Planets */
-  planets.forEach(function(p,i){
-    /* Slow orbit animation */
-    var orbitSpeed=0.015/(i+1);
-    var px=cx+Math.cos(p.angle+t*orbitSpeed)*p.dist;
-    var py=cy+Math.sin(p.angle+t*orbitSpeed)*p.dist;
-    /* Clamp to canvas */
-    px=Math.max(p.r+30,Math.min(W-p.r-30,px));
-    py=Math.max(p.r+60,Math.min(H-p.r-50,py));
-    p.curX=px;p.curY=py;
-
-    /* Glow */
-    var glow=ctx.createRadialGradient(px,py,0,px,py,p.r*2.5);
-    glow.addColorStop(0,p.color+'55');
-    glow.addColorStop(1,p.color+'00');
-    ctx.beginPath();ctx.arc(px,py,p.r*2.5,0,Math.PI*2);ctx.fillStyle=glow;ctx.fill();
-
-    /* Planet body */
-    var grad=ctx.createRadialGradient(px-p.r*.3,py-p.r*.3,0,px,py,p.r);
-    grad.addColorStop(0,p.color+'ff');
-    grad.addColorStop(0.6,p.color+'cc');
-    grad.addColorStop(1,p.color+'44');
-    ctx.beginPath();ctx.arc(px,py,p.r,0,Math.PI*2);ctx.fillStyle=grad;ctx.fill();
-
-    /* Ring (every other planet) */
-    if(i%2===0){
-      ctx.beginPath();ctx.ellipse(px,py,p.r*1.5,p.r*.4,0.4,0,Math.PI*2);
-      ctx.strokeStyle=p.color+'44';ctx.lineWidth=2;ctx.stroke();
+  /* Distant orbit rings (world coords) */
+  var ringColors=['rgba(0,229,255,.06)','rgba(0,229,255,.04)','rgba(0,229,255,.025)'];
+  [220,380,560].forEach(function(r,i){
+    ctx.beginPath();ctx.arc(0,0,r,0,Math.PI*2);
+    ctx.strokeStyle=ringColors[i];ctx.lineWidth=1.5/camZoom;ctx.stroke();
+    /* Tick marks on ring */
+    for(var tick=0;tick<12;tick++){
+      var ta=tick/12*Math.PI*2;
+      var tx1=Math.cos(ta)*r,ty1=Math.sin(ta)*r;
+      var tx2=Math.cos(ta)*(r+6),ty2=Math.sin(ta)*(r+6);
+      ctx.beginPath();ctx.moveTo(tx1,ty1);ctx.lineTo(tx2,ty2);
+      ctx.strokeStyle='rgba(0,229,255,.15)';ctx.lineWidth=1/camZoom;ctx.stroke();
     }
-
-    /* Emoji label */
-    var em=CAT_PLANET[p.cat]||'🪐';
-    ctx.font=(p.r*.9)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText(em,px,py);
-
-    /* Amount hidden (show as ??? unless hovered) */
-    ctx.font='700 14px -apple-system,system-ui,sans-serif';ctx.textAlign='center';
-    ctx.fillStyle='rgba(220,236,255,.9)';
-    ctx.fillText(p.cat.slice(0,7),px,py+p.r+15);
-    ctx.font='600 12px -apple-system,system-ui,sans-serif';
-    ctx.fillStyle='rgba(0,229,255,.55)';
-    ctx.fillText('฿???',px,py+p.r+30);
   });
 
-  /* Black holes (loans) */
-  var activeLoans=loans.filter(function(l){return !l.type||l.type!=='creditline';}).filter(function(l){return(l.remaining||0)>0;});
-  activeLoans.forEach(function(l,i){
-    var angle=((i+planets.length)/Math.max(activeLoans.length+planets.length,1))*Math.PI*2;
-    var dist=Math.min(W,H)*0.42;
-    var bx=cx+Math.cos(angle)*dist;
-    var by=cy+Math.sin(angle)*dist;
-    /* Swirl effect */
-    for(var ring=3;ring>=1;ring--){
-      ctx.beginPath();ctx.arc(bx,by,18*ring,0,Math.PI*2);
-      ctx.strokeStyle='rgba(160,96,255,'+(0.15/ring)+')';ctx.lineWidth=ring*2;ctx.stroke();
-    }
-    ctx.font='28px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillText('🕳️',bx,by);
-    ctx.font='700 13px -apple-system,system-ui,sans-serif';ctx.fillStyle='rgba(180,120,255,.9)';
-    ctx.fillText(l.name.slice(0,8),bx,by+26);
-  });
-
-  /* Spaceship */
-  shipX+=(shipTargetX-shipX)*0.08;
-  shipY+=(shipTargetY-shipY)*0.08;
-  ctx.font='26px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
-  /* Thruster flame */
-  if(Math.abs(shipTargetX-shipX)>2||Math.abs(shipTargetY-shipY)>2){
-    ctx.font='14px sans-serif';
-    var angle2=Math.atan2(shipTargetY-shipY,shipTargetX-shipX)+Math.PI;
-    ctx.fillText('🔥',shipX+Math.cos(angle2)*18,shipY+Math.sin(angle2)*18);
+  /* Grid lines (subtle) */
+  ctx.strokeStyle='rgba(0,229,255,.025)';ctx.lineWidth=1/camZoom;
+  for(var gx=-800;gx<=800;gx+=200){
+    ctx.beginPath();ctx.moveTo(gx,-800);ctx.lineTo(gx,800);ctx.stroke();
   }
-  ctx.font='28px sans-serif';
+  for(var gy=-800;gy<=800;gy+=200){
+    ctx.beginPath();ctx.moveTo(-800,gy);ctx.lineTo(800,gy);ctx.stroke();
+  }
+
+  /* ── Sun (income) at world origin ── */
+  var sunR=Math.max(30,Math.min(60,28+(inc/Math.max(exp,1))*22));
+  /* Pulsing glow */
+  var pulseR=sunR*(1.8+Math.sin(tSec*2)*.15);
+  var sunGlow=ctx.createRadialGradient(0,0,0,0,0,pulseR*2);
+  sunGlow.addColorStop(0,'rgba(255,215,0,.5)');
+  sunGlow.addColorStop(0.4,'rgba(255,180,0,.2)');
+  sunGlow.addColorStop(1,'rgba(255,215,0,0)');
+  ctx.beginPath();ctx.arc(0,0,pulseR*2,0,Math.PI*2);ctx.fillStyle=sunGlow;ctx.fill();
+  /* Sun body */
+  var sg=ctx.createRadialGradient(-sunR*.3,-sunR*.3,0,0,0,sunR);
+  sg.addColorStop(0,'rgba(255,240,100,1)');
+  sg.addColorStop(0.5,'rgba(255,200,0,1)');
+  sg.addColorStop(1,'rgba(200,120,0,.8)');
+  ctx.beginPath();ctx.arc(0,0,sunR,0,Math.PI*2);ctx.fillStyle=sg;ctx.fill();
+  ctx.font='bold '+(sunR*.75)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('💰',0,0);
+  /* Income label */
+  ctx.font='700 '+(14/camZoom)+'px -apple-system,system-ui,sans-serif';
+  ctx.fillStyle='rgba(255,215,0,.8)';
+  ctx.fillText('รายรับ',0,sunR+18/camZoom);
+  ctx.font='600 '+(13/camZoom)+'px -apple-system,system-ui,sans-serif';
+  ctx.fillStyle='rgba(255,215,0,.55)';
+  ctx.fillText('฿'+fmtS(inc),0,sunR+34/camZoom);
+
+  /* ── Planets (orbit around sun) ── */
+  planets.forEach(function(p,i){
+    var orbitSpeed=0.012/(Math.floor(i/3)+1);
+    var wx=Math.cos(p.angle+tSec*orbitSpeed)*p.dist;
+    var wy=Math.sin(p.angle+tSec*orbitSpeed)*p.dist;
+    p.wx=wx;p.wy=wy;
+    /* Convert to screen for hit testing */
+    var sc=worldToScreen(wx,wy,W,H);
+    p.curSX=sc.x;p.curSY=sc.y;
+
+    /* Planet glow */
+    var glow=ctx.createRadialGradient(wx,wy,0,wx,wy,p.r*2.8);
+    glow.addColorStop(0,p.color+'44');glow.addColorStop(1,p.color+'00');
+    ctx.beginPath();ctx.arc(wx,wy,p.r*2.8,0,Math.PI*2);ctx.fillStyle=glow;ctx.fill();
+    /* Planet body */
+    var pg=ctx.createRadialGradient(wx-p.r*.35,wy-p.r*.35,0,wx,wy,p.r);
+    pg.addColorStop(0,p.color+'ff');pg.addColorStop(0.55,p.color+'cc');pg.addColorStop(1,p.color+'33');
+    ctx.beginPath();ctx.arc(wx,wy,p.r,0,Math.PI*2);ctx.fillStyle=pg;ctx.fill();
+    /* Ring (alternating) */
+    if(i%2===0){
+      ctx.beginPath();ctx.ellipse(wx,wy,p.r*1.6,p.r*.38,0.35,0,Math.PI*2);
+      ctx.strokeStyle=p.color+'55';ctx.lineWidth=3;ctx.stroke();
+    }
+    /* Emoji */
+    ctx.font=p.r*.95+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(CAT_PLANET[p.cat]||'🪐',wx,wy);
+    /* Labels — scale inversely so readable at any zoom */
+    var labelSize=Math.max(10,Math.min(16,14/camZoom));
+    ctx.font='700 '+labelSize+'px -apple-system,system-ui,sans-serif';
+    ctx.textAlign='center';ctx.fillStyle='rgba(220,236,255,.95)';
+    ctx.fillText(p.cat,wx,wy+p.r+labelSize+4);
+    ctx.font='600 '+(labelSize-2)+'px -apple-system,system-ui,sans-serif';
+    ctx.fillStyle='rgba(0,229,255,.65)';
+    ctx.fillText('฿'+fmtS(p.total),wx,wy+p.r+labelSize*2+6);
+  });
+
+  /* ── Black Holes (loans) — outer orbit ── */
+  var activeLoans=loans.filter(function(l){return l.type!=='creditline'&&(l.remaining||0)>0;});
+  activeLoans.forEach(function(l,i){
+    var bhAngle=(i/Math.max(activeLoans.length,1))*Math.PI*2 - Math.PI/2;
+    var bhDist=680+i*30;
+    var bhSpeed=0.006;
+    var bx=Math.cos(bhAngle+tSec*bhSpeed)*bhDist;
+    var by=Math.sin(bhAngle+tSec*bhSpeed)*bhDist;
+    /* Accretion disk */
+    for(var ring=4;ring>=1;ring--){
+      var ra=18*ring;
+      ctx.beginPath();ctx.arc(bx,by,ra,0,Math.PI*2);
+      ctx.strokeStyle='rgba(160,96,255,'+(0.12/ring)+')';ctx.lineWidth=ring*2.5;ctx.stroke();
+    }
+    /* Rotating accretion ring */
+    ctx.beginPath();ctx.ellipse(bx,by,38,12,tSec*0.5,0,Math.PI*2);
+    ctx.strokeStyle='rgba(180,100,255,.3)';ctx.lineWidth=4;ctx.stroke();
+    ctx.font='32px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🕳️',bx,by);
+    var bhLabelSize=Math.max(10,Math.min(15,13/camZoom));
+    ctx.font='700 '+bhLabelSize+'px -apple-system,system-ui,sans-serif';
+    ctx.fillStyle='rgba(200,140,255,.9)';
+    ctx.fillText(l.name.slice(0,10),bx,by+30+bhLabelSize);
+    ctx.font='600 '+(bhLabelSize-1)+'px -apple-system,system-ui,sans-serif';
+    ctx.fillStyle='rgba(160,96,255,.65)';
+    ctx.fillText('฿'+fmtS(l.remaining),bx,by+30+bhLabelSize*2+3);
+  });
+
+  /* ── Spaceship ── */
+  shipX+=(shipTargetX-shipX)*0.06;
+  shipY+=(shipTargetY-shipY)*0.06;
+  var moving=Math.abs(shipTargetX-shipX)>1||Math.abs(shipTargetY-shipY)>1;
+  if(moving){
+    var sAngle=Math.atan2(shipTargetY-shipY,shipTargetX-shipX)+Math.PI;
+    ctx.font=(20/camZoom)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('🔥',shipX+Math.cos(sAngle)*(22/camZoom),shipY+Math.sin(sAngle)*(22/camZoom));
+  }
+  ctx.font=(28/camZoom)+'px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';
   ctx.fillText('🚀',shipX,shipY);
+
+  ctx.restore(); /* end world transform */
+
+  /* ── HUD overlay (screen space) ── */
+  /* Compass rose top-right */
+  var cx2=W-36,cy2=68;
+  ctx.strokeStyle='rgba(0,229,255,.3)';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.arc(cx2,cy2,18,0,Math.PI*2);ctx.stroke();
+  ctx.font='9px sans-serif';ctx.fillStyle='rgba(0,229,255,.6)';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText('N',cx2,cy2-12);
+  /* Zoom level indicator */
+  ctx.font='bold 11px -apple-system,system-ui,sans-serif';
+  ctx.fillStyle='rgba(0,229,255,.5)';ctx.textAlign='right';
+  ctx.fillText(Math.round(camZoom*100)+'%',W-8,H-44);
+  /* Mini zoom buttons */
+  ctx.fillStyle='rgba(4,8,24,.7)';
+  ctx.beginPath();ctx.roundRect(W-48,H-120,40,36,6);ctx.fill();
+  ctx.fillStyle='rgba(0,229,255,.7)';ctx.font='bold 16px sans-serif';ctx.textAlign='center';
+  ctx.fillText('+',W-28,H-97);
+  ctx.fillStyle='rgba(4,8,24,.7)';
+  ctx.beginPath();ctx.roundRect(W-48,H-80,40,36,6);ctx.fill();
+  ctx.fillStyle='rgba(0,229,255,.7)';
+  ctx.fillText('−',W-28,H-57);
+  /* Reset button */
+  ctx.fillStyle='rgba(4,8,24,.7)';
+  ctx.beginPath();ctx.roundRect(W-48,H-40,40,28,6);ctx.fill();
+  ctx.fillStyle='rgba(0,229,255,.5)';ctx.font='10px -apple-system,sans-serif';
+  ctx.fillText('⊙',W-28,H-26);
 
   galaxyAnimFrame=requestAnimationFrame(animateGalaxy);
 }
 
-/* ── GALAXY CANVAS CLICK ── */
-function galaxyClick(e){
-  var c=document.getElementById('galaxyCanvas');
-  var rect=c.getBoundingClientRect();
-  var mx=e.clientX-rect.left,my=e.clientY-rect.top;
-  /* Check planet hits */
+/* ── INPUT HANDLING — Touch + Mouse ── */
+function setupGalaxyInput(){
+  var gc=document.getElementById('galaxyCanvas');
+  if(!gc||gc._inputSetup)return;
+  gc._inputSetup=true;
+
+  /* TOUCH */
+  gc.addEventListener('touchstart',function(e){
+    if(e.touches.length===1){
+      isDragging=true;dragMoved=false;pinching=false;
+      dragStartX=e.touches[0].clientX;dragStartY=e.touches[0].clientY;
+      camStartX=camX;camStartY=camY;
+    } else if(e.touches.length===2){
+      pinching=true;isDragging=false;
+      lastTouchDist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+    }
+    e.preventDefault();
+  },{passive:false});
+
+  gc.addEventListener('touchmove',function(e){
+    if(pinching&&e.touches.length===2){
+      var dist=Math.hypot(
+        e.touches[0].clientX-e.touches[1].clientX,
+        e.touches[0].clientY-e.touches[1].clientY
+      );
+      var ratio=dist/Math.max(lastTouchDist,1);
+      camTargetZoom=Math.max(0.3,Math.min(3,camTargetZoom*ratio));
+      lastTouchDist=dist;
+    } else if(isDragging&&e.touches.length===1){
+      var dx=e.touches[0].clientX-dragStartX;
+      var dy=e.touches[0].clientY-dragStartY;
+      if(Math.abs(dx)>4||Math.abs(dy)>4)dragMoved=true;
+      camTargetX=camStartX-dx/camZoom;
+      camTargetY=camStartY-dy/camZoom;
+    }
+    e.preventDefault();
+  },{passive:false});
+
+  gc.addEventListener('touchend',function(e){
+    if(!dragMoved&&!pinching&&e.changedTouches.length===1){
+      /* Tap — hit test */
+      var cv=document.getElementById('galaxyCanvas');
+      var rect=cv.getBoundingClientRect();
+      var sx=e.changedTouches[0].clientX-rect.left;
+      var sy=e.changedTouches[0].clientY-rect.top;
+      handleGalaxyTap(sx,sy,cv.width,cv.height);
+    }
+    isDragging=false;pinching=false;dragMoved=false;
+  });
+
+  /* MOUSE (desktop/iPad mouse) */
+  gc.addEventListener('mousedown',function(e){
+    isDragging=true;dragMoved=false;
+    dragStartX=e.clientX;dragStartY=e.clientY;
+    camStartX=camX;camStartY=camY;
+  });
+  gc.addEventListener('mousemove',function(e){
+    if(!isDragging)return;
+    var dx=e.clientX-dragStartX,dy=e.clientY-dragStartY;
+    if(Math.abs(dx)>3||Math.abs(dy)>3)dragMoved=true;
+    camTargetX=camStartX-dx/camZoom;
+    camTargetY=camStartY-dy/camZoom;
+  });
+  gc.addEventListener('mouseup',function(e){
+    if(!dragMoved){
+      var cv=document.getElementById('galaxyCanvas');
+      var rect=cv.getBoundingClientRect();
+      handleGalaxyTap(e.clientX-rect.left,e.clientY-rect.top,cv.width,cv.height);
+    }
+    isDragging=false;dragMoved=false;
+  });
+  gc.addEventListener('wheel',function(e){
+    e.preventDefault();
+    var factor=e.deltaY>0?0.88:1.14;
+    camTargetZoom=Math.max(0.3,Math.min(3,camTargetZoom*factor));
+  },{passive:false});
+}
+
+function handleGalaxyTap(sx,sy,W,H){
+  /* Check zoom UI buttons (screen space) */
+  if(sx>=W-48&&sx<=W-8){
+    if(sy>=H-120&&sy<=H-84){zoomIn();return;}
+    if(sy>=H-80&&sy<=H-44){zoomOut();return;}
+    if(sy>=H-40&&sy<=H-12){zoomReset();return;}
+  }
+  /* Convert tap to world coords */
+  var w=screenToWorld(sx,sy,W,H);
+  /* Hit test planets */
   for(var i=0;i<planets.length;i++){
     var p=planets[i];
-    var dx=(p.curX||p.x)-mx,dy=(p.curY||p.y)-my;
-    if(Math.sqrt(dx*dx+dy*dy)<p.r+10){
+    var dx=p.wx-w.x,dy=p.wy-w.y;
+    if(Math.sqrt(dx*dx+dy*dy)<p.r+10/camZoom){
+      /* Fly ship to planet */
+      shipTargetX=p.wx;shipTargetY=p.wy-p.r-20/camZoom;
+      /* Pan camera to planet */
+      camTargetX=p.wx;camTargetY=p.wy;
+      if(camTargetZoom<1)camTargetZoom=1;
       openPlanetModal(p);
-      shipTargetX=p.curX||p.x;
-      shipTargetY=(p.curY||p.y)-p.r-30;
       return;
     }
   }
-  /* Move ship to tap point */
-  shipTargetX=mx;shipTargetY=my;
-  hideTip();
+  /* Otherwise move ship */
+  shipTargetX=w.x;shipTargetY=w.y;
 }
+
+/* keep old galaxyClick as no-op (input now via setupGalaxyInput) */
+function galaxyClick(){}
 
 /* ── PLANET MODAL ── */
 function openPlanetModal(planet){
@@ -1898,8 +2107,7 @@ document.addEventListener('DOMContentLoaded',function(){
   drawStarfield();
   renderAll();
   window.addEventListener('resize',function(){drawStarfield();if(currentPage==='galaxy')drawGalaxy();});
-  var gc=document.getElementById('galaxyCanvas');
-  if(gc)gc.addEventListener('click',galaxyClick);
+  /* galaxy input setup is called inside drawGalaxy() */
   if(sb){
     sb.auth.getSession().then(function(r){
       if(!r.data||!r.data.session)document.getElementById('authScreen').classList.add('show');
