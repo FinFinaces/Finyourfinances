@@ -4996,7 +4996,7 @@ function processNextScan(){
     var base64 = ev.target.result.split(',')[1];
     var mime = file.type || 'image/jpeg';
     var today = new Date().toISOString().slice(0,10);
-    var prompt = 'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+    var prompt = 'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nวันที่: ถ้าไม่มีปี ใช้ปีปัจจุบัน '+today.slice(0,4)+' ถ้าปีเป็น พ.ศ. (2567-2570) ลบ 543 ก่อน\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
     fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({mime:mime, image:base64, prompt:prompt})
@@ -5047,7 +5047,7 @@ async function callGemini(){
   var today=new Date().toISOString().slice(0,10);
   var prompt=scanMode==='installment'
     ?'อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:\n{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69}]}'
-    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nวันที่: ถ้าสลิปไม่มีปี ให้ใช้ปีปัจจุบัน '+today.slice(0,4)+' ถ้าปีเป็น พ.ศ. (เช่น 2567 2568 2569) ให้ลบ 543 แปลงเป็น ค.ศ. ก่อน\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
   try{
     var resp=await fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -5168,6 +5168,7 @@ function scanConfirmSave(){
       });
       var lastTx=txs[txs.length-1];
       adjustLoanUsed(lastTx,+1);
+      updateCardBalance(lastTx,+1);
       localStorage.setItem('fin_cards',JSON.stringify(window.cards||[]));
       added++;
     });
