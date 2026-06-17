@@ -1494,6 +1494,9 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <select id="selMonth" onchange="renderAll()"></select>
         <select id="selYear" onchange="renderAll()"></select>
       </div>
+      <button class="icon-btn" onclick="openLineMenu()" title="ส่งสรุปไป LINE" id="lineBtn" style="background:#06C755;border-color:#05a847;color:#fff">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.03 2 11c0 3.13 1.68 5.9 4.26 7.63-.18.62-.66 2.27-.76 2.62-.12.44.16.44.34.32.14-.09 1.89-1.26 2.65-1.77.47.07.95.1 1.51.1 5.52 0 10-4.03 10-9C22 6.03 17.52 2 12 2z"/></svg>
+      </button>
       <button class="icon-btn" onclick="toggleSound()" title="เปิด/ปิดเสียง" id="soundBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
       </button>
@@ -2491,6 +2494,34 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="fg"><label class="fl">เลือกเดือนต้นทาง</label><select class="fs" id="copyFromMonth"></select></div>
     <div id="copyPreview" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px;margin-top:12px;font-size:12px;color:var(--text2);max-height:200px;overflow-y:auto">เลือกเดือนเพื่อดูตัวอย่าง</div>
     <div class="modal-foot"><button class="btn-cancel" onclick="closeCopyModal()">ยกเลิก</button><button class="btn-ok" onclick="doCopy()" id="btnDoCopy" disabled>คัดลอกรายการ</button></div>
+  </div>
+</div>
+
+<!-- ── LINE Notify Modal ── -->
+<div class="backdrop" id="lineMenuBackdrop" onclick="if(event.target===this)closeLineMenu()">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-head">
+      <div class="modal-title" style="color:#06C755">💬 ส่งสรุปไป LINE</div>
+      <button class="modal-x" onclick="closeLineMenu()">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
+      <button onclick="sendLineDaily()" style="background:#06C755;border:none;border-radius:var(--rs);padding:14px 16px;color:#fff;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s" onmouseover="this.style.background='#05a847'" onmouseout="this.style.background='#06C755'">
+        <span style="font-size:22px">📊</span>
+        <div style="text-align:left">
+          <div>สรุปรายวัน</div>
+          <div style="font-size:11px;font-weight:400;opacity:0.85">รายรับ รายจ่าย คงเหลือ + รายจ่ายวันนี้</div>
+        </div>
+      </button>
+      <button onclick="sendLineMonthly()" style="background:#06C755;border:none;border-radius:var(--rs);padding:14px 16px;color:#fff;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s" onmouseover="this.style.background='#05a847'" onmouseout="this.style.background='#06C755'">
+        <span style="font-size:22px">📅</span>
+        <div style="text-align:left">
+          <div>สรุปรายเดือน</div>
+          <div style="font-size:11px;font-weight:400;opacity:0.85">ยอดรวมเดือนนี้ + บัตร + หนี้</div>
+        </div>
+      </button>
+    </div>
+    <div id="lineSendStatus" style="display:none;padding:10px 14px;border-radius:var(--rs);font-size:13px;text-align:center"></div>
+    <button class="btn-cancel" onclick="closeLineMenu()">ปิด</button>
   </div>
 </div>
 
@@ -3754,6 +3785,110 @@ function sLabel(s){ return {paid:'ชำระแล้ว',unpaid:'ค้าง
 function monthItems(mo,yr){ const p=(mo===undefined)?period():{m:mo,y:yr}; return (txs||[]).filter(t=>{ const d=new Date(t.date); return d.getMonth()===p.m&&d.getFullYear()===p.y; }); }
 
 
+
+
+// ── LINE Notify ──
+var LINE_NOTIFY_URL = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/line-notify';
+
+function openLineMenu(){ document.getElementById('lineMenuBackdrop').classList.add('open'); document.getElementById('lineSendStatus').style.display='none'; }
+function closeLineMenu(){ document.getElementById('lineMenuBackdrop').classList.remove('open'); }
+
+function lineSetStatus(msg, isOk){
+  var el = document.getElementById('lineSendStatus');
+  el.style.display = '';
+  el.style.background = isOk ? 'var(--green-bg)' : 'var(--red-bg)';
+  el.style.border = '1px solid ' + (isOk ? 'var(--green-br)' : 'var(--red-br)');
+  el.style.color = isOk ? 'var(--green)' : 'var(--red)';
+  el.textContent = msg;
+}
+
+async function sendLineDaily(){
+  lineSetStatus('⏳ กำลังส่ง...', true);
+  var today = new Date();
+  var dateStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+  var thDayNames = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
+  var dateLabel = thDayNames[today.getDay()]+' '+today.getDate()+' '+MONTHS_SHORT[today.getMonth()]+' '+(today.getFullYear()+543);
+
+  // รายการวันนี้
+  var todayItems = (txs||[]).filter(function(t){ return t.date === dateStr; });
+  var income = todayItems.filter(function(t){ return t.type==='income'; }).reduce(function(s,t){ return s+t.amount; }, 0);
+  var expense = todayItems.filter(function(t){ return t.type==='expense'; }).reduce(function(s,t){ return s+t.amount; }, 0);
+
+  // คงเหลือทั้งเดือน
+  var all = monthItems();
+  var mInc = all.filter(function(t){ return t.type==='income'; }).reduce(function(s,t){ return s+t.amount; }, 0);
+  var mExp = all.filter(function(t){ return t.type==='expense'; }).reduce(function(s,t){ return s+t.amount; }, 0);
+  var mBal = mInc - mExp;
+
+  // รายจ่ายวันนี้ top 5
+  var topExp = todayItems.filter(function(t){ return t.type==='expense'&&t.amount>0; })
+    .sort(function(a,b){ return b.amount-a.amount; }).slice(0,5)
+    .map(function(t){ return {name:t.name, amount:t.amount}; });
+
+  // สรุปบัตร
+  var cardSummary = (window.cards||[]).map(function(c){ return {name:c.name, balance:c.balance||0, limit:c.limit||0}; });
+
+  try {
+    var resp = await fetch(LINE_NOTIFY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type:'daily',
+        data:{ date:dateLabel, income:income, expense:expense, balance:mBal, topExpenses:topExp, cardSummary:cardSummary }
+      })
+    });
+    var data = await resp.json();
+    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายวันแล้ว!', true); toast('📱 ส่งไป LINE แล้ว'); }
+    else { lineSetStatus('⚠️ ส่งไม่สำเร็จ: '+(data.lineData&&data.lineData.message?data.lineData.message:'ลองใหม่'), false); }
+  } catch(e) {
+    lineSetStatus('⚠️ เชื่อมต่อไม่ได้: '+e.message, false);
+  }
+}
+
+async function sendLineMonthly(){
+  lineSetStatus('⏳ กำลังส่ง...', true);
+  var p = period();
+  var all = monthItems();
+  var income = all.filter(function(t){ return t.type==='income'; }).reduce(function(s,t){ return s+t.amount; }, 0);
+  var expense = all.filter(function(t){ return t.type==='expense'; }).reduce(function(s,t){ return s+t.amount; }, 0);
+  var balance = income - expense;
+
+  // หมวดหมู่
+  var byCat = {};
+  all.filter(function(t){ return t.type==='expense'&&t.amount>0; }).forEach(function(t){
+    byCat[t.category] = (byCat[t.category]||0) + t.amount;
+  });
+  var byCategory = Object.entries(byCat).sort(function(a,b){ return b[1]-a[1]; }).slice(0,6)
+    .map(function(e){ return {cat:(CAT_EMOJI[e[0]]||'')+' '+e[0], amount:e[1]}; });
+
+  // บัตรเครดิต
+  var cardSummary = (window.cards||[]).map(function(c){ return {name:c.name, balance:c.balance||0, limit:c.limit||0}; });
+
+  // หนี้
+  var loanSummary = (loans||[]).filter(function(l){ return (l.remaining||0)>0&&l.type!=='creditline'; })
+    .slice(0,5).map(function(l){
+      var r=(l.interest||0)/100/12; var moLeft=0;
+      if((l.monthly||0)>0&&l.remaining>0){
+        if(r>0&&l.monthly>l.remaining*r) moLeft=Math.ceil(-Math.log(1-(r*l.remaining/l.monthly))/Math.log(1+r));
+        else moLeft=Math.ceil(l.remaining/l.monthly);
+      }
+      return {name:l.name, remaining:l.remaining||0, moLeft:moLeft};
+    });
+
+  try {
+    var resp = await fetch(LINE_NOTIFY_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        type:'monthly',
+        data:{ month:p.m+1, year:p.y, income:income, expense:expense, balance:balance, byCategory:byCategory, cardSummary:cardSummary, loanSummary:loanSummary }
+      })
+    });
+    var data = await resp.json();
+    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายเดือนแล้ว!', true); toast('📱 ส่งไป LINE แล้ว'); }
+    else { lineSetStatus('⚠️ ส่งไม่สำเร็จ: '+(data.lineData&&data.lineData.message?data.lineData.message:'ลองใหม่'), false); }
+  } catch(e) {
+    lineSetStatus('⚠️ เชื่อมต่อไม่ได้: '+e.message, false);
+  }
+}
 
 // ── Audio Feedback ──
 var audioCtx = null;
