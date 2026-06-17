@@ -3120,11 +3120,6 @@ function setLoanType(t){
       parentBox.style.background='var(--blue-bg)';
     }
   }
-  // ซ่อน override และ parentCredit สำหรับ family/other
-  var overrideWrap=document.getElementById('lnOverrideWrap');
-  if(overrideWrap) overrideWrap.style.display=(t==='family'||t==='other')?'none':'';
-  var parentCreditBox=document.getElementById('lnParentCreditBox');
-  if(parentCreditBox) parentCreditBox.style.display=(t==='family'||t==='other')?'none':'';
 }
 function updateLoanCalc(){
   const remain=parseFloat(document.getElementById('lnRemaining').value)||0;
@@ -3228,30 +3223,11 @@ function saveLoan(){
       parent.used=totalDrawn;
     }
   }
-  // ถ้า family type และเป็นรายการใหม่ → สร้าง tx รายรับอัตโนมัติ
-  if(!editingLoanId && obj.type==='family' && obj.principal>0){
-    var today=new Date();
-    var dateStr=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-    txs.push({
-      id:'t'+Date.now()+'_borrow',
-      type:'income',
-      name:'💸 ยืม '+name,
-      amount:obj.principal,
-      category:'ยืม/รับเงิน',
-      date:dateStr, due:dateStr,
-      status:'paid',
-      note:'บันทึกอัตโนมัติจากการยืมเงิน',
-      isRecurring:false,
-      paymentSource:'bank'
-    });
-    msg+=' · บันทึกรายรับแล้ว';
-  }
   closeLoanModal();
   try {
     saveAll();
     renderLoans(); renderCreditLines(); renderAll();
   } catch(e){ console.error('saveLoan',e); toast('⚠️ บันทึกไม่สำเร็จ: '+e.message); try{renderLoans();renderCreditLines();renderAll();}catch(e2){} }
-  playFx('income');
   toast(msg+(obj.parentCreditId?' [link:'+obj.parentCreditId.slice(-4)+']':''));
 }
 function deleteLoan(id){
@@ -3392,21 +3368,6 @@ function doPayLoan(){
   }
   if(createTx){
     txs.push({id:'t'+Date.now(),type:'expense',name:'💳 ผ่อน '+l.name,amount:amt,category:'หนี้/สินเชื่อ',date:date,due:date,status:'paid',note:'ยอดคงเหลือ ฿'+fmt(l.remaining),isRecurring:true,paymentSource:src});
-  }
-  // ถ้า family type → สร้าง tx รายจ่ายอัตโนมัติ
-  if(l.type==='family' && !createTx){
-    txs.push({
-      id:'t'+Date.now()+'_repay',
-      type:'expense',
-      name:'💸 คืน '+l.name,
-      amount:amt,
-      category:'ยืม/รับเงิน',
-      date:date, due:date,
-      status:'paid',
-      note:'คืนเงินที่ยืม',
-      isRecurring:false,
-      paymentSource:src
-    });
   }
   // ล้าง override หลังตัดชำระแล้ว ให้ใช้ calcRemaining จาก payment history ต่อไป
   if(l.remainingOverride!==null && l.remainingOverride!==undefined){
@@ -4896,6 +4857,36 @@ const GEMINI_API  = 'https://openrouter.ai/api/v1/chat/completions';
 let scanMode = 'receipt'; // 'receipt' | 'installment'
 let scanImageBase64 = null;
 let scanImageMime = 'image/jpeg';
+
+// แก้ปีสแกน post-process: พ.ศ.(2500-2600) → ลบ 543, ไม่มีปี → ใช้ปีปัจจุบัน
+function fixScanDates(items){
+  if(!items || !items.length) return items;
+  var now = new Date();
+  var curYear = now.getFullYear();
+  var todayStr = curYear+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  items.forEach(function(item){
+    if(!item.date){ item.date = todayStr; return; }
+    // จับรูปแบบ YYYY-MM-DD หรือ YYYY/MM/DD
+    var m = item.date.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})/);
+    if(m){
+      var yr = parseInt(m[1]);
+      // พ.ศ. อยู่ระหว่าง 2500-2600
+      if(yr >= 2500 && yr <= 2600){
+        item.date = item.date.replace(/^\d{4}/, String(yr - 543));
+      }
+      // ปีเก่าเกิน 2 ปีหรืออนาคตไกลเกิน 1 ปี → ใช้ปีปัจจุบัน
+      var fixedYr = parseInt(item.date.slice(0,4));
+      if(fixedYr < curYear - 2 || fixedYr > curYear + 1){
+        item.date = String(curYear) + item.date.slice(4);
+      }
+      return;
+    }
+    // รูปแบบอื่น → ใช้วันนี้
+    item.date = todayStr;
+  });
+  return items;
+}
+
 let scanParsedData = null;
 
 
@@ -4996,7 +4987,7 @@ function processNextScan(){
     var base64 = ev.target.result.split(',')[1];
     var mime = file.type || 'image/jpeg';
     var today = new Date().toISOString().slice(0,10);
-    var prompt = 'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nวันที่: ถ้าไม่มีปี ใช้ปีปัจจุบัน '+today.slice(0,4)+' ถ้าปีเป็น พ.ศ. (2567-2570) ลบ 543 ก่อน\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+    var prompt = 'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
     fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({mime:mime, image:base64, prompt:prompt})
@@ -5008,6 +4999,7 @@ function processNextScan(){
           try{
             var parsed = JSON.parse(jm[0]);
             if(parsed.items && parsed.items.length){
+              fixScanDates(parsed.items);
               parsed.items.forEach(function(item){ multiScanResults.push(item); });
             }
           }catch(e){}
@@ -5047,7 +5039,7 @@ async function callGemini(){
   var today=new Date().toISOString().slice(0,10);
   var prompt=scanMode==='installment'
     ?'อ่านตารางการชำระเงิน/งวดผ่อนจากรูปนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น รูปแบบ:\n{"type":"installment","items":[{"date":"2026-07-05","amount":12331.69}]}'
-    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nวันที่: ถ้าสลิปไม่มีปี ให้ใช้ปีปัจจุบัน '+today.slice(0,4)+' ถ้าปีเป็น พ.ศ. (เช่น 2567 2568 2569) ให้ลบ 543 แปลงเป็น ค.ศ. ก่อน\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
+    :'อ่านใบเสร็จ/สลิป/หน้าจอการชำระเงินนี้ แล้วตอบเป็น JSON เท่านั้น ไม่ต้องมีข้อความอื่น\nสำคัญ: ให้ใช้ยอด "จำนวนเงินที่ชำระจริง" หรือ "ยอดสุทธิ" หรือ "Net Amount" เท่านั้น — ถ้ามีส่วนลด/สิทธิ์/คูปองให้หักออกแล้ว\nรูปแบบ:\n{"type":"receipt","items":[{"name":"ชื่อร้าน","amount":48.00,"date":"'+today+'"}],"total":48.00,"merchant":"ชื่อร้าน"}\nถ้าไม่แน่ใจวันที่ให้ใช้ '+today;
   try{
     var resp=await fetch('https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/scan-proxy',{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -5059,6 +5051,7 @@ async function callGemini(){
     var jm=raw.match(/\{[\s\S]*\}/);
     if(!jm) throw new Error('ไม่พบ JSON ในผลลัพธ์');
     scanParsedData=JSON.parse(jm[0]);
+    if(scanParsedData.items) fixScanDates(scanParsedData.items);
     if(!scanParsedData.items||!scanParsedData.items.length) throw new Error('ไม่พบรายการในรูป');
     showScanResults();
   }catch(err){
@@ -5168,7 +5161,6 @@ function scanConfirmSave(){
       });
       var lastTx=txs[txs.length-1];
       adjustLoanUsed(lastTx,+1);
-      updateCardBalance(lastTx,+1);
       localStorage.setItem('fin_cards',JSON.stringify(window.cards||[]));
       added++;
     });
