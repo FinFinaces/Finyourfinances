@@ -2525,7 +2525,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toastEl"></div>
 <script>
 // ============================================================
 //  Supabase config
@@ -3788,6 +3788,8 @@ function monthItems(mo,yr){ const p=(mo===undefined)?period():{m:mo,y:yr}; retur
 
 
 // ── LINE Notify ──
+function showToast(msg){ var el=document.getElementById('toastEl'); if(!el)return; el.textContent=msg; el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},2200); }
+
 var LINE_NOTIFY_URL = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/line-notify';
 
 function openLineMenu(){ document.getElementById('lineMenuBackdrop').classList.add('open'); document.getElementById('lineSendStatus').style.display='none'; }
@@ -3827,17 +3829,19 @@ async function sendLineDaily(){
 
   // สรุปบัตร
   var cardSummary = (window.cards||[]).map(function(c){ return {name:c.name, balance:c.balance||0, limit:c.limit||0}; });
+  var creditSummary = (loans||[]).filter(function(l){ return l.type==='creditline'||(l.creditLimit>0&&!l.parentCreditId); })
+    .map(function(l){ return {name:l.name, used:l.used||0, limit:l.creditLimit||0, avail:Math.max(0,(l.creditLimit||0)-(l.used||0))}; });
 
   try {
     var resp = await fetch(LINE_NOTIFY_URL, {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         type:'daily',
-        data:{ date:dateLabel, income:income, expense:expense, balance:mBal, topExpenses:topExp, cardSummary:cardSummary }
+        data:{ date:dateLabel, income:income, expense:expense, balance:mBal, topExpenses:topExp, cardSummary:cardSummary, creditSummary:creditSummary }
       })
     });
     var data = await resp.json();
-    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายวันแล้ว!', true); toast('📱 ส่งไป LINE แล้ว'); }
+    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายวันแล้ว!', true); showToast('📱 ส่งไป LINE แล้ว'); }
     else { lineSetStatus('⚠️ ส่งไม่สำเร็จ: '+(data.lineData&&data.lineData.message?data.lineData.message:'ลองใหม่'), false); }
   } catch(e) {
     lineSetStatus('⚠️ เชื่อมต่อไม่ได้: '+e.message, false);
@@ -3863,6 +3867,10 @@ async function sendLineMonthly(){
   // บัตรเครดิต
   var cardSummary = (window.cards||[]).map(function(c){ return {name:c.name, balance:c.balance||0, limit:c.limit||0}; });
 
+  // วงเงินสินเชื่อ
+  var creditSummary = (loans||[]).filter(function(l){ return l.type==='creditline'||((l.creditLimit||0)>0&&!l.parentCreditId); })
+    .map(function(l){ return {name:l.name, used:l.used||0, limit:l.creditLimit||0, avail:Math.max(0,(l.creditLimit||0)-(l.used||0))}; });
+
   // หนี้
   var loanSummary = (loans||[]).filter(function(l){ return (l.remaining||0)>0&&l.type!=='creditline'; })
     .slice(0,5).map(function(l){
@@ -3879,11 +3887,11 @@ async function sendLineMonthly(){
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         type:'monthly',
-        data:{ month:p.m+1, year:p.y, income:income, expense:expense, balance:balance, byCategory:byCategory, cardSummary:cardSummary, loanSummary:loanSummary }
+        data:{ month:p.m+1, year:p.y, income:income, expense:expense, balance:balance, byCategory:byCategory, cardSummary:cardSummary, loanSummary:loanSummary, creditSummary:creditSummary }
       })
     });
     var data = await resp.json();
-    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายเดือนแล้ว!', true); toast('📱 ส่งไป LINE แล้ว'); }
+    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายเดือนแล้ว!', true); showToast('📱 ส่งไป LINE แล้ว'); }
     else { lineSetStatus('⚠️ ส่งไม่สำเร็จ: '+(data.lineData&&data.lineData.message?data.lineData.message:'ลองใหม่'), false); }
   } catch(e) {
     lineSetStatus('⚠️ เชื่อมต่อไม่ได้: '+e.message, false);
