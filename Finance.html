@@ -1494,9 +1494,6 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <select id="selMonth" onchange="renderAll()"></select>
         <select id="selYear" onchange="renderAll()"></select>
       </div>
-      <button class="icon-btn" onclick="openLineMenu()" title="ส่งสรุปไป LINE" id="lineBtn" style="background:#06C755;border-color:#05a847;color:#fff">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.03 2 11c0 3.13 1.68 5.9 4.26 7.63-.18.62-.66 2.27-.76 2.62-.12.44.16.44.34.32.14-.09 1.89-1.26 2.65-1.77.47.07.95.1 1.51.1 5.52 0 10-4.03 10-9C22 6.03 17.52 2 12 2z"/></svg>
-      </button>
       <button class="icon-btn" onclick="toggleSound()" title="เปิด/ปิดเสียง" id="soundBtn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
       </button>
@@ -1521,6 +1518,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <button class="page-tab" data-page="overview" onclick="setPageTab('overview')">📊 ภาพรวม</button>
     <button class="page-tab" data-page="analysis" onclick="setPageTab('analysis')">📈 วิเคราะห์</button>
     <button class="page-tab" data-page="goals" onclick="setPageTab('goals')">🎯 เป้าหมาย</button>
+    <button class="page-tab" data-page="invest" onclick="setPageTab('invest')">💼 ลงทุน</button>
   </div>
 
   <div class="page-section active" id="page-overview-top">
@@ -1807,6 +1805,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     <div class="subtabs" id="analysisTabs">
       <button class="subtab active" data-anatab="trend" onclick="setAnalysisView('trend')">แนวโน้ม 6 เดือน</button>
       <button class="subtab" data-anatab="cat" onclick="setAnalysisView('cat')">รายจ่ายตามหมวด</button>
+      <button class="subtab" data-anatab="income" onclick="setAnalysisView('income')">รายรับตามแหล่ง</button>
       <button class="subtab" data-anatab="yearly" onclick="setAnalysisView('yearly')">สรุปรายปี</button>
     </div>
     <div class="charts-grid">
@@ -1828,8 +1827,16 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
         <div id="trendSummary" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px"></div>
       </div>
       <div class="chart-card" id="chartCat" style="display:none">
-        <div class="chart-head"><div><div class="chart-title">รายจ่ายตามหมวด</div><div class="chart-sub">เดือนนี้</div></div></div>
+        <div class="chart-head">
+          <div><div class="chart-title">รายจ่ายตามหมวด</div><div class="chart-sub">เดือนนี้</div></div>
+        </div>
         <div class="donut-wrap" id="donutWrap"></div>
+      </div>
+      <div class="chart-card" id="chartIncome" style="display:none">
+        <div class="chart-head">
+          <div><div class="chart-title">รายรับตามแหล่ง</div><div class="chart-sub">เดือนนี้</div></div>
+        </div>
+        <div id="incomeAnalysis"></div>
       </div>
       <div class="chart-card" id="chartYearly" style="display:none">
         <div class="chart-head">
@@ -1864,6 +1871,61 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
 
   </div><!-- /page-goals -->
+
+  <!-- ══ INVEST PAGE ══ -->
+  <div class="page-section" id="page-invest" style="display:none">
+    <!-- Net Worth Banner -->
+    <div id="networthBanner" style="background:linear-gradient(135deg,var(--surface) 0%,var(--surface2) 100%);border:1px solid var(--border);border-radius:16px;padding:20px 24px;margin-bottom:20px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-40px;right:-20px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,var(--accent3) 0%,transparent 70%);opacity:0.5;pointer-events:none"></div>
+      <div style="position:relative;z-index:1;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:11px;color:var(--text3);letter-spacing:0.14em;text-transform:uppercase;font-weight:600;margin-bottom:6px">ความมั่งคั่งสุทธิ (Net Worth)</div>
+          <div class="mono" id="networthValue" style="font-size:clamp(28px,5vw,44px);font-weight:600;letter-spacing:-0.02em;line-height:1">฿0</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:6px;display:flex;gap:14px;flex-wrap:wrap">
+            <span>📈 สินทรัพย์: <b class="mono" id="networthAssets">฿0</b></span>
+            <span>📉 หนี้สิน: <b class="mono" id="networthDebt">฿0</b></span>
+          </div>
+        </div>
+        <div id="networthChangeWrap" style="text-align:right">
+          <div style="font-size:11px;color:var(--text3)">เทียบเดือนที่แล้ว</div>
+          <div class="mono" id="networthChange" style="font-size:18px;font-weight:600">—</div>
+        </div>
+      </div>
+      <!-- Net Worth mini trend -->
+      <div id="networthTrend" style="margin-top:14px;display:none">
+        <div style="font-size:10px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px">Net Worth Trend (6 เดือน)</div>
+        <canvas id="networthChart" height="60" style="width:100%"></canvas>
+      </div>
+    </div>
+
+    <!-- Tabs: พอร์ต / ประกัน -->
+    <div class="subtabs" id="investTabs">
+      <button class="subtab active" data-invtab="portfolio" onclick="setInvestTab('portfolio')">📊 พอร์ตลงทุน</button>
+      <button class="subtab" data-invtab="insurance" onclick="setInvestTab('insurance')">🛡️ ประกัน</button>
+    </div>
+
+    <!-- Portfolio Section -->
+    <div id="investPortfolio">
+      <!-- Summary bar -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:12px" id="portfolioSummary"></div>
+      <!-- Price update bar -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+        <div style="font-size:12px;color:var(--text3)" id="priceUpdateStatus">ราคายังไม่ได้อัปเดต</div>
+        <button onclick="fetchAllPrices()" id="fetchPriceBtn" style="background:var(--accent);border:none;border-radius:var(--rs);padding:8px 16px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sarabun',sans-serif;display:flex;align-items:center;gap:6px">
+          <span id="fetchPriceIcon">🔄</span> อัปเดตราคา
+        </button>
+      </div>
+      <!-- Asset grid -->
+      <div id="portfolioGrid"></div>
+      <button class="btn-add-goal" onclick="openAssetModal(null)" style="margin-top:10px">+ เพิ่มสินทรัพย์</button>
+    </div>
+
+    <!-- Insurance Section -->
+    <div id="investInsurance" style="display:none">
+      <div id="insuranceGrid"></div>
+      <button class="btn-add-goal" onclick="openInsuranceModal(null)" style="margin-top:10px">+ เพิ่มกรมธรรม์</button>
+    </div>
+  </div><!-- /page-invest -->
 
     <!-- Transaction list always visible -->
   <div id="txSection"><div class="section-title" style="margin-top:32px">รายการทั้งหมด</div>
@@ -1916,17 +1978,6 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <span id="accSyncTime" style="color:var(--text3)">—</span>
     </div>
     <button class="btn-ok" style="width:100%;margin-bottom:8px" onclick="manualSync()">☁️ ซิงค์ตอนนี้</button>
-    <!-- LINE connect -->
-    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin:10px 0">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-        <span style="font-size:18px">💬</span>
-        <div style="font-size:13px;font-weight:700;color:var(--text)">เชื่อม LINE แจ้งเตือน</div>
-      </div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.6">Add <b>@754xorog</b> เป็นเพื่อนใน LINE แล้วใส่ User ID ของคุณ<br>หา User ID ได้จาก developers.line.biz → Basic settings</div>
-      <input class="fi" id="lineUserIdInput" placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" style="margin-bottom:8px;font-family:'IBM Plex Mono',monospace;font-size:12px"/>
-      <button onclick="saveLineUserId()" style="width:100%;background:#06C755;border:none;border-radius:var(--rs);padding:10px;color:#fff;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer">💬 บันทึก LINE User ID</button>
-      <div id="lineUserIdStatus" style="display:none;font-size:11px;margin-top:6px;text-align:center"></div>
-    </div>
     <button class="btn-cancel" style="width:100%;color:var(--red);border-color:var(--red-br)" onclick="authSignOut()">ออกจากระบบ</button>
   </div>
 </div>
@@ -2418,9 +2469,9 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">วันที่บันทึก</label><div id="txDateWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDate"/></div>
-      <div class="fg"><label class="fl">กำหนดชำระ</label><div id="txDueWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDue"/></div>
+      <div class="fg" id="txDueWrapRow"><label class="fl">กำหนดชำระ</label><div id="txDueWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDue"/></div>
     </div>
-    <div class="frow">
+    <div class="frow" id="txStatusRow">
       <div class="fg">
         <label class="fl">สถานะ</label>
         <input type="hidden" id="txStatus" value="unpaid"/>
@@ -2508,35 +2559,7 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
   </div>
 </div>
 
-<!-- ── LINE Notify Modal ── -->
-<div class="backdrop" id="lineMenuBackdrop" onclick="if(event.target===this)closeLineMenu()">
-  <div class="modal" style="max-width:360px">
-    <div class="modal-head">
-      <div class="modal-title" style="color:#06C755">💬 ส่งสรุปไป LINE</div>
-      <button class="modal-x" onclick="closeLineMenu()">✕</button>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px">
-      <button onclick="sendLineDaily()" style="background:#06C755;border:none;border-radius:var(--rs);padding:14px 16px;color:#fff;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s" onmouseover="this.style.background='#05a847'" onmouseout="this.style.background='#06C755'">
-        <span style="font-size:22px">📊</span>
-        <div style="text-align:left">
-          <div>สรุปรายวัน</div>
-          <div style="font-size:11px;font-weight:400;opacity:0.85">รายรับ รายจ่าย คงเหลือ + รายจ่ายวันนี้</div>
-        </div>
-      </button>
-      <button onclick="sendLineMonthly()" style="background:#06C755;border:none;border-radius:var(--rs);padding:14px 16px;color:#fff;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all 0.15s" onmouseover="this.style.background='#05a847'" onmouseout="this.style.background='#06C755'">
-        <span style="font-size:22px">📅</span>
-        <div style="text-align:left">
-          <div>สรุปรายเดือน</div>
-          <div style="font-size:11px;font-weight:400;opacity:0.85">ยอดรวมเดือนนี้ + บัตร + หนี้</div>
-        </div>
-      </button>
-    </div>
-    <div id="lineSendStatus" style="display:none;padding:10px 14px;border-radius:var(--rs);font-size:13px;text-align:center"></div>
-    <button class="btn-cancel" onclick="closeLineMenu()">ปิด</button>
-  </div>
-</div>
-
-<div class="toast" id="toastEl"></div>
+<div class="toast" id="toast"></div>
 <script>
 // ============================================================
 //  Supabase config
@@ -2793,7 +2816,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 //  Cloud sync (single JSON blob per user → table: fin_store)
 // ============================================================
 function bundle(){
-  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:Array.isArray(window.cards)?window.cards:[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, categories:CAT_EMOJI, lineUserId:window._lineUserId||'', v:1 };
+  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:Array.isArray(window.cards)?window.cards:[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, categories:CAT_EMOJI, assets:assets||[], insurances:insurances||[], networthHistory:networthHistory||[], v:1 };
 }
 async function cloudPull(){
   if(!currentUser || !sb) return;
@@ -2816,7 +2839,9 @@ async function cloudPull(){
       }
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
-      if(b.lineUserId){ window._lineUserId = b.lineUserId; }
+      if(Array.isArray(b.assets)) assets = b.assets;
+      if(Array.isArray(b.insurances)) insurances = b.insurances;
+      if(Array.isArray(b.networthHistory)) networthHistory = b.networthHistory;
       if(b.categories && typeof b.categories==='object'){
         CAT_EMOJI = Object.assign({}, DEFAULT_CATEGORIES, b.categories);
         saveCats();
@@ -2884,7 +2909,7 @@ function updateAccountUI(){
   const dot = document.querySelector('#syncBtn .sync-dot');
   if(dot) dot.style.background = currentUser ? 'var(--green)' : 'var(--text3)';
 }
-function openAccountModal(){ updateAccountUI(); loadLineUserIdInput(); document.getElementById('accountBackdrop').classList.add('open'); }
+function openAccountModal(){ updateAccountUI(); document.getElementById('accountBackdrop').classList.add('open'); }
 function closeAccountModal(){ document.getElementById('accountBackdrop').classList.remove('open'); }
 function closeAccountIfBg(e){ if(e.target===e.currentTarget) closeAccountModal(); }
 
@@ -3799,139 +3824,600 @@ function monthItems(mo,yr){ const p=(mo===undefined)?period():{m:mo,y:yr}; retur
 
 
 
-// ── LINE Notify ──
-function showToast(msg){ var el=document.getElementById('toastEl'); if(!el)return; el.textContent=msg; el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},2200); }
+// ════════════════════════════════════════════
+//  INVEST — พอร์ตลงทุน + ประกัน + Net Worth
+// ════════════════════════════════════════════
+var assets = JSON.parse(localStorage.getItem('fin_assets') || '[]');
+var insurances = JSON.parse(localStorage.getItem('fin_insurances') || '[]');
 
-var LINE_NOTIFY_URL = 'https://tedzucgqmitfmddxqvge.supabase.co/functions/v1/line-notify';
+var editingAssetId = null;
+var assetType = 'stock';
+var editingInsId = null;
+var insType = 'life';
+var investTab = 'portfolio';
 
-function openLineMenu(){ document.getElementById('lineMenuBackdrop').classList.add('open'); document.getElementById('lineSendStatus').style.display='none'; }
-function closeLineMenu(){ document.getElementById('lineMenuBackdrop').classList.remove('open'); }
+var ASSET_TYPE_LABEL = {
+  stock:'📈 หุ้น', fund:'💹 กองทุน', crypto:'₿ คริปโต',
+  gold:'🥇 ทองคำ', cash:'💵 เงินสด/ฝาก', other:'📋 อื่นๆ'
+};
+var ASSET_TYPE_COLOR = {
+  stock:'var(--accent)', fund:'var(--blue)', crypto:'#f7931a',
+  gold:'#d4a843', cash:'var(--green)', other:'var(--text3)'
+};
+var INS_TYPE_LABEL = {
+  life:'❤️ ชีวิต', health:'🏥 สุขภาพ', accident:'🩹 อุบัติเหตุ',
+  car:'🚗 รถยนต์', home:'🏠 บ้าน', other:'📋 อื่นๆ'
+};
 
-function lineSetStatus(msg, isOk){
-  var el = document.getElementById('lineSendStatus');
-  el.style.display = '';
-  el.style.background = isOk ? 'var(--green-bg)' : 'var(--red-bg)';
-  el.style.border = '1px solid ' + (isOk ? 'var(--green-br)' : 'var(--red-br)');
-  el.style.color = isOk ? 'var(--green)' : 'var(--red)';
-  el.textContent = msg;
-}
-
-async function sendLineDaily(){
-  lineSetStatus('⏳ กำลังส่ง...', true);
-  var today = new Date();
-  var dateStr = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  var thDayNames = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัส','ศุกร์','เสาร์'];
-  var dateLabel = thDayNames[today.getDay()]+' '+today.getDate()+' '+MONTHS_SHORT[today.getMonth()]+' '+(today.getFullYear()+543);
-
-  // รายการวันนี้
-  var todayItems = (txs||[]).filter(function(t){ return t.date === dateStr; });
-  var income = todayItems.filter(function(t){ return t.type==='income'; }).reduce(function(s,t){ return s+t.amount; }, 0);
-  var expense = todayItems.filter(function(t){ return t.type==='expense'; }).reduce(function(s,t){ return s+t.amount; }, 0);
-
-  // คงเหลือทั้งเดือน
-  var all = monthItems();
-  var mInc = all.filter(function(t){ return t.type==='income'; }).reduce(function(s,t){ return s+t.amount; }, 0);
-  var mExp = all.filter(function(t){ return t.type==='expense'; }).reduce(function(s,t){ return s+t.amount; }, 0);
-  var mBal = mInc - mExp;
-
-  // รายจ่ายวันนี้ top 5
-  var topExp = todayItems.filter(function(t){ return t.type==='expense'&&t.amount>0; })
-    .sort(function(a,b){ return b.amount-a.amount; }).slice(0,5)
-    .map(function(t){ return {name:t.name, amount:t.amount}; });
-
-  // สรุปบัตร
-  var cardSummary = (window.cards||[]).map(function(c){ return {name:c.name, balance:c.balance||0, limit:c.limit||0}; });
-  var creditSummary = (loans||[]).filter(function(l){ return l.type==='creditline'||(l.creditLimit>0&&!l.parentCreditId); })
-    .map(function(l){ return {name:l.name, used:l.used||0, limit:l.creditLimit||0, avail:Math.max(0,(l.creditLimit||0)-(l.used||0))}; });
-
-  try {
-    var resp = await fetch(LINE_NOTIFY_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        type:'daily',
-        data:{ date:dateLabel, income:income, expense:expense, balance:mBal, topExpenses:topExp, cardSummary:cardSummary, creditSummary:creditSummary }
-      })
-    });
-    var data = await resp.json();
-    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายวันแล้ว!', true); showToast('📱 ส่งไป LINE แล้ว'); }
-    else { lineSetStatus('⚠️ ส่งไม่สำเร็จ: '+(data.lineData&&data.lineData.message?data.lineData.message:'ลองใหม่'), false); }
-  } catch(e) {
-    lineSetStatus('⚠️ เชื่อมต่อไม่ได้: '+e.message, false);
-  }
-}
-
-async function sendLineMonthly(){
-  lineSetStatus('⏳ กำลังส่ง...', true);
-  var p = period();
-  var all = monthItems();
-  var income = all.filter(function(t){ return t.type==='income'; }).reduce(function(s,t){ return s+t.amount; }, 0);
-  var expense = all.filter(function(t){ return t.type==='expense'; }).reduce(function(s,t){ return s+t.amount; }, 0);
-  var balance = income - expense;
-
-  // หมวดหมู่
-  var byCat = {};
-  all.filter(function(t){ return t.type==='expense'&&t.amount>0; }).forEach(function(t){
-    byCat[t.category] = (byCat[t.category]||0) + t.amount;
+function setInvestTab(t){
+  investTab = t;
+  document.querySelectorAll('#investTabs .subtab').forEach(function(b){
+    b.classList.toggle('active', b.dataset.invtab === t);
   });
-  var byCategory = Object.entries(byCat).sort(function(a,b){ return b[1]-a[1]; }).slice(0,6)
-    .map(function(e){ return {cat:(CAT_EMOJI[e[0]]||'')+' '+e[0], amount:e[1]}; });
+  document.getElementById('investPortfolio').style.display = t==='portfolio' ? '' : 'none';
+  document.getElementById('investInsurance').style.display = t==='insurance' ? '' : 'none';
+  if(t==='portfolio') renderPortfolio();
+  else renderInsurance();
+}
 
-  // บัตรเครดิต
-  var cardSummary = (window.cards||[]).map(function(c){ return {name:c.name, balance:c.balance||0, limit:c.limit||0}; });
+// ── Net Worth ──
 
-  // วงเงินสินเชื่อ
-  var creditSummary = (loans||[]).filter(function(l){ return l.type==='creditline'||((l.creditLimit||0)>0&&!l.parentCreditId); })
-    .map(function(l){ return {name:l.name, used:l.used||0, limit:l.creditLimit||0, avail:Math.max(0,(l.creditLimit||0)-(l.used||0))}; });
+// ════════════════════════════════════════════
+//  PRICE FETCHER — ดึงราคาอัตโนมัติ
+// ════════════════════════════════════════════
 
-  // หนี้
-  var loanSummary = (loans||[]).filter(function(l){ return (l.remaining||0)>0&&l.type!=='creditline'; })
-    .slice(0,5).map(function(l){
-      var r=(l.interest||0)/100/12; var moLeft=0;
-      if((l.monthly||0)>0&&l.remaining>0){
-        if(r>0&&l.monthly>l.remaining*r) moLeft=Math.ceil(-Math.log(1-(r*l.remaining/l.monthly))/Math.log(1+r));
-        else moLeft=Math.ceil(l.remaining/l.monthly);
-      }
-      return {name:l.name, remaining:l.remaining||0, moLeft:moLeft};
-    });
+// Crypto: CoinGecko (ฟรี ไม่ต้อง key)
+// หุ้น/ETF/กองทุน: Yahoo Finance via allorigins proxy
+// ทองคำ: CoinGecko XAU
 
+var CRYPTO_IDS = {
+  'BTC':'bitcoin','ETH':'ethereum','BNB':'binancecoin','SOL':'solana',
+  'XRP':'ripple','ADA':'cardano','DOGE':'dogecoin','DOT':'polkadot',
+  'MATIC':'matic-network','LINK':'chainlink','AVAX':'avalanche-2',
+  'LTC':'litecoin','UNI':'uniswap','ATOM':'cosmos','NEAR':'near'
+};
+
+var FUND_TICKERS = {
+  'K-US500X':'K-US500X-A.BK','K-INDIA':'K-INDIA-A.BK','K-SET50':'K-SET50.BK',
+  'K-SF':'K-SF-A.BK','K-CASH':'K-CASH.BK','K-FIXED':'K-FIXED.BK',
+  'SCBKEQTG':'SCBKEQTG.BK','TMB50':'TMB50.BK'
+};
+
+var priceCache = {};
+
+async function fetchCryptoPrice(symbol){
+  var id = CRYPTO_IDS[symbol.toUpperCase()];
+  if(!id) return null;
   try {
-    var resp = await fetch(LINE_NOTIFY_URL, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        type:'monthly',
-        data:{ month:p.m+1, year:p.y, income:income, expense:expense, balance:balance, byCategory:byCategory, cardSummary:cardSummary, loanSummary:loanSummary, creditSummary:creditSummary }
-      })
+    var r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+id+'&vs_currencies=thb', {
+      headers:{'Accept':'application/json'}
     });
-    var data = await resp.json();
-    if(data.ok){ lineSetStatus('✅ ส่งสรุปรายเดือนแล้ว!', true); showToast('📱 ส่งไป LINE แล้ว'); }
-    else { lineSetStatus('⚠️ ส่งไม่สำเร็จ: '+(data.lineData&&data.lineData.message?data.lineData.message:'ลองใหม่'), false); }
-  } catch(e) {
-    lineSetStatus('⚠️ เชื่อมต่อไม่ได้: '+e.message, false);
-  }
+    var d = await r.json();
+    return d[id] ? d[id].thb : null;
+  } catch(e){ return null; }
 }
 
-
-// ── LINE User ID Settings ──
-function saveLineUserId(){
-  var val = (document.getElementById('lineUserIdInput').value||'').trim();
-  if(!val || !val.startsWith('U')){ 
-    var st=document.getElementById('lineUserIdStatus');
-    st.style.display=''; st.style.color='var(--red)';
-    st.textContent='⚠️ User ID ต้องขึ้นต้นด้วย U'; return; 
-  }
-  // เก็บใน fin_store ผ่าน bundle
-  if(typeof bundle === 'function'){
-    // inject lineUserId เข้า store
-    window._lineUserId = val;
-    saveAll();
-    var st=document.getElementById('lineUserIdStatus');
-    st.style.display=''; st.style.color='var(--green)';
-    st.textContent='✅ บันทึกแล้ว — จะได้รับแจ้งเตือน LINE';
-  }
+async function fetchYahooPrice(ticker){
+  // ใช้ allorigins.win เป็น CORS proxy
+  var url = 'https://query1.finance.yahoo.com/v8/finance/chart/'+encodeURIComponent(ticker)+'?interval=1d&range=1d';
+  var proxy = 'https://api.allorigins.win/get?url='+encodeURIComponent(url);
+  try {
+    var r = await fetch(proxy);
+    var d = await r.json();
+    var parsed = JSON.parse(d.contents);
+    var meta = parsed.chart.result[0].meta;
+    return meta.regularMarketPrice || null;
+  } catch(e){ return null; }
 }
-function loadLineUserIdInput(){
-  var inp=document.getElementById('lineUserIdInput');
-  if(inp && window._lineUserId) inp.value=window._lineUserId;
+
+async function fetchGoldPrice(){
+  // XAU/USD จาก CoinGecko แล้วคูณ USD/THB
+  try {
+    var r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=tether-gold&vs_currencies=thb');
+    var d = await r.json();
+    if(d['tether-gold']) return d['tether-gold'].thb; // per troy oz
+    return null;
+  } catch(e){ return null; }
+}
+
+async function fetchPriceForAsset(a){
+  var sym = (a.name||'').toUpperCase().trim();
+  try {
+    if(a.type === 'crypto'){
+      return await fetchCryptoPrice(sym);
+    }
+    if(a.type === 'gold'){
+      var oz = await fetchGoldPrice();
+      if(!oz) return null;
+      // ทองคำไทย 1 บาท = 15.244 กรัม, 1 troy oz = 31.1035 กรัม
+      // ถ้า name มี "บาท" → คำนวณเป็นบาทไทย
+      if(sym.includes('GOLD') || sym.includes('ทอง') || a.name.includes('บาท')){
+        return Math.round(oz * (15.244/31.1035));
+      }
+      return oz; // per troy oz
+    }
+    if(a.type === 'stock'){
+      // หุ้นไทย → .BK, หุ้น US → ชื่อเลย
+      var ticker = sym.includes('.') ? sym : (sym.length <= 5 && !sym.includes(' ') ? sym+'.BK' : sym);
+      return await fetchYahooPrice(ticker);
+    }
+    if(a.type === 'fund'){
+      var fundTicker = FUND_TICKERS[sym] || sym+'.BK';
+      return await fetchYahooPrice(fundTicker);
+    }
+  } catch(e){}
+  return null;
+}
+
+async function fetchAllPrices(){
+  if(!assets.length){ toast('⚠️ ยังไม่มีสินทรัพย์'); return; }
+  var btn = document.getElementById('fetchPriceBtn');
+  var icon = document.getElementById('fetchPriceIcon');
+  var status = document.getElementById('priceUpdateStatus');
+  if(btn) btn.disabled = true;
+  if(icon) icon.textContent = '⏳';
+  if(status) status.textContent = 'กำลังดึงราคา...';
+
+  var updated = 0, failed = [];
+  for(var i=0; i<assets.length; i++){
+    var a = assets[i];
+    if(a.type === 'cash') continue; // เงินสดไม่ต้องดึง
+    var price = await fetchPriceForAsset(a);
+    if(price && price > 0){
+      assets[i].price = Math.round(price * 100) / 100;
+      assets[i].priceUpdatedAt = new Date().toISOString().slice(0,10);
+      updated++;
+    } else {
+      failed.push(a.name);
+    }
+  }
+
+  localStorage.setItem('fin_assets', JSON.stringify(assets));
+  saveNetWorthSnapshot();
+  saveAll();
+
+  if(icon) icon.textContent = '🔄';
+  if(btn) btn.disabled = false;
+  var now = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  if(status) status.textContent = '✅ อัปเดตแล้ว '+updated+' รายการ เวลา '+now+(failed.length?' · ดึงไม่ได้: '+failed.join(', '):'');
+
+  renderPortfolio();
+  renderNetWorth();
+  toast('✅ อัปเดตราคา '+updated+' รายการแล้ว');
+}
+
+// ════════════════════════════════════════════
+//  NET WORTH HISTORY & TREND
+// ════════════════════════════════════════════
+
+var networthHistory = JSON.parse(localStorage.getItem('fin_nw_history') || '[]');
+
+function saveNetWorthSnapshot(){
+  var today = new Date().toISOString().slice(0,10);
+  var totalAssets = assets.reduce(function(s,a){ return s+(a.qty||0)*(a.price||0); },0);
+  var totalDebt = (loans||[]).filter(function(l){
+    return l.type !== 'creditline' && (l.remaining||0) > 0;
+  }).reduce(function(s,l){ return s+(l.remaining||0); },0);
+  totalDebt += (window.cards||[]).reduce(function(s,c){ return s+(c.balance||0); },0);
+  var nw = totalAssets - totalDebt;
+
+  // อัปเดตหรือเพิ่ม snapshot วันนี้
+  var idx = networthHistory.findIndex(function(h){ return h.date === today; });
+  if(idx >= 0) networthHistory[idx].value = nw;
+  else networthHistory.push({date:today, value:nw, assets:totalAssets, debt:totalDebt});
+
+  // เก็บแค่ 12 เดือน
+  networthHistory.sort(function(a,b){ return a.date.localeCompare(b.date); });
+  if(networthHistory.length > 365) networthHistory = networthHistory.slice(-365);
+  localStorage.setItem('fin_nw_history', JSON.stringify(networthHistory));
+}
+
+function renderNetWorthTrend(){
+  var wrap = document.getElementById('networthTrend');
+  var canvas = document.getElementById('networthChart');
+  if(!wrap || !canvas || networthHistory.length < 2){ if(wrap) wrap.style.display='none'; return; }
+  wrap.style.display = '';
+
+  // เอาข้อมูล 6 เดือนล่าสุด (1 จุดต่อเดือน)
+  var byMonth = {};
+  networthHistory.forEach(function(h){
+    var ym = h.date.slice(0,7);
+    byMonth[ym] = h.value;
+  });
+  var months = Object.keys(byMonth).sort().slice(-6);
+  if(months.length < 2){ wrap.style.display='none'; return; }
+
+  var values = months.map(function(m){ return byMonth[m]; });
+  var min = Math.min.apply(null, values);
+  var max = Math.max.apply(null, values);
+  var range = max - min || 1;
+
+  var W = canvas.offsetWidth || 300;
+  var H = 60;
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,W,H);
+
+  var pts = values.map(function(v,i){
+    return {
+      x: i/(values.length-1)*W,
+      y: H - ((v-min)/range)*(H-10) - 5
+    };
+  });
+
+  // gradient fill
+  var grad = ctx.createLinearGradient(0,0,0,H);
+  var lastVal = values[values.length-1];
+  var isUp = lastVal >= values[0];
+  grad.addColorStop(0, isUp?'rgba(74,103,65,0.3)':'rgba(155,74,58,0.3)');
+  grad.addColorStop(1, 'rgba(0,0,0,0)');
+
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, H);
+  pts.forEach(function(p){ ctx.lineTo(p.x, p.y); });
+  ctx.lineTo(pts[pts.length-1].x, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // line
+  ctx.beginPath();
+  pts.forEach(function(p,i){ i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y); });
+  ctx.strokeStyle = isUp ? 'var(--accent)' : 'var(--red)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // dots
+  pts.forEach(function(p,i){
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.fillStyle = isUp?'var(--accent)':'var(--red)';
+    ctx.fill();
+  });
+
+  // labels
+  ctx.fillStyle = 'rgba(158,152,144,0.8)';
+  ctx.font = '9px IBM Plex Mono, monospace';
+  months.forEach(function(m,i){
+    var label = MONTHS_SHORT[parseInt(m.slice(5))-1];
+    ctx.fillText(label, pts[i].x - 8, H-1);
+  });
+}
+
+function renderNetWorth(){
+  var totalAssets = assets.reduce(function(s,a){ return s+(a.qty||0)*(a.price||0); },0);
+  var totalDebt = (loans||[]).filter(function(l){
+    return l.type !== 'creditline' && (l.remaining||0) > 0;
+  }).reduce(function(s,l){ return s+(l.remaining||0); },0);
+  totalDebt += (window.cards||[]).reduce(function(s,c){ return s+(c.balance||0); },0);
+  var netWorth = totalAssets - totalDebt;
+
+  var el = document.getElementById('networthValue');
+  if(el){
+    el.textContent = (netWorth<0?'-':'')+'฿'+fmt(Math.abs(netWorth));
+    el.style.color = netWorth>=0?'var(--text)':'var(--red)';
+  }
+  var ea = document.getElementById('networthAssets');
+  if(ea) ea.textContent = '฿'+fmt(totalAssets);
+  var ed = document.getElementById('networthDebt');
+  if(ed) ed.textContent = '฿'+fmt(totalDebt);
+
+  // เปลี่ยนแปลงจากเดือนที่แล้ว
+  var changeEl = document.getElementById('networthChange');
+  if(changeEl && networthHistory.length >= 2){
+    var prev = networthHistory[networthHistory.length-2];
+    var diff = netWorth - prev.value;
+    var pct = prev.value !== 0 ? (diff/Math.abs(prev.value)*100) : 0;
+    changeEl.textContent = (diff>=0?'+':'')+' ฿'+fmtShort(diff)+' ('+pct.toFixed(1)+'%)';
+    changeEl.style.color = diff>=0?'var(--green)':'var(--red)';
+  }
+
+  // render trend chart
+  setTimeout(renderNetWorthTrend, 50);
+}
+
+// ── Portfolio ──
+function renderPortfolio(){
+  renderNetWorth();
+  var grid = document.getElementById('portfolioGrid');
+  var summary = document.getElementById('portfolioSummary');
+  if(!assets.length){
+    grid.innerHTML = '<div class="empty">ยังไม่มีสินทรัพย์ — กด "+ เพิ่มสินทรัพย์"</div>';
+    summary.innerHTML = '';
+    return;
+  }
+  var totalCost = 0, totalValue = 0, totalDiv = 0;
+  assets.forEach(function(a){
+    totalCost += (a.qty||0) * (a.cost||0);
+    totalValue += (a.qty||0) * (a.price||0);
+    totalDiv += a.dividend||0;
+  });
+  var totalPnl = totalValue - totalCost;
+  var totalPnlPct = totalCost > 0 ? (totalPnl/totalCost*100) : 0;
+
+  summary.innerHTML = [
+    {label:'มูลค่ารวม', val:'฿'+fmt(totalValue), color:'var(--text)'},
+    {label:'ต้นทุนรวม', val:'฿'+fmt(totalCost), color:'var(--text3)'},
+    {label:'กำไร/ขาดทุน', val:(totalPnl>=0?'+':'')+' ฿'+fmt(Math.abs(totalPnl))+' ('+totalPnlPct.toFixed(1)+'%)', color:totalPnl>=0?'var(--green)':'var(--red)'},
+    {label:'ปันผลสะสม', val:'฿'+fmt(totalDiv), color:'var(--amber)'},
+  ].map(function(s){
+    return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px">'+
+      '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">'+s.label+'</div>'+
+      '<div class="mono" style="font-size:16px;font-weight:600;color:'+s.color+'">'+s.val+'</div>'+
+    '</div>';
+  }).join('');
+
+  // group by type
+  var byType = {};
+  assets.forEach(function(a){
+    if(!byType[a.type]) byType[a.type] = [];
+    byType[a.type].push(a);
+  });
+
+  grid.innerHTML = Object.entries(byType).map(function(entry){
+    var type = entry[0], list = entry[1];
+    var typeVal = list.reduce(function(s,a){return s+(a.qty||0)*(a.price||0);},0);
+    var typePct = totalValue > 0 ? (typeVal/totalValue*100).toFixed(1) : 0;
+    return '<div style="margin-bottom:20px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-size:13px;font-weight:700;color:var(--text)">'+ASSET_TYPE_LABEL[type]+'</div>'+
+        '<div style="font-size:12px;color:var(--text3)">฿'+fmt(typeVal)+' · '+typePct+'%</div>'+
+      '</div>'+
+      list.map(function(a){
+        var value = (a.qty||0)*(a.price||0);
+        var cost = (a.qty||0)*(a.cost||0);
+        var pnl = value - cost;
+        var pnlPct = cost > 0 ? (pnl/cost*100) : 0;
+        var barW = totalValue > 0 ? Math.min(100, value/totalValue*100) : 0;
+        return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;transition:all 0.2s" >'+
+          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+            '<div>'+
+              '<div style="font-size:15px;font-weight:700;color:var(--text)">'+esc(a.name)+'</div>'+
+              '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+
+                (a.qty||0)+' หน่วย · ต้นทุน ฿'+fmt(a.cost||0)+'/หน่วย'+
+                (a.note?' · '+esc(a.note):'')+
+              '</div>'+
+            '</div>'+
+            '<div style="text-align:right">'+
+              '<div class="mono" style="font-size:18px;font-weight:600">฿'+fmt(value)+'</div>'+
+              '<div class="mono" style="font-size:12px;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+
+                (pnl>=0?'▲':'▼')+' '+(pnl>=0?'+':'')+fmt(pnl)+' ('+pnlPct.toFixed(1)+'%)'+
+              '</div>'+
+            '</div>'+
+          '</div>'+
+          '<div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-bottom:10px">'+
+            '<div style="height:100%;width:'+barW+'%;background:'+ASSET_TYPE_COLOR[a.type]+';border-radius:2px;transition:width 0.6s"></div>'+
+          '</div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:center">'+
+            '<div style="font-size:11px;color:var(--text3)">'+
+              'ราคาปัจจุบัน ฿'+fmt(a.price||0)+'/หน่วย'+
+              (a.dividend>0?' · ปันผลสะสม ฿'+fmt(a.dividend):'')+
+            '</div>'+
+            '<div style="display:flex;gap:4px">'+
+              '<button class="goal-btn" onclick="openAssetModal(\'' + a.id + '\')" title="แก้ไข">✎</button>'+
+              '<button class="goal-btn del" onclick="deleteAsset(\'' + a.id + '\')" title="ลบ">✕</button>'+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      }).join('')+
+    '</div>';
+  }).join('');
+}
+
+// ── Asset Modal ──
+function openAssetModal(id){
+  editingAssetId = id;
+  var a = id ? assets.find(function(x){return x.id===id;}) : null;
+  document.getElementById('assetModalTitle').textContent = a ? 'แก้ไขสินทรัพย์' : 'เพิ่มสินทรัพย์';
+  setAssetType(a ? a.type : 'stock');
+  document.getElementById('assetName').value = a ? a.name : '';
+  document.getElementById('assetQty').value = a ? (a.qty||'') : '';
+  document.getElementById('assetCost').value = a ? (a.cost||'') : '';
+  document.getElementById('assetPrice').value = a ? (a.price||'') : '';
+  document.getElementById('assetDividend').value = a ? (a.dividend||'') : '';
+  document.getElementById('assetNote').value = a ? (a.note||'') : '';
+  document.getElementById('assetDelBtn').style.display = a ? '' : 'none';
+  updateAssetCalc();
+  document.getElementById('assetBackdrop').classList.add('open');
+  setTimeout(function(){document.getElementById('assetName').focus();},100);
+}
+function closeAssetModal(){ document.getElementById('assetBackdrop').classList.remove('open'); }
+function setAssetType(t){
+  assetType = t;
+  Object.keys(ASSET_TYPE_LABEL).forEach(function(k){
+    var btn = document.getElementById('assetType'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(btn) btn.className = 'type-btn' + (k===t ? ' on' : '');
+  });
+}
+function updateAssetCalc(){
+  var qty = parseFloat(document.getElementById('assetQty').value)||0;
+  var cost = parseFloat(document.getElementById('assetCost').value)||0;
+  var price = parseFloat(document.getElementById('assetPrice').value)||0;
+  var hint = document.getElementById('assetCalcHint');
+  if(!hint) return;
+  if(qty>0 && cost>0){
+    var totalCost = qty*cost;
+    var totalVal = qty*price;
+    var pnl = totalVal - totalCost;
+    var pct = cost>0?(pnl/totalCost*100):0;
+    hint.style.display = '';
+    hint.innerHTML = '💰 ต้นทุนรวม: <b>฿'+fmt(totalCost)+'</b> · มูลค่าปัจจุบัน: <b>฿'+fmt(totalVal)+'</b><br>'+
+      (pnl>=0?'📈':'📉')+' กำไร/ขาดทุน: <b style="color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+
+      (pnl>=0?'+':'')+' ฿'+fmt(Math.abs(pnl))+' ('+pct.toFixed(1)+'%)</b>';
+  } else hint.style.display = 'none';
+}
+function saveAsset(){
+  var name = document.getElementById('assetName').value.trim();
+  if(!name){ toast('⚠️ กรอกชื่อ'); return; }
+  var obj = {
+    type: assetType,
+    name: name,
+    qty: parseFloat(document.getElementById('assetQty').value)||0,
+    cost: parseFloat(document.getElementById('assetCost').value)||0,
+    price: parseFloat(document.getElementById('assetPrice').value)||0,
+    dividend: parseFloat(document.getElementById('assetDividend').value)||0,
+    note: document.getElementById('assetNote').value.trim(),
+    updatedAt: new Date().toISOString().slice(0,10)
+  };
+  if(editingAssetId){
+    var i = assets.findIndex(function(x){return x.id===editingAssetId;});
+    if(i>=0) assets[i] = Object.assign({}, assets[i], obj);
+    toast('✓ แก้ไขแล้ว');
+  } else {
+    assets.push(Object.assign({}, obj, {id:'a'+Date.now()}));
+    toast('✓ เพิ่มสินทรัพย์แล้ว');
+  }
+  localStorage.setItem('fin_assets', JSON.stringify(assets));
+  saveNetWorthSnapshot();
+  saveAll();
+  closeAssetModal(); renderPortfolio();
+}
+function deleteAsset(id){
+  var targetId = id || editingAssetId;
+  var a = assets.find(function(x){return x.id===targetId;});
+  if(!a) return;
+  if(!confirm('ลบ "'+a.name+'"?')) return;
+  assets = assets.filter(function(x){return x.id!==targetId;});
+  localStorage.setItem('fin_assets', JSON.stringify(assets));
+  saveNetWorthSnapshot();
+  saveAll();
+  closeAssetModal(); renderPortfolio(); toast('ลบแล้ว');
+}
+
+// ── Insurance ──
+function renderInsurance(){
+  renderNetWorth();
+  var grid = document.getElementById('insuranceGrid');
+  if(!insurances.length){
+    grid.innerHTML = '<div class="empty">ยังไม่มีกรมธรรม์ — กด "+ เพิ่มกรมธรรม์"</div>';
+    return;
+  }
+  var totalPremium = insurances.reduce(function(s,i){return s+(i.premium||0);},0);
+  var totalCoverage = insurances.reduce(function(s,i){return s+(i.coverage||0);},0);
+
+  grid.innerHTML =
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
+      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px">'+
+        '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.08em">เบี้ยรวม/ปี</div>'+
+        '<div class="mono" style="font-size:18px;font-weight:600;color:var(--red);margin-top:4px">฿'+fmt(totalPremium)+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">~฿'+fmt(totalPremium/12)+'/เดือน</div>'+
+      '</div>'+
+      '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px">'+
+        '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.08em">วงเงินคุ้มครองรวม</div>'+
+        '<div class="mono" style="font-size:18px;font-weight:600;color:var(--green);margin-top:4px">฿'+fmt(totalCoverage)+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+insurances.length+' กรมธรรม์</div>'+
+      '</div>'+
+    '</div>'+
+    insurances.map(function(ins){
+      var daysLeft = ins.dueDate ? diffDays(ins.dueDate) : null;
+      var dueBadge = '';
+      if(daysLeft !== null && daysLeft >= 0 && daysLeft <= 30){
+        dueBadge = '<span style="font-size:10px;background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-br);border-radius:8px;padding:2px 8px;margin-left:6px">ครบกำหนดอีก '+daysLeft+' วัน</span>';
+      }
+      var pct = ins.start && ins.end ? calcInsPct(ins.start, ins.end) : 0;
+      return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">'+
+          '<div>'+
+            '<div style="font-size:15px;font-weight:700;color:var(--text)">'+esc(ins.name)+dueBadge+'</div>'+
+            '<div style="font-size:11px;color:var(--text3);margin-top:3px">'+INS_TYPE_LABEL[ins.type]+(ins.note?' · '+esc(ins.note):'')+'</div>'+
+          '</div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button class="goal-btn" onclick="openInsuranceModal(\'' + ins.id + '\')">✎</button>'+
+            '<button class="goal-btn del" onclick="deleteInsurance(\'' + ins.id + '\')">✕</button>'+
+          '</div>'+
+        '</div>'+
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">'+
+          '<div style="background:var(--bg2);border-radius:var(--rs);padding:8px 10px">'+
+            '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">เบี้ย/ปี</div>'+
+            '<div class="mono" style="font-size:14px;font-weight:600;color:var(--red)">฿'+fmt(ins.premium||0)+'</div>'+
+          '</div>'+
+          '<div style="background:var(--bg2);border-radius:var(--rs);padding:8px 10px">'+
+            '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">คุ้มครอง</div>'+
+            '<div class="mono" style="font-size:14px;font-weight:600;color:var(--green)">฿'+fmt(ins.coverage||0)+'</div>'+
+          '</div>'+
+          '<div style="background:var(--bg2);border-radius:var(--rs);padding:8px 10px">'+
+            '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase">ครบกำหนด</div>'+
+            '<div style="font-size:12px;font-weight:600;color:var(--text)">'+thDate(ins.end)+'</div>'+
+          '</div>'+
+        '</div>'+
+        (pct>0?'<div style="margin-bottom:6px"><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-bottom:4px"><span>ความคืบหน้า</span><span>'+pct+'%</span></div><div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:var(--accent);border-radius:2px"></div></div></div>':'')+
+      '</div>';
+    }).join('');
+}
+
+function calcInsPct(start, end){
+  var s = new Date(start).getTime(), e = new Date(end).getTime(), n = Date.now();
+  if(e<=s) return 100;
+  return Math.min(100, Math.max(0, Math.round((n-s)/(e-s)*100)));
+}
+
+function openInsuranceModal(id){
+  editingInsId = id;
+  var ins = id ? insurances.find(function(x){return x.id===id;}) : null;
+  document.getElementById('insuranceModalTitle').textContent = ins ? 'แก้ไขกรมธรรม์' : 'เพิ่มกรมธรรม์';
+  setInsType(ins ? ins.type : 'life');
+  document.getElementById('insName').value = ins ? ins.name : '';
+  document.getElementById('insPremium').value = ins ? (ins.premium||'') : '';
+  document.getElementById('insCoverage').value = ins ? (ins.coverage||'') : '';
+  document.getElementById('insStart').value = ins ? (ins.start||'') : '';
+  document.getElementById('insEnd').value = ins ? (ins.end||'') : '';
+  document.getElementById('insDueDate').value = ins ? (ins.dueDate||'') : '';
+  document.getElementById('insNote').value = ins ? (ins.note||'') : '';
+  document.getElementById('insDelBtn').style.display = ins ? '' : 'none';
+  document.getElementById('insuranceBackdrop').classList.add('open');
+  setTimeout(function(){document.getElementById('insName').focus();},100);
+}
+function closeInsuranceModal(){ document.getElementById('insuranceBackdrop').classList.remove('open'); }
+function setInsType(t){
+  insType = t;
+  var map = {life:'Life',health:'Health',accident:'Acc',car:'Car',home:'Home',other:'Other'};
+  Object.entries(map).forEach(function(e){
+    var btn = document.getElementById('insType'+e[1]);
+    if(btn) btn.className = 'type-btn' + (e[0]===t ? ' on' : '');
+  });
+}
+function saveInsurance(){
+  var name = document.getElementById('insName').value.trim();
+  if(!name){ toast('⚠️ กรอกชื่อ'); return; }
+  var premium = parseFloat(document.getElementById('insPremium').value)||0;
+  var addExpense = document.getElementById('insAutoExpense').checked;
+  var obj = {
+    type: insType, name: name, premium: premium,
+    coverage: parseFloat(document.getElementById('insCoverage').value)||0,
+    start: document.getElementById('insStart').value,
+    end: document.getElementById('insEnd').value,
+    dueDate: document.getElementById('insDueDate').value,
+    note: document.getElementById('insNote').value.trim()
+  };
+  if(editingInsId){
+    var i = insurances.findIndex(function(x){return x.id===editingInsId;});
+    if(i>=0) insurances[i] = Object.assign({}, insurances[i], obj);
+    toast('✓ แก้ไขแล้ว');
+  } else {
+    insurances.push(Object.assign({}, obj, {id:'ins'+Date.now()}));
+    // เพิ่มรายจ่ายประจำถ้าติ๊ก
+    if(addExpense && premium>0){
+      var p = period(); var today = new Date();
+      var ds = p.y+'-'+String(p.m+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
+      txs.push({id:'t'+Date.now(),type:'expense',name:'🛡️ เบี้ยประกัน '+name,
+        amount:premium/12,category:'ประกัน',date:ds,due:ds,
+        status:'unpaid',note:'เบี้ยรายปี ฿'+fmt(premium),isRecurring:true,paymentSource:'bank'});
+    }
+    toast('✓ เพิ่มกรมธรรม์แล้ว'+(addExpense&&premium>0?' · เพิ่มรายจ่ายประจำ ฿'+fmt(premium/12)+'/เดือน':''));
+  }
+  localStorage.setItem('fin_insurances', JSON.stringify(insurances));
+  saveAll();
+  closeInsuranceModal(); renderInsurance();
+}
+function deleteInsurance(id){
+  var targetId = id || editingInsId;
+  var ins = insurances.find(function(x){return x.id===targetId;});
+  if(!ins) return;
+  if(!confirm('ลบ "'+ins.name+'"?')) return;
+  insurances = insurances.filter(function(x){return x.id!==targetId;});
+  localStorage.setItem('fin_insurances', JSON.stringify(insurances));
+  saveAll();
+  closeInsuranceModal(); renderInsurance(); toast('ลบแล้ว');
 }
 
 // ── Audio Feedback ──
@@ -4048,10 +4534,13 @@ function finishOnb(){ localStorage.setItem('fin_onb','1'); document.getElementBy
 function setAnalysisView(v){
   analysisView=v;
   document.querySelectorAll('#analysisTabs .subtab').forEach(function(t){t.classList.toggle('active',t.dataset.anatab===v);});
-  document.getElementById('chartTrend').style.display  = v==='trend'?'':'none';
-  document.getElementById('chartCat').style.display    = v==='cat'?'':'none';
-  document.getElementById('chartYearly').style.display = v==='yearly'?'':'none';
+  document.getElementById('chartTrend').style.display   = v==='trend'?'':'none';
+  document.getElementById('chartCat').style.display     = v==='cat'?'':'none';
+  document.getElementById('chartIncome').style.display  = v==='income'?'':'none';
+  document.getElementById('chartYearly').style.display  = v==='yearly'?'':'none';
   if(v==='yearly') renderYearly();
+  if(v==='cat') renderDonut(monthItems());
+  if(v==='income') renderIncomeAnalysis();
 }
 
 // ── Render all ──
@@ -4398,6 +4887,107 @@ function renderYearly(){
       '</div>';
     }).join('<hr style="border:none;border-top:1px solid var(--border);margin:4px 0">');
   }
+}
+
+
+function renderIncomeAnalysis(){
+  var wrap = document.getElementById('incomeAnalysis');
+  if(!wrap) return;
+  var all = monthItems();
+  var incItems = all.filter(function(t){ return t.type==='income' && t.amount>0; });
+  if(!incItems.length){
+    wrap.innerHTML = '<div style="color:var(--text3);text-align:center;padding:30px;font-size:13px">ยังไม่มีรายรับเดือนนี้</div>';
+    return;
+  }
+  var total = incItems.reduce(function(s,t){ return s+t.amount; },0);
+
+  // จัดกลุ่มตามหมวด
+  var byCat = {};
+  incItems.forEach(function(t){
+    if(!byCat[t.category]) byCat[t.category] = {amount:0, items:[]};
+    byCat[t.category].amount += t.amount;
+    byCat[t.category].items.push(t);
+  });
+  var sorted = Object.entries(byCat).sort(function(a,b){ return b[1].amount-a[1].amount; });
+
+  // จัดกลุ่มตามแหล่งเงิน
+  var bySource = {};
+  incItems.forEach(function(t){
+    var sid = t.paymentSource || 'cash';
+    if(!bySource[sid]) bySource[sid] = 0;
+    bySource[sid] += t.amount;
+  });
+
+  // summary header
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">'+
+    '<div style="background:var(--green-bg);border:1px solid var(--green-br);border-radius:var(--r);padding:12px 14px">'+
+      '<div style="font-size:10px;color:var(--green);font-weight:600;text-transform:uppercase;letter-spacing:0.08em">รายรับรวม</div>'+
+      '<div class="mono" style="font-size:20px;font-weight:600;color:var(--green);margin-top:4px">฿'+fmt(total)+'</div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+incItems.length+' รายการ</div>'+
+    '</div>'+
+    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px">'+
+      '<div style="font-size:10px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:0.08em">เฉลี่ยต่อรายการ</div>'+
+      '<div class="mono" style="font-size:20px;font-weight:600;margin-top:4px">฿'+fmt(total/incItems.length)+'</div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+sorted.length+' หมวดหมู่</div>'+
+    '</div>'+
+  '</div>';
+
+  // donut รายรับ
+  var INCOME_COLORS = ['#3d6b38','#2e5a8a','#d4a843','#6b4a9b','#9b4a3a','#3a9b7a','#c25c4a','#5c7d52'];
+  var C = 2*Math.PI*40; var offset = 0;
+  var arcs = sorted.map(function(e,i){
+    var len = C*(e[1].amount/total);
+    var arc = '<circle cx="65" cy="65" r="40" fill="none" stroke="'+INCOME_COLORS[i%INCOME_COLORS.length]+'" stroke-width="18" stroke-dasharray="'+len+' '+C+'" stroke-dashoffset="'+(-offset)+'"/>';
+    offset += len;
+    return arc;
+  }).join('');
+
+  html += '<div class="donut-wrap" style="margin-bottom:16px">'+
+    '<div class="donut"><svg width="130" height="130">'+arcs+'</svg>'+
+      '<div class="donut-center">'+
+        '<div class="donut-center-num">฿'+fmtShort(total)+'</div>'+
+        '<div class="donut-center-lbl">รายรับ</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="donut-legend">'+
+      sorted.slice(0,6).map(function(e,i){
+        var pct = Math.round(e[1].amount/total*100);
+        return '<div class="donut-leg-item">'+
+          '<span class="donut-leg-dot" style="background:'+INCOME_COLORS[i%INCOME_COLORS.length]+'"></span>'+
+          '<span class="donut-leg-name">'+(CAT_EMOJI[e[0]]||'')+ ' '+esc(e[0])+'</span>'+
+          '<span class="donut-leg-amt">฿'+fmt(e[1].amount)+' <span style="color:var(--text3);font-size:10px">('+pct+'%)</span></span>'+
+        '</div>';
+      }).join('')+
+    '</div>'+
+  '</div>';
+
+  // รายละเอียดแต่ละรายการ
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text3);margin-bottom:8px">รายละเอียดรายรับ</div>';
+  sorted.forEach(function(e, i){
+    var pct = Math.round(e[1].amount/total*100);
+    html += '<div style="margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+        '<div style="display:flex;align-items:center;gap:6px">'+
+          '<span style="width:8px;height:8px;border-radius:2px;background:'+INCOME_COLORS[i%INCOME_COLORS.length]+';display:inline-block"></span>'+
+          '<span style="font-size:13px;font-weight:600">'+(CAT_EMOJI[e[0]]||'')+ ' '+esc(e[0])+'</span>'+
+        '</div>'+
+        '<span class="mono" style="font-size:13px;font-weight:600;color:var(--green)">+฿'+fmt(e[1].amount)+'</span>'+
+      '</div>'+
+      '<div style="height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-bottom:4px">'+
+        '<div style="height:100%;width:'+pct+'%;background:'+INCOME_COLORS[i%INCOME_COLORS.length]+';border-radius:3px;transition:width 0.6s"></div>'+
+      '</div>'+
+      '<div style="font-size:11px;color:var(--text3)">'+pct+'% · '+e[1].items.length+' รายการ</div>'+
+      e[1].items.slice(0,3).map(function(t){
+        return '<div style="display:flex;justify-content:space-between;padding:4px 8px;background:var(--bg2);border-radius:var(--rs);margin-top:3px;font-size:12px">'+
+          '<span style="color:var(--text2)">'+esc(t.name)+'</span>'+
+          '<span class="mono" style="color:var(--green)">+฿'+fmt(t.amount)+'</span>'+
+        '</div>';
+      }).join('')+
+      (e[1].items.length>3?'<div style="font-size:11px;color:var(--text3);padding:2px 8px">...และอีก '+(e[1].items.length-3)+' รายการ</div>':'')+
+    '</div>';
+  });
+
+  wrap.innerHTML = html;
 }
 
 function renderDonut(all){
@@ -4772,7 +5362,19 @@ function openTxModal(id){
 }
 function closeTxModal(){ document.getElementById('txBackdrop').classList.remove('open'); }
 function closeTxIfBg(e){ if(e.target===e.currentTarget) closeTxModal(); }
-function setTxType(t){ txType=t; document.getElementById('btnExp').classList.toggle('on',t==='expense'); document.getElementById('btnInc').classList.toggle('on',t==='income'); }
+function setTxType(t){
+  txType=t;
+  document.getElementById('btnExp').classList.toggle('on',t==='expense');
+  document.getElementById('btnInc').classList.toggle('on',t==='income');
+  // ซ่อน due/status เมื่อเป็น income
+  var dueRow=document.getElementById('txDueWrapRow');
+  var statusRow=document.getElementById('txStatusRow');
+  var isIncome=t==='income';
+  if(dueRow) dueRow.style.display=isIncome?'none':'';
+  if(statusRow) statusRow.style.display=isIncome?'none':'';
+  // income → set status paid อัตโนมัติ
+  if(isIncome) setTxStatus('paid');
+}
 function setTxStatus(s){
   _txStatusValue=s;
   document.getElementById('txStatus').value=s;
@@ -5368,7 +5970,7 @@ function setPageTab(page){
   // hero+quick-add always visible
   const overviewTop = document.getElementById('page-overview-top');
   // show/hide content sections
-  ['page-overview','page-cards','page-analysis','page-goals'].forEach(id=>{
+  ['page-overview','page-cards','page-analysis','page-goals','page-invest'].forEach(id=>{
     const el = document.getElementById(id);
     if(!el) return;
     el.style.display = (id === 'page-'+page) ? 'block' : 'none';
@@ -5383,6 +5985,7 @@ function setPageTab(page){
   else if(page==='cards'){ renderCards(); renderCreditLines(); renderLoans(); var _fa=getFreedomArgs();renderFreedom(_fa[0],_fa[1],_fa[2],_fa[3],_fa[4]); }
   else if(page==='analysis'){ renderBars(); renderDonut(monthItems()); }
   else if(page==='goals') renderGoals();
+  else if(page==='invest'){ renderPortfolio(); renderInsurance(); renderNetWorth(); }
   // scroll ไปที่ content section ของแท็บนั้นๆ
   setTimeout(()=>{
     const sectionId = page==='loans' ? 'page-cards' : 'page-' + page;
@@ -6578,6 +7181,87 @@ function voiceReset(){
       <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--text3)">
         💡 พูดได้หลายรายการพร้อมกัน เช่น "ข้าวเที่ยง 80 น้ำเปล่า 10 กาแฟ 65"
       </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ── Asset Modal ── -->
+<div class="backdrop" id="assetBackdrop" onclick="if(event.target===this)closeAssetModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <div class="modal-title" id="assetModalTitle">เพิ่มสินทรัพย์</div>
+      <button class="modal-x" onclick="closeAssetModal()">✕</button>
+    </div>
+    <div class="fg">
+      <label class="fl">ประเภท</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <button type="button" class="type-btn" id="assetTypeStock" onclick="setAssetType('stock')">📈 หุ้น</button>
+        <button type="button" class="type-btn" id="assetTypeFund" onclick="setAssetType('fund')">💹 กองทุน</button>
+        <button type="button" class="type-btn" id="assetTypeCrypto" onclick="setAssetType('crypto')">₿ คริปโต</button>
+        <button type="button" class="type-btn" id="assetTypeGold" onclick="setAssetType('gold')">🥇 ทองคำ</button>
+        <button type="button" class="type-btn" id="assetTypeCash" onclick="setAssetType('cash')">💵 เงินสด/ฝาก</button>
+        <button type="button" class="type-btn" id="assetTypeOther" onclick="setAssetType('other')">📋 อื่นๆ</button>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">ชื่อ / Ticker</label><input class="fi" id="assetName" placeholder="เช่น GULF, K-US500X, BTC"/></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">จำนวนหน่วย / หุ้น</label><input class="fi mono" id="assetQty" type="number" step="any" placeholder="0" oninput="updateAssetCalc()"/></div>
+      <div class="fg"><label class="fl">ราคาต้นทุนต่อหน่วย (฿)</label><input class="fi mono" id="assetCost" type="number" step="any" placeholder="0.00" oninput="updateAssetCalc()"/></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">ราคาปัจจุบันต่อหน่วย (฿)</label><input class="fi mono" id="assetPrice" type="number" step="any" placeholder="0.00" oninput="updateAssetCalc()"/></div>
+      <div class="fg"><label class="fl">ปันผลสะสม (฿)</label><input class="fi mono" id="assetDividend" type="number" step="any" placeholder="0.00"/></div>
+    </div>
+    <div id="assetCalcHint" style="display:none;background:var(--bg2);border-radius:var(--rs);padding:10px 14px;font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:8px"></div>
+    <div class="fg"><label class="fl">หมายเหตุ</label><input class="fi" id="assetNote" placeholder="เช่น ซื้อช่วง dca, long-term"/></div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="assetDelBtn" style="display:none;color:var(--red);border-color:var(--red-br)" onclick="deleteAsset()">🗑 ลบ</button>
+      <button class="btn-cancel" onclick="closeAssetModal()">ยกเลิก</button>
+      <button class="btn-ok" onclick="saveAsset()">บันทึก ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Insurance Modal ── -->
+<div class="backdrop" id="insuranceBackdrop" onclick="if(event.target===this)closeInsuranceModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-head">
+      <div class="modal-title" id="insuranceModalTitle">เพิ่มกรมธรรม์</div>
+      <button class="modal-x" onclick="closeInsuranceModal()">✕</button>
+    </div>
+    <div class="fg">
+      <label class="fl">ประเภทประกัน</label>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+        <button type="button" class="type-btn" id="insTypeLife" onclick="setInsType('life')">❤️ ชีวิต</button>
+        <button type="button" class="type-btn" id="insTypeHealth" onclick="setInsType('health')">🏥 สุขภาพ</button>
+        <button type="button" class="type-btn" id="insTypeAcc" onclick="setInsType('accident')">🩹 อุบัติเหตุ</button>
+        <button type="button" class="type-btn" id="insTypeCar" onclick="setInsType('car')">🚗 รถยนต์</button>
+        <button type="button" class="type-btn" id="insTypeHome" onclick="setInsType('home')">🏠 บ้าน</button>
+        <button type="button" class="type-btn" id="insTypeOther" onclick="setInsType('other')">📋 อื่นๆ</button>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">ชื่อบริษัท / กรมธรรม์</label><input class="fi" id="insName" placeholder="เช่น AIA Health Care, เมืองไทยประกันชีวิต"/></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">เบี้ยประกัน (฿/ปี)</label><input class="fi mono" id="insPremium" type="number" step="0.01" placeholder="0.00"/></div>
+      <div class="fg"><label class="fl">ทุนประกัน / วงเงินคุ้มครอง (฿)</label><input class="fi mono" id="insCoverage" type="number" step="0.01" placeholder="0.00"/></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">วันที่เริ่ม</label><input class="fi" id="insStart" type="date"/></div>
+      <div class="fg"><label class="fl">วันที่หมดอายุ / ครบกำหนด</label><input class="fi" id="insEnd" type="date"/></div>
+    </div>
+    <div class="fg"><label class="fl">วันครบกำหนดชำระเบี้ย (ต่อปี)</label><input class="fi" id="insDueDate" type="date"/></div>
+    <div style="background:var(--green-bg);border:1px solid var(--green-br);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text);font-weight:500">
+        <input type="checkbox" id="insAutoExpense" checked style="width:18px;height:18px;accent-color:var(--accent)"/>
+        <span>💸 เพิ่มเบี้ยเป็นรายจ่ายประจำอัตโนมัติ</span>
+      </label>
+    </div>
+    <div class="fg"><label class="fl">หมายเหตุ</label><input class="fi" id="insNote" placeholder="เช่น แผน Gold, เงินคืน 20%"/></div>
+    <div class="modal-foot">
+      <button class="btn-cancel" id="insDelBtn" style="display:none;color:var(--red);border-color:var(--red-br)" onclick="deleteInsurance()">🗑 ลบ</button>
+      <button class="btn-cancel" onclick="closeInsuranceModal()">ยกเลิก</button>
+      <button class="btn-ok" onclick="saveInsurance()">บันทึก ✓</button>
     </div>
   </div>
 </div>
