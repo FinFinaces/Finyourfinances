@@ -81,6 +81,7 @@ body {
   min-height: 100vh;
   transition: background 0.3s, color 0.3s;
   overflow-x: hidden;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 .mono { font-family: 'IBM Plex Mono', monospace; font-feature-settings: 'tnum'; }
 .serif { font-family: 'Fraunces', 'Noto Serif Display', serif; }
@@ -1044,38 +1045,62 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
 }
 
 /* ── Page nav tabs ── */
-.page-tabs {
+/* ── Bottom Nav Bar ── */
+.page-tabs { display: none; } /* ซ่อน top tabs */
+.page-section { }
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 64px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
   display: flex;
-  border-bottom: 2px solid var(--border);
-  margin-bottom: 24px;
-  margin-top: 0;
-  position: sticky;
-  top: 0;
-  z-index: 40;
-  background: var(--bg);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  align-items: stretch;
+  z-index: 200;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding-bottom: env(safe-area-inset-bottom);
 }
-.page-tab {
+.bottom-nav-btn {
   flex: 1;
-  padding: 16px 8px;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
   border: none;
   background: none;
+  cursor: pointer;
   color: var(--text3);
   font-family: 'Sarabun', sans-serif;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -2px;
-  text-align: center;
-  white-space: nowrap;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   transition: all 0.15s;
-  letter-spacing: 0.01em;
+  padding: 8px 4px;
+  position: relative;
 }
-.page-tab:hover { color: var(--text2); background: var(--bg2); }
-.page-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
-.page-section { }
+.bottom-nav-btn .bnb-icon {
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+.bottom-nav-btn .bnb-label { font-size: 10px; line-height: 1; }
+.bottom-nav-btn.active { color: var(--accent); }
+.bottom-nav-btn.active .bnb-icon { transform: scale(1.15); }
+.bottom-nav-btn.active::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  width: 32px; height: 3px;
+  background: var(--accent);
+  border-radius: 0 0 3px 3px;
+}
+.bottom-nav-btn:active { opacity: 0.7; }
+/* FAB ปรับขึ้นไปอยู่เหนือ bottom nav */
+.fab { bottom: 80px !important; }
 
 /* Months preset buttons */
 .months-preset {
@@ -1506,14 +1531,12 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <button class="icon-btn" onclick="openBackupManager()" title="สำรอง / กู้คืนข้อมูล">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
       </button>
-      <button class="icon-btn" onclick="setPageTab('overview')" title="หน้าแรก">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      </button>
+
     </div>
   </div>
 
-  <!-- ── Page Tab Nav ── -->
-  <div class="page-tabs" id="mainPageTabs">
+  <!-- ── Page Tab Nav (hidden, bottom nav แทน) ── -->
+  <div class="page-tabs" id="mainPageTabs" style="display:none">
     <button class="page-tab active" data-page="cards" onclick="setPageTab('cards')">💳 วงเงิน & หนี้</button>
     <button class="page-tab" data-page="overview" onclick="setPageTab('overview')">📊 ภาพรวม</button>
     <button class="page-tab" data-page="analysis" onclick="setPageTab('analysis')">📈 วิเคราะห์</button>
@@ -6471,9 +6494,20 @@ function scanConfirmSave(){
 let currentPage='overview';
 function setPageTab(page){
   currentPage = page;
-  // update tab buttons
+  // update old top tabs (hidden)
   document.querySelectorAll('#mainPageTabs .page-tab').forEach(t=>
     t.classList.toggle('active', t.dataset.page===page));
+  // update bottom nav
+  var mainPages = ['cards','overview','analysis'];
+  var morePages = ['goals','invest','tax'];
+  document.querySelectorAll('.bottom-nav-btn').forEach(function(b){
+    var bp = b.dataset.page;
+    if(bp === 'more'){
+      b.classList.toggle('active', morePages.indexOf(page)>=0);
+    } else {
+      b.classList.toggle('active', bp===page);
+    }
+  });
   // hero+quick-add always visible
   const overviewTop = document.getElementById('page-overview-top');
   // show/hide content sections
@@ -6485,7 +6519,7 @@ function setPageTab(page){
   // tx list — แสดงเฉพาะ overview
   const txSection = document.getElementById('txSection');
   if(txSection) txSection.style.display = (page==='overview') ? 'block' : 'none';
-  // hero+quick-add — ซ่อนเมื่อเป็น cards/loans/analysis/goals
+  // hero+quick-add — ซ่อนเมื่อไม่ใช่ overview
   if(overviewTop) overviewTop.style.display = (page==='overview') ? '' : 'none';
   // re-render section content
   if(page==='overview') renderAll();
@@ -6494,15 +6528,20 @@ function setPageTab(page){
   else if(page==='goals') renderGoals();
   else if(page==='invest'){ renderPortfolio(); renderInsurance(); renderNetWorth(); }
   else if(page==='tax'){ renderTax(); }
-  // scroll ไปที่ content section ของแท็บนั้นๆ
-  setTimeout(()=>{
-    const sectionId = page==='loans' ? 'page-cards' : 'page-' + page;
-    const el = document.getElementById(sectionId);
-    if(el){
-      const y = el.getBoundingClientRect().top + window.scrollY - 8;
-      window.scrollTo({top: y, behavior:'smooth'});
-    }
-  }, 100);
+  // scroll to top
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function toggleMoreMenu(){
+  var menu = document.getElementById('moreMenu');
+  var backdrop = document.getElementById('moreMenuBackdrop');
+  var isOpen = menu.style.display !== 'none';
+  menu.style.display = isOpen ? 'none' : 'block';
+  backdrop.style.display = isOpen ? 'none' : 'block';
+}
+function closeMoreMenu(){
+  document.getElementById('moreMenu').style.display = 'none';
+  document.getElementById('moreMenuBackdrop').style.display = 'none';
 }
 
 function getFreedomArgs(){
@@ -7808,6 +7847,46 @@ function voiceReset(){
       <button class="btn-cancel" onclick="resetCats()" style="color:var(--red);border-color:var(--red-br)">↺ คืนค่าเริ่มต้น</button>
       <button class="btn-ok" onclick="closeCatManager()">เสร็จสิ้น</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Bottom Navigation Bar ── -->
+<nav class="bottom-nav" id="bottomNav">
+  <button class="bottom-nav-btn active" data-page="cards" onclick="setPageTab('cards')" id="bnb-cards">
+    <span class="bnb-icon">💳</span>
+    <span class="bnb-label">วงเงิน</span>
+  </button>
+  <button class="bottom-nav-btn" data-page="overview" onclick="setPageTab('overview')" id="bnb-overview">
+    <span class="bnb-icon">📊</span>
+    <span class="bnb-label">ภาพรวม</span>
+  </button>
+  <button class="bottom-nav-btn" data-page="analysis" onclick="setPageTab('analysis')" id="bnb-analysis">
+    <span class="bnb-icon">📈</span>
+    <span class="bnb-label">วิเคราะห์</span>
+  </button>
+  <button class="bottom-nav-btn" data-page="more" onclick="toggleMoreMenu()" id="bnb-more">
+    <span class="bnb-icon">⋯</span>
+    <span class="bnb-label">เพิ่มเติม</span>
+  </button>
+</nav>
+
+<!-- ── More Menu Popup ── -->
+<div id="moreMenuBackdrop" style="display:none;position:fixed;inset:0;z-index:199" onclick="closeMoreMenu()"></div>
+<div id="moreMenu" style="display:none;position:fixed;bottom:72px;left:0;right:0;z-index:200;padding:0 12px 8px">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:var(--shadow-lg)">
+    <div style="padding:10px 16px 6px;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3)">เมนูเพิ่มเติม</div>
+    <button onclick="setPageTab('goals');closeMoreMenu()" id="bnb-goals"
+      style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:none;background:none;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:500;color:var(--text);border-bottom:1px solid var(--border)">
+      <span style="font-size:24px">🎯</span><span>เป้าหมาย</span>
+    </button>
+    <button onclick="setPageTab('invest');closeMoreMenu()" id="bnb-invest"
+      style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:none;background:none;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:500;color:var(--text);border-bottom:1px solid var(--border)">
+      <span style="font-size:24px">💼</span><span>ลงทุน</span>
+    </button>
+    <button onclick="setPageTab('tax');closeMoreMenu()" id="bnb-tax"
+      style="width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:none;background:none;cursor:pointer;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:500;color:var(--text)">
+      <span style="font-size:24px">🧾</span><span>ภาษี</span>
+    </button>
   </div>
 </div>
 
