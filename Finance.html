@@ -3702,6 +3702,12 @@ function doPayCL(){
       }
       // คืน used ของวงเงิน
       if(l) l.used = Math.max(0, (l.used||0) - cycleAmt);
+      // มาร์กว่ารอบบิลนี้ชำระแล้ว เพื่อไม่ให้ขึ้นซ้ำในเดือนถัดไปจนกว่าจะเปลี่ยนรอบ
+      if(l){
+        if(!l.paidCycles) l.paidCycles=[];
+        var ckey = getBillCycleKey(l.dueDay, new Date());
+        if(l.paidCycles.indexOf(ckey)===-1) l.paidCycles.push(ckey);
+      }
       totalPaid += cycleAmt;
       count++;
     }
@@ -4052,6 +4058,11 @@ function getBillCycle(cutDay, refDate){
     cycleStart = new Date(refDate.getFullYear(), refDate.getMonth()-2, cut+1);
   }
   return {start:cycleStart, end:cycleEnd};
+}
+// key ของรอบบิล (ตามวันเริ่มรอบ) ใช้เก็บใน loan.paidCycles เพื่อจำว่ารอบนี้ชำระแล้วหรือยัง
+function getBillCycleKey(cutDay, refDate){
+  var c = getBillCycle(cutDay, refDate);
+  return c.start.getFullYear()+'-'+String(c.start.getMonth()+1).padStart(2,'0')+'-'+String(c.start.getDate()).padStart(2,'0');
 }
 function sLabel(s){ return {paid:'ชำระแล้ว',unpaid:'ค้างชำระ',pending:'รอดำเนินการ'}[s]||s; }
 function monthItems(mo,yr){ const p=(mo===undefined)?period():{m:mo,y:yr}; return (txs||[]).filter(t=>{ const d=new Date(t.date); return d.getMonth()===p.m&&d.getFullYear()===p.y; }); }
@@ -6918,6 +6929,8 @@ function renderCreditLines(){
     });
     var monthlyBill=0; var monthlyBillCount=0;
     var cycleLabel='เดือนนี้';
+    var closedCyclePaid=false;
+    var newCycleAmt=0; var newCycleCount=0; var newCycleLabel='';
     if(linkedSrcs.length&&txs){
       var srcIds=linkedSrcs.map(function(s){return s.id;});
       var now=new Date();
@@ -6930,10 +6943,23 @@ function renderCreditLines(){
         var csLabel=(cs.getDate())+' '+(cs.getMonth()+1)+'/'+cs.getFullYear().toString().slice(2);
         var ceLabel=(ce.getDate())+' '+(ce.getMonth()+1)+'/'+ce.getFullYear().toString().slice(2);
         cycleLabel='รอบ '+csLabel+' – '+ceLabel;
+        // เช็คว่ารอบนี้ถูกตัดชำระไปแล้วหรือยัง (กดตัดชำระในแอป)
+        var ckeyClosed=getBillCycleKey(l.dueDay, now);
+        closedCyclePaid=(l.paidCycles||[]).indexOf(ckeyClosed)>=0;
         txs.filter(function(t){
           var d=new Date(t.date);
           return t.type==='expense'&&d>=cycleStart&&d<=cycleEnd&&srcIds.indexOf(t.paymentSource)>=0;
         }).forEach(function(t){ monthlyBill+=t.amount; monthlyBillCount++; });
+        // ยอดสะสมรอบใหม่ที่กำลังก่อตัว (วันถัดจากวันตัดยอดล่าสุด ถึงวันนี้)
+        var newStart=new Date(ce); newStart.setDate(newStart.getDate()+1);
+        if(newStart<=now){
+          var nsLabel=(newStart.getDate())+' '+(newStart.getMonth()+1)+'/'+newStart.getFullYear().toString().slice(2);
+          newCycleLabel='รอบใหม่ '+nsLabel+' – ปัจจุบัน';
+          txs.filter(function(t){
+            var d=new Date(t.date);
+            return t.type==='expense'&&d>=newStart&&d<=now&&srcIds.indexOf(t.paymentSource)>=0;
+          }).forEach(function(t){ newCycleAmt+=t.amount; newCycleCount++; });
+        }
       } else {
         var p=period();
         cycleLabel='เดือนนี้';
@@ -6943,11 +6969,24 @@ function renderCreditLines(){
         }).forEach(function(t){ monthlyBill+=t.amount; monthlyBillCount++; });
       }
     }
-    var billHtml=monthlyBill>0?
-      '<div style="padding:6px 14px 8px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1)">'+
-        '<span style="font-size:11px;opacity:0.7">🧾 '+cycleLabel+' ('+monthlyBillCount+' รายการ)</span>'+
-        '<span class="mono" style="font-size:13px;font-weight:700;color:#ffcc66">฿'+fmt(monthlyBill)+'</span>'+
-      '</div>':'';
+    var closedRowHtml = closedCyclePaid
+      ? ('<div style="padding:6px 14px 4px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1)">'+
+          '<span style="font-size:11px;opacity:0.7">🧾 '+cycleLabel+'</span>'+
+          '<span style="font-size:12px;font-weight:700;color:#7dda6f">✓ ชำระแล้ว</span>'+
+        '</div>')
+      : (monthlyBill>0
+        ? ('<div style="padding:6px 14px 4px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid rgba(255,255,255,0.1)">'+
+            '<span style="font-size:11px;opacity:0.7">🧾 '+cycleLabel+' ('+monthlyBillCount+' รายการ)</span>'+
+            '<span class="mono" style="font-size:13px;font-weight:700;color:#ffcc66">฿'+fmt(monthlyBill)+'</span>'+
+          '</div>')
+        : '');
+    var newRowHtml = newCycleAmt>0
+      ? ('<div style="padding:4px 14px 8px;display:flex;justify-content:space-between;align-items:center">'+
+          '<span style="font-size:11px;opacity:0.6">🆕 '+newCycleLabel+' ('+newCycleCount+' รายการ)</span>'+
+          '<span class="mono" style="font-size:12px;font-weight:600;opacity:0.85">฿'+fmt(newCycleAmt)+'</span>'+
+        '</div>')
+      : '';
+    var billHtml = closedRowHtml + newRowHtml;
 
     return '<div>'+
       '<div class="cl-card" data-brand="'+brand+'">'+
