@@ -2089,6 +2089,17 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
       <span id="accSyncTime" style="color:var(--text3)">—</span>
     </div>
     <button class="btn-ok" style="width:100%;margin-bottom:8px" onclick="manualSync()">☁️ ซิงค์ตอนนี้</button>
+    <!-- LINE connect -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;margin:10px 0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="font-size:18px">💬</span>
+        <div style="font-size:13px;font-weight:700;color:var(--text)">เชื่อม LINE แจ้งเตือน</div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;line-height:1.6">Add <b>@754xorog</b> เป็นเพื่อนใน LINE แล้วใส่ User ID ของคุณ<br>หา User ID ได้จาก developers.line.biz → Basic settings</div>
+      <input class="fi" id="lineUserIdInput" placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" style="margin-bottom:8px;font-family:'IBM Plex Mono',monospace;font-size:12px"/>
+      <button onclick="saveLineUserId()" style="width:100%;background:#06C755;border:none;border-radius:var(--rs);padding:10px;color:#fff;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer">💬 บันทึก LINE User ID</button>
+      <div id="lineUserIdStatus" style="display:none;font-size:11px;margin-top:6px;text-align:center"></div>
+    </div>
     <button class="btn-cancel" style="width:100%;color:var(--red);border-color:var(--red-br)" onclick="authSignOut()">ออกจากระบบ</button>
   </div>
 </div>
@@ -2927,7 +2938,7 @@ if(sb) sb.auth.onAuthStateChange((event, session)=>{
 //  Cloud sync (single JSON blob per user → table: fin_store)
 // ============================================================
 function bundle(){
-  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:Array.isArray(window.cards)?window.cards:[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, categories:CAT_EMOJI, assets:assets||[], insurances:insurances||[], networthHistory:networthHistory||[], v:1 };
+  return { txs:txs||[], goals:goals||[], loans:loans||[], cards:Array.isArray(window.cards)?window.cards:[], sources:paymentSources, shortcuts:shortcuts||[], theme:theme, categories:CAT_EMOJI, assets:assets||[], insurances:insurances||[], networthHistory:networthHistory||[], lineUserId:window._lineUserId||'', v:1 };
 }
 async function cloudPull(){
   if(!currentUser || !sb) return;
@@ -2950,6 +2961,7 @@ async function cloudPull(){
       }
       if(Array.isArray(b.shortcuts) && b.shortcuts.length) shortcuts = b.shortcuts;
       if(b.theme){ theme = b.theme; applyTheme(); }
+      if(b.lineUserId){ window._lineUserId = b.lineUserId; }
       if(Array.isArray(b.assets)) assets = b.assets;
       if(Array.isArray(b.insurances)) insurances = b.insurances;
       if(Array.isArray(b.networthHistory)) networthHistory = b.networthHistory;
@@ -3020,7 +3032,7 @@ function updateAccountUI(){
   const dot = document.querySelector('#syncBtn .sync-dot');
   if(dot) dot.style.background = currentUser ? 'var(--green)' : 'var(--text3)';
 }
-function openAccountModal(){ updateAccountUI(); document.getElementById('accountBackdrop').classList.add('open'); }
+function openAccountModal(){ updateAccountUI(); loadLineUserIdInput(); document.getElementById('accountBackdrop').classList.add('open'); }
 function closeAccountModal(){ document.getElementById('accountBackdrop').classList.remove('open'); }
 function closeAccountIfBg(e){ if(e.target===e.currentTarget) closeAccountModal(); }
 
@@ -5034,6 +5046,25 @@ function renderTax(){
   updateTaxSummary();
   if(taxTab === 'bracket') renderTaxBracket();
   if(taxTab === 'plan') renderTaxPlan();
+}
+
+// ── LINE User ID Settings ──
+function saveLineUserId(){
+  var val = (document.getElementById('lineUserIdInput').value||'').trim();
+  if(!val || !val.startsWith('U')){
+    var st=document.getElementById('lineUserIdStatus');
+    st.style.display=''; st.style.color='var(--red)';
+    st.textContent='⚠️ User ID ต้องขึ้นต้นด้วย U'; return;
+  }
+  window._lineUserId = val;
+  saveAll();
+  var st=document.getElementById('lineUserIdStatus');
+  st.style.display=''; st.style.color='var(--green)';
+  st.textContent='✅ บันทึกแล้ว — จะได้รับแจ้งเตือน LINE';
+}
+function loadLineUserIdInput(){
+  var inp=document.getElementById('lineUserIdInput');
+  if(inp && window._lineUserId) inp.value=window._lineUserId;
 }
 
 // ── Audio Feedback ──
