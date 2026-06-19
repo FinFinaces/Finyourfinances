@@ -2591,18 +2591,6 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">วันที่บันทึก</label><div id="txDateWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDate"/></div>
-      <div class="fg" id="txDueWrapRow"><label class="fl">กำหนดชำระ</label><div id="txDueWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDue"/></div>
-    </div>
-    <div class="frow" id="txStatusRow">
-      <div class="fg">
-        <label class="fl">สถานะ</label>
-        <input type="hidden" id="txStatus" value="unpaid"/>
-        <div style="display:flex;gap:6px">
-          <button type="button" id="txStatusPaid" onclick="setTxStatus('paid')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">✅ ชำระแล้ว</button>
-          <button type="button" id="txStatusUnpaid" onclick="setTxStatus('unpaid')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--red-br);background:var(--red-bg);color:var(--red);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">❌ ค้างชำระ</button>
-          <button type="button" id="txStatusPending" onclick="setTxStatus('pending')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">⏳ รอ</button>
-        </div>
-      </div>
       <div class="fg">
         <label class="fl">จ่ายผ่าน</label>
         <input type="hidden" id="txSource" value="bank"/>
@@ -2611,6 +2599,25 @@ tbody td { padding: 12px 16px; vertical-align: middle; }
           <span id="txSourceArrow" style="font-size:11px;color:var(--text3)">▼</span>
         </div>
         <div id="txSourceList" style="display:none;flex-direction:column;gap:4px;margin-top:6px;max-height:220px;overflow-y:auto;border:1.5px solid var(--border);border-radius:var(--rs);background:var(--surface);padding:6px"></div>
+      </div>
+    </div>
+    <div class="fg" id="txTrackBillWrap" style="background:var(--blue-bg);border:1px solid var(--blue-br);border-radius:var(--rs);padding:10px 12px">
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text);font-weight:500">
+        <input type="checkbox" id="txTrackBill" onchange="toggleTxTrackBill()" style="width:18px;height:18px;accent-color:var(--accent)"/>
+        <span>🧾 เป็นบิลที่ต้องติดตามค้างชำระ</span>
+      </label>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;margin-left:28px">ติ๊กถ้าต้องการตั้งวันครบกำหนดชำระ และสถานะ (ชำระแล้ว/ค้างชำระ/รอ) — ไม่ติ๊กถ้าจ่ายเสร็จเรียบร้อยแล้ว</div>
+    </div>
+    <div class="frow" id="txBillFieldsRow" style="display:none">
+      <div class="fg" id="txDueWrapRow"><label class="fl">กำหนดชำระ</label><div id="txDueWrap" style="display:flex;gap:6px"></div><input type="hidden" id="txDue"/></div>
+      <div class="fg">
+        <label class="fl">สถานะ</label>
+        <input type="hidden" id="txStatus" value="unpaid"/>
+        <div style="display:flex;gap:6px">
+          <button type="button" id="txStatusPaid" onclick="setTxStatus('paid')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">✅ ชำระแล้ว</button>
+          <button type="button" id="txStatusUnpaid" onclick="setTxStatus('unpaid')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--red-br);background:var(--red-bg);color:var(--red);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">❌ ค้างชำระ</button>
+          <button type="button" id="txStatusPending" onclick="setTxStatus('pending')" style="flex:1;padding:9px 6px;border-radius:var(--rs);border:1.5px solid var(--border);background:var(--surface);font-family:'Sarabun',sans-serif;font-size:13px;cursor:pointer;transition:all 0.15s">⏳ รอ</button>
+        </div>
       </div>
     </div>
     <div class="fg" style="background:var(--accent3);border:1px solid var(--accent);border-radius:var(--rs);padding:10px 12px">
@@ -5972,6 +5979,7 @@ function openTxModal(id){
   refreshCatSelects();
   populateSourceSelect('txSource');
   var statusToSet='unpaid';
+  var isTracked=false;
   if(id){
     const t=txs.find(x=>x.id===id);
     if(!t) return;
@@ -5989,6 +5997,8 @@ function openTxModal(id){
     _renderSourceDropdown('txSource',srcId);
     var catVal=t.category||Object.keys(CAT_EMOJI)[0]||'อาหาร';
     _renderTxCatDropdown(catVal);
+    // ถ้าสถานะไม่ใช่ "ชำระแล้ว" หรือกำหนดชำระต่างจากวันที่บันทึก ถือว่าเป็นบิลที่กำลังติดตามอยู่ → เปิด checkbox ให้เห็นฟิลด์
+    isTracked = (t.status!=='paid') || (t.due && t.due!==t.date);
   } else {
     setTxType('expense');
     ['txName','txAmt','txDue','txNote'].forEach(i=>document.getElementById(i).value='');
@@ -6012,6 +6022,7 @@ function openTxModal(id){
   var ca=document.getElementById('txCatArrow'); if(ca) ca.textContent='▼';
   setTimeout(function(){
     setTxStatus(statusToSet);
+    setTxTrackBillUI(isTracked);
     document.getElementById('txName').focus();
   }, 50);
 }
@@ -6021,14 +6032,33 @@ function setTxType(t){
   txType=t;
   document.getElementById('btnExp').classList.toggle('on',t==='expense');
   document.getElementById('btnInc').classList.toggle('on',t==='income');
-  // ซ่อน due/status เมื่อเป็น income
-  var dueRow=document.getElementById('txDueWrapRow');
-  var statusRow=document.getElementById('txStatusRow');
+  // รายรับไม่ต้องมีกำหนดชำระ/สถานะ/ติดตามบิล
+  var trackWrap=document.getElementById('txTrackBillWrap');
+  var billRow=document.getElementById('txBillFieldsRow');
   var isIncome=t==='income';
-  if(dueRow) dueRow.style.display=isIncome?'none':'';
-  if(statusRow) statusRow.style.display=isIncome?'none':'';
+  if(trackWrap) trackWrap.style.display=isIncome?'none':'';
+  if(billRow){
+    var chk=document.getElementById('txTrackBill');
+    billRow.style.display=(!isIncome&&chk&&chk.checked)?'':'none';
+  }
   // income → set status paid อัตโนมัติ
   if(isIncome) setTxStatus('paid');
+}
+function setTxTrackBillUI(checked){
+  var chk=document.getElementById('txTrackBill');
+  if(chk) chk.checked=checked;
+  var row=document.getElementById('txBillFieldsRow');
+  if(row) row.style.display=(checked&&txType!=='income')?'':'none';
+}
+function toggleTxTrackBill(){
+  var checked=document.getElementById('txTrackBill').checked;
+  setTxTrackBillUI(checked);
+  if(!checked){
+    // ไม่ติดตามบิล → ตั้งสถานะชำระแล้วและกำหนดชำระ=วันที่บันทึกอัตโนมัติ
+    setTxStatus('paid');
+    var d=document.getElementById('txDate').value||currentTxDate;
+    if(d) renderDatePicker('txDueWrap','txDue',d);
+  }
 }
 function setTxStatus(s){
   _txStatusValue=s;
