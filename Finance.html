@@ -4116,13 +4116,6 @@ function setInvestTab(t){
 // หุ้น/ETF/กองทุน: Yahoo Finance via allorigins proxy
 // ทองคำ: CoinGecko XAU
 
-var CRYPTO_IDS = {
-  'BTC':'bitcoin','ETH':'ethereum','BNB':'binancecoin','SOL':'solana',
-  'XRP':'ripple','ADA':'cardano','DOGE':'dogecoin','DOT':'polkadot',
-  'MATIC':'matic-network','LINK':'chainlink','AVAX':'avalanche-2',
-  'LTC':'litecoin','UNI':'uniswap','ATOM':'cosmos','NEAR':'near'
-};
-
 var FUND_TICKERS = {
   'K-US500X':'K-US500X-A.BK','K-INDIA':'K-INDIA-A.BK','K-SET50':'K-SET50.BK',
   'K-SF':'K-SF-A.BK','K-CASH':'K-CASH.BK','K-FIXED':'K-FIXED.BK',
@@ -4131,15 +4124,26 @@ var FUND_TICKERS = {
 
 var priceCache = {};
 
+// ดึงราคาคริปโตจาก Bitkub (ตลาดไทย) — public API ไม่ต้องใช้ key
+// ลองหลายรูปแบบ key เพราะ Bitkub มีการเปลี่ยนเวอร์ชัน API (v1 เก่าใช้ "THB_BTC", v3 ใหม่อาจใช้ "btc_thb")
 async function fetchCryptoPrice(symbol){
-  var id = CRYPTO_IDS[symbol.toUpperCase()];
-  if(!id) return null;
+  var sym = (symbol||'').toUpperCase().trim();
+  if(!sym) return null;
   try {
-    var r = await fetch('https://api.coingecko.com/api/v3/simple/price?ids='+id+'&vs_currencies=thb', {
+    var r = await fetch('https://api.bitkub.com/api/v3/market/ticker?sym='+sym.toLowerCase()+'_thb', {
       headers:{'Accept':'application/json'}
     });
     var d = await r.json();
-    return d[id] ? d[id].thb : null;
+    var src = (d && d.result) ? d.result : d;
+    var entry = src[sym.toLowerCase()+'_thb'] || src['THB_'+sym] || src[sym+'_THB'];
+    if(entry && entry.last) return parseFloat(entry.last);
+    // ถ้า query เจาะจงไม่เจอ ลองดึงทั้งตลาดมาหา key เอง (เผื่อชื่อ symbol สะกดเคสไม่ตรง)
+    var r2 = await fetch('https://api.bitkub.com/api/v3/market/ticker', { headers:{'Accept':'application/json'} });
+    var d2 = await r2.json();
+    var src2 = (d2 && d2.result) ? d2.result : d2;
+    var e2 = src2[sym.toLowerCase()+'_thb'] || src2['THB_'+sym];
+    if(e2 && e2.last) return parseFloat(e2.last);
+    return null;
   } catch(e){ return null; }
 }
 
@@ -4363,6 +4367,7 @@ function renderNetWorth(){
 }
 
 // ── Portfolio ──
+var portfolioGroupCollapsed = {};
 function renderPortfolio(){
   renderNetWorth();
   var grid = document.getElementById('portfolioGrid');
@@ -4393,61 +4398,85 @@ function renderPortfolio(){
     '</div>';
   }).join('');
 
-  // group by type
+  // group by type — เรียงลำดับคงที่ให้ดูเป็นระเบียบเสมอ
+  var TYPE_ORDER = ['stock','fund','crypto','gold','cash','other'];
   var byType = {};
   assets.forEach(function(a){
     if(!byType[a.type]) byType[a.type] = [];
     byType[a.type].push(a);
   });
+  var typeKeys = TYPE_ORDER.filter(function(t){ return byType[t]&&byType[t].length; });
+  // เผื่อมี type แปลกที่ไม่อยู่ใน order list
+  Object.keys(byType).forEach(function(t){ if(typeKeys.indexOf(t)===-1) typeKeys.push(t); });
 
-  grid.innerHTML = Object.entries(byType).map(function(entry){
-    var type = entry[0], list = entry[1];
+  grid.innerHTML = typeKeys.map(function(type){
+    var list = byType[type];
     var typeVal = list.reduce(function(s,a){return s+(a.qty||0)*(a.price||0);},0);
-    var typePct = totalValue > 0 ? (typeVal/totalValue*100).toFixed(1) : 0;
-    return '<div style="margin-bottom:20px">'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
-        '<div style="font-size:13px;font-weight:700;color:var(--text)">'+ASSET_TYPE_LABEL[type]+'</div>'+
-        '<div style="font-size:12px;color:var(--text3)">฿'+fmt(typeVal)+' · '+typePct+'%</div>'+
+    var typeCost = list.reduce(function(s,a){return s+(a.qty||0)*(a.cost||0);},0);
+    var typePnl = typeVal - typeCost;
+    var typePnlPct = typeCost>0 ? (typePnl/typeCost*100) : 0;
+    var typePct = totalValue > 0 ? (typeVal/totalValue*100) : 0;
+    var isOpen = !portfolioGroupCollapsed[type];
+    var color = ASSET_TYPE_COLOR[type]||'var(--text3)';
+
+    var itemsHtml = list.map(function(a){
+      var value = (a.qty||0)*(a.price||0);
+      var cost = (a.qty||0)*(a.cost||0);
+      var pnl = value - cost;
+      var pnlPct = cost > 0 ? (pnl/cost*100) : 0;
+      var barW = typeVal > 0 ? Math.min(100, value/typeVal*100) : 0;
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);padding:13px 15px;margin-bottom:7px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
+          '<div style="min-width:0">'+
+            '<div style="font-size:14px;font-weight:700;color:var(--text)">'+esc(a.name)+'</div>'+
+            '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+
+              (a.qty||0)+' หน่วย · ต้นทุน ฿'+fmt(a.cost||0)+'/หน่วย'+
+              (a.note?' · '+esc(a.note):'')+
+            '</div>'+
+          '</div>'+
+          '<div style="text-align:right;flex-shrink:0;margin-left:10px">'+
+            '<div class="mono" style="font-size:16px;font-weight:600">฿'+fmt(value)+'</div>'+
+            '<div class="mono" style="font-size:11px;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+
+              (pnl>=0?'▲':'▼')+' '+(pnl>=0?'+':'')+fmt(pnl)+' ('+pnlPct.toFixed(1)+'%)'+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+        '<div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:8px">'+
+          '<div style="height:100%;width:'+barW+'%;background:'+color+';border-radius:2px;transition:width 0.6s"></div>'+
+        '</div>'+
+        '<div style="display:flex;justify-content:space-between;align-items:center">'+
+          '<div style="font-size:11px;color:var(--text3)">'+
+            'ราคาปัจจุบัน ฿'+fmt(a.price||0)+'/หน่วย'+
+            (a.dividend>0?' · ปันผลสะสม ฿'+fmt(a.dividend):'')+
+          '</div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button class="goal-btn" onclick="openAssetModal(\'' + a.id + '\')" title="แก้ไข">✎</button>'+
+            '<button class="goal-btn del" onclick="deleteAsset(\'' + a.id + '\')" title="ลบ">✕</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    return '<div style="margin-bottom:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)">'+
+      '<div onclick="togglePortfolioGroup(\''+type+'\')" style="display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;border-left:4px solid '+color+'">'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:14px;font-weight:700;color:var(--text)">'+ASSET_TYPE_LABEL[type]+'</div>'+
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+list.length+' รายการ · '+typePct.toFixed(1)+'% ของพอร์ต</div>'+
+        '</div>'+
+        '<div style="text-align:right;flex-shrink:0">'+
+          '<div class="mono" style="font-size:16px;font-weight:700;color:var(--text)">฿'+fmt(typeVal)+'</div>'+
+          (typeCost>0?('<div class="mono" style="font-size:11px;color:'+(typePnl>=0?'var(--green)':'var(--red)')+'">'+(typePnl>=0?'+':'')+typePnlPct.toFixed(1)+'%</div>'):'')+
+        '</div>'+
+        '<span style="font-size:11px;color:var(--text3);flex-shrink:0;display:inline-block;transition:transform 0.2s;transform:rotate('+(isOpen?'0':'-90')+'deg)">▼</span>'+
       '</div>'+
-      list.map(function(a){
-        var value = (a.qty||0)*(a.price||0);
-        var cost = (a.qty||0)*(a.cost||0);
-        var pnl = value - cost;
-        var pnlPct = cost > 0 ? (pnl/cost*100) : 0;
-        var barW = totalValue > 0 ? Math.min(100, value/totalValue*100) : 0;
-        return '<div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:8px;transition:all 0.2s" >'+
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">'+
-            '<div>'+
-              '<div style="font-size:15px;font-weight:700;color:var(--text)">'+esc(a.name)+'</div>'+
-              '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+
-                (a.qty||0)+' หน่วย · ต้นทุน ฿'+fmt(a.cost||0)+'/หน่วย'+
-                (a.note?' · '+esc(a.note):'')+
-              '</div>'+
-            '</div>'+
-            '<div style="text-align:right">'+
-              '<div class="mono" style="font-size:18px;font-weight:600">฿'+fmt(value)+'</div>'+
-              '<div class="mono" style="font-size:12px;color:'+(pnl>=0?'var(--green)':'var(--red)')+'">'+
-                (pnl>=0?'▲':'▼')+' '+(pnl>=0?'+':'')+fmt(pnl)+' ('+pnlPct.toFixed(1)+'%)'+
-              '</div>'+
-            '</div>'+
-          '</div>'+
-          '<div style="height:4px;background:var(--bg2);border-radius:2px;overflow:hidden;margin-bottom:10px">'+
-            '<div style="height:100%;width:'+barW+'%;background:'+ASSET_TYPE_COLOR[a.type]+';border-radius:2px;transition:width 0.6s"></div>'+
-          '</div>'+
-          '<div style="display:flex;justify-content:space-between;align-items:center">'+
-            '<div style="font-size:11px;color:var(--text3)">'+
-              'ราคาปัจจุบัน ฿'+fmt(a.price||0)+'/หน่วย'+
-              (a.dividend>0?' · ปันผลสะสม ฿'+fmt(a.dividend):'')+
-            '</div>'+
-            '<div style="display:flex;gap:4px">'+
-              '<button class="goal-btn" onclick="openAssetModal(\'' + a.id + '\')" title="แก้ไข">✎</button>'+
-              '<button class="goal-btn del" onclick="deleteAsset(\'' + a.id + '\')" title="ลบ">✕</button>'+
-            '</div>'+
-          '</div>'+
-        '</div>';
-      }).join('')+
+      '<div style="height:3px;background:var(--bg2)"><div style="height:100%;width:'+typePct+'%;background:'+color+'"></div></div>'+
+      (isOpen?('<div style="padding:10px 12px 4px">'+itemsHtml+'</div>'):'')+
     '</div>';
   }).join('');
+}
+function togglePortfolioGroup(type){
+  portfolioGroupCollapsed[type] = !portfolioGroupCollapsed[type];
+  renderPortfolio();
 }
 
 // ── Asset Modal ──
