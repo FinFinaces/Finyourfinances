@@ -3592,15 +3592,8 @@ function openPayCL(id){
   if(linkedSrcs.length && txs){
     var srcIds = linkedSrcs.map(function(s){return s.id;});
     var now = new Date();
-    var cutDay = parseInt(l.dueDay)||1;
-    var cycleStart, cycleEnd;
-    if(now.getDate() >= cutDay){
-      cycleStart = new Date(now.getFullYear(), now.getMonth(), cutDay);
-      cycleEnd = new Date(now.getFullYear(), now.getMonth()+1, cutDay-1);
-    } else {
-      cycleStart = new Date(now.getFullYear(), now.getMonth()-1, cutDay);
-      cycleEnd = new Date(now.getFullYear(), now.getMonth(), cutDay-1);
-    }
+    var cyc = getBillCycle(l.dueDay, now);
+    var cycleStart = cyc.start, cycleEnd = cyc.end;
     var csStr = cycleStart.toISOString().slice(0,10);
     var ceStr = cycleEnd.toISOString().slice(0,10);
     cycleTxs = txs.filter(function(t){
@@ -4027,6 +4020,21 @@ function fmtShort(n){ if(Math.abs(n)>=1000000)return(n/1000000).toFixed(1)+'M'; 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function thDate(s){ if(!s)return'—'; const d=new Date(s); const _m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']; return d.getDate()+' '+_m[d.getMonth()]+' '+(d.getFullYear()+543); }
 function diffDays(s){ const t=new Date();t.setHours(0,0,0,0);const d=new Date(s);d.setHours(0,0,0,0);return Math.round((d-t)/86400000); }
+// รอบบิลตามวันตัดยอด (cutDay) — ถ้าวันนี้ยังไม่ถึงวันตัด ให้แสดงรอบที่ "ปิดแล้วล่าสุด" (ตรงกับใบแจ้งหนี้ธนาคาร)
+// ไม่ใช่รอบที่ยังเปิดอยู่ (กำลังสะสมยอดสำหรับรอบถัดไป)
+function getBillCycle(cutDay, refDate){
+  refDate = refDate || new Date();
+  var cut = parseInt(cutDay)||1;
+  var cycleEnd, cycleStart;
+  if(refDate.getDate() >= cut){
+    cycleEnd = new Date(refDate.getFullYear(), refDate.getMonth(), cut);
+    cycleStart = new Date(refDate.getFullYear(), refDate.getMonth()-1, cut+1);
+  } else {
+    cycleEnd = new Date(refDate.getFullYear(), refDate.getMonth()-1, cut);
+    cycleStart = new Date(refDate.getFullYear(), refDate.getMonth()-2, cut+1);
+  }
+  return {start:cycleStart, end:cycleEnd};
+}
 function sLabel(s){ return {paid:'ชำระแล้ว',unpaid:'ค้างชำระ',pending:'รอดำเนินการ'}[s]||s; }
 function monthItems(mo,yr){ const p=(mo===undefined)?period():{m:mo,y:yr}; return (txs||[]).filter(t=>{ const d=new Date(t.date); return d.getMonth()===p.m&&d.getFullYear()===p.y; }); }
 
@@ -6874,18 +6882,9 @@ function renderCreditLines(){
       var now=new Date();
       var cycleStart, cycleEnd;
       if(l.dueDay){
-        // รอบตัดบัตร: จาก (dueDay+1 เดือนก่อน) ถึง dueDay เดือนนี้
-        var cut=parseInt(l.dueDay)||1;
-        var thisMonth=new Date(now.getFullYear(),now.getMonth(),cut);
-        if(now.getDate()<=cut){
-          // ยังไม่ถึงวันตัด — รอบปัจจุบันคือเดือนก่อน+1 ถึงเดือนนี้
-          cycleEnd=thisMonth;
-          cycleStart=new Date(now.getFullYear(),now.getMonth()-1,cut+1);
-        } else {
-          // เลยวันตัดแล้ว — รอบปัจจุบันคือวันตัดเดือนนี้+1 ถึงวันตัดเดือนหน้า
-          cycleStart=new Date(now.getFullYear(),now.getMonth(),cut+1);
-          cycleEnd=new Date(now.getFullYear(),now.getMonth()+1,cut);
-        }
+        // รอบบิลที่ปิดแล้วล่าสุด ตรงกับใบแจ้งหนี้ธนาคาร
+        var cyc=getBillCycle(l.dueDay, now);
+        cycleStart=cyc.start; cycleEnd=cyc.end;
         var cs=cycleStart, ce=cycleEnd;
         var csLabel=(cs.getDate())+' '+(cs.getMonth()+1)+'/'+cs.getFullYear().toString().slice(2);
         var ceLabel=(ce.getDate())+' '+(ce.getMonth()+1)+'/'+ce.getFullYear().toString().slice(2);
